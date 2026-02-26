@@ -1,0 +1,934 @@
+\documentclass[lettersize,journal]{IEEEtran}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{array}
+\usepackage[caption=false,font=normalsize,labelfont=sf,textfont=sf]{subfig}
+\usepackage{textcomp}
+\usepackage{stfloats}
+\usepackage{url}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{cite}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[catalan]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+
+% Configuracio de listings per a Java
+\lstset{
+    language=Java,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{gray}\itshape,
+    stringstyle=\color{red!70!black},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    numbersep=5pt,
+    frame=single,
+    breaklines=true,
+    showstringspaces=false,
+    tabsize=4,
+    captionpos=b
+}
+
+\hyphenation{a-sin-to-tic a-sin-to-tics al-go-ris-me al-go-ris-mes con-tro-la-dor mul-ti-pli-ca-ti-va}
+
+\begin{document}
+
+\title{Analisi de Costos Computacionals Asimptotics:\\
+Practica 1 -- Visualitzacio amb Patro MVC}
+
+\author{Serafí~Nebot~Ginard
+\thanks{Universitat de les Illes Balears (UIB), Grau en Enginyeria Informatica, Analisi d'Algorismes, Curs 2025--2026.}}
+
+\markboth{Analisi d'Algorismes -- Practica 1, Curs 2025--2026}%
+{Nebot Sans: Analisi de Costos Computacionals Asimptotics}
+
+\maketitle
+
+\begin{abstract}
+Aquesta memoria presenta el desenvolupament d'una aplicacio Java 
+que permet visualitzar i comparar el cost computacional asimptotic de
+quatre algorismes amb complexitats $O(n)$, $O(n \cdot \log n)$, $O(n^2)$
+i $O(n^3)$. L'aplicacio segueix estrictament el patro arquitectonic
+Model-Vista-Controlador (MVC) combinat amb el patro per esdeveniments,
+garantint una separacio neta entre la logica de negoci, la
+interficie grafica i el control del flux. Es presenten els fonaments
+teorics de l'analisi asimptotic, el disseny del programari, la
+identificacio de la instruccio critica de cada algorisme, el calcul de la
+constant multiplicativa i la prediccio de temps d'execucio per a mides
+d'entrada arbitraries.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Analisi asimptotic, complexitat computacional, MVC, patro per
+esdeveniments, Java Swing, instruccio critica, constant multiplicativa.
+\end{IEEEkeywords}
+
+%% ================================================================
+\section{Introduccio}
+\IEEEPARstart{L}{'analisi} d'algorismes es una de les disciplines fonamentals
+de la informatica. Permet avaluar l'eficiencia d'un algorisme en funcio de
+la mida de l'entrada, independentment del maquinari o del llenguatge de
+programacio emprat. El concepte central es el \textit{cost asimptotic}, que
+descriu com creix el temps d'execucio quan la mida de l'entrada $n$ tendeix
+a infinit.
+
+Quan es dissenya un algorisme, sovint existeixen multiples estrategies per
+resoldre el mateix problema. L'analisi asimptotic proporciona una eina
+objectiva per comparar-les: un algorisme amb cost $O(n \log n)$ sera
+sempre mes eficient que un amb cost $O(n^2)$ per a entrades prou grans,
+independentment de les constants implicades. Aquesta observacio, que pot
+semblar abstracta, te consequencies practiques immediates: la diferencia
+entre un algorisme lineal i un cubic pot ser la diferencia entre una
+execucio de mil-lisegons i una de dies.
+
+L'objectiu d'aquesta practica es doble. D'una banda, es proposa
+implementar i mesurar experimentalment el temps d'execucio de quatre
+algorismes amb costos asimptotics coneguts: lineal, quasilineal, quadratic
+i cubic. D'altra banda, l'aplicacio s'ha de construir seguint el patro
+Model-Vista-Controlador (MVC) amb comunicacio basada en el patro per
+esdeveniments, un principi de disseny que desacobla completament les
+responsabilitats de cada capa del programari.
+
+El resultat es una aplicacio d'escriptori Java Swing que permet a l'usuari
+seleccionar rangs de mida d'entrada, executar algorismes de forma
+individual o conjunta, visualitzar els resultats en una grafica en temps
+real (amb escala lineal o logaritmica), consultar les constants
+multiplicatives mitjanes i fer previsions de temps per a mides d'entrada
+no mesurades.
+
+La memoria s'estructura de la seguent manera: la Seccio~II descriu
+l'entorn de programacio; la Seccio~III exposa els fonaments teorics; la
+Seccio~IV detalla el disseny i la implementacio de la practica; la
+Seccio~V analitza el calcul del cost asimptotic per la instruccio critica;
+la Seccio~VI presenta els resultats; i la Seccio~VII tanca amb les
+conclusions.
+
+%% ================================================================
+\section{Entorn de Programacio}
+
+L'aplicacio s'ha desenvolupat integrament en \textbf{Java}, un llenguatge
+orientat a objectes que ofereix portabilitat, tipatge estatic i un ecosistema
+madur de biblioteques. L'entorn concret es el seguent:
+
+\begin{itemize}
+    \item \textbf{Llenguatge:} Java 16 (compilacio amb \texttt{source} i
+          \texttt{target} 16).
+    \item \textbf{JDK:} OpenJDK 23 (Valhalla), compatible cap enrere amb
+          Java~16.
+    \item \textbf{IDE:} IntelliJ IDEA, que proporciona eines d'analisi de
+          codi, refactoritzacio automatitzada i integracio amb Maven.
+    \item \textbf{Sistema de construccio:} Apache Maven 3.x, amb un fitxer
+          \texttt{pom.xml} que defineix el \texttt{groupId}
+          \texttt{com.serafinebot.p1}, la codificacio UTF-8 i les versions
+          del compilador.
+    \item \textbf{Interficie grafica:} Java Swing (paquets \texttt{javax.swing}
+          i \texttt{java.awt}), sense cap biblioteca externa de grafiques.
+    \item \textbf{Control de versions:} Git.
+\end{itemize}
+
+La decisio d'utilitzar exclusivament Java Swing ---sense biblioteques
+de tercers com JFreeChart--- respon a un requisit de la practica i obliga
+a implementar manualment el renderitzat de la grafica amb l'API
+\texttt{Graphics2D}, incloent-hi eixos, graella, series de dades i
+llegenda.
+
+El fitxer \texttt{pom.xml} segueix una configuracio minima, ja que el
+projecte no te cap dependencia externa:
+
+\begin{lstlisting}[caption={Configuracio Maven del projecte.},language=XML]
+<properties>
+  <maven.compiler.source>16</maven.compiler.source>
+  <maven.compiler.target>16</maven.compiler.target>
+  <project.build.sourceEncoding>
+    UTF-8
+  </project.build.sourceEncoding>
+</properties>
+\end{lstlisting}
+
+Aquesta absencia de dependencies externes es un aspecte rellevant del
+projecte: tota la funcionalitat ---des del renderitzat de grafiques fins a
+la concurrencia--- s'implementa amb les eines estandard del JDK.
+
+%% ================================================================
+\section{Fonaments Teorics}
+
+\subsection{Analisi Asimptotic de Costos}
+
+L'analisi asimptotic permet classificar algorismes segons el seu
+comportament a llarg termini, es a dir, com creix el seu temps d'execucio
+en funcio de la mida de l'entrada~\cite{ref_cormen}. Es defineixen les
+notacions seguents:
+
+\begin{itemize}
+    \item \textbf{$O(f(n))$} (cota superior asimptotica): existeixen
+          constants $c > 0$ i $n_0$ tals que $T(n) \leq c \cdot f(n)$ per
+          a tot $n \geq n_0$.
+    \item \textbf{$\Omega(f(n))$} (cota inferior): existeixen constants
+          $c > 0$ i $n_0$ tals que $T(n) \geq c \cdot f(n)$ per a tot
+          $n \geq n_0$.
+    \item \textbf{$\Theta(f(n))$} (cota ajustada): $T(n)$ es alhora
+          $O(f(n))$ i $\Omega(f(n))$.
+\end{itemize}
+
+El temps d'execucio real d'un algorisme es pot modelar com:
+\begin{equation}
+\label{eq:temps}
+T(n) = c \cdot f(n)
+\end{equation}
+on $f(n)$ es la funcio de cost teoric i $c$ es la \textit{constant
+multiplicativa}, que depen del maquinari, el compilador i altres factors
+constants. La notacio asimptotica abstrau aquesta constant i es centra
+en l'ordre de creixement.
+
+\subsection{Ordres de Creixement}
+
+Les quatre funcions de cost que s'analitzen en aquesta practica presenten
+comportaments de creixement drasicament diferents. La Taula~\ref{tab:growth}
+il-lustra aquesta diferencia amb valors numerics concrets.
+
+\begin{table}[!t]
+\caption{Comparacio d'ordres de creixement per a diferents valors de $n$.\label{tab:growth}}
+\centering
+\begin{tabular}{r|rrrr}
+\toprule
+$n$ & $n$ & $n \log_2 n$ & $n^2$ & $n^3$ \\
+\midrule
+10     & 10       & 33         & 100         & 1\,000 \\
+100    & 100      & 664        & 10\,000     & $10^6$ \\
+1\,000  & 1\,000  & 9\,966     & $10^6$      & $10^9$ \\
+10\,000 & 10\,000 & 132\,877   & $10^8$      & $10^{12}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Com es pot observar, per a $n = 10\,000$, un algorisme cubic realitza
+$10^{12}$ operacions basiques, mentre que un de lineal nomes en fa
+$10^4$: una diferencia de vuit ordres de magnitud. Si cada operacio
+trigues 1~nanosegon, l'algorisme lineal acabaria en 10~microsegons,
+mentre que el cubic necessitaria aproximadament 17~minuts.
+
+\subsection{Instruccio Critica}
+
+La \textit{instruccio critica} es aquella operacio dins l'algorisme que
+s'executa el major nombre de vegades i que, per tant, domina el cost
+total~\cite{ref_knuth}. Identificar-la es clau per determinar la
+complexitat asimptotica. En algorismes iteratius, la instruccio critica
+es habitualment l'operacio dins el bucle mes intern. El nombre total
+d'execucions d'aquesta instruccio depen del nombre d'iteracions de tots
+els bucles que l'envolten.
+
+Per exemple, en un algorisme amb dos bucles imbricats, cadascun iterant
+$n$ vegades, la instruccio critica s'executa $n \times n = n^2$ vegades,
+i per tant el cost asimptotic es $\Theta(n^2)$.
+
+\subsection{Patro Model-Vista-Controlador (MVC)}
+
+El patro MVC~\cite{ref_mvc} divideix una aplicacio en tres components
+amb responsabilitats ben definides:
+
+\begin{enumerate}
+    \item \textbf{Model:} encapsula les dades i la logica de negoci.
+          Notifica als observadors quan el seu estat canvia, pero no coneix
+          la interficie grafica. En el nostre cas, emmagatzema les mesures
+          d'execucio, calcula constants multiplicatives i fa prediccions.
+    \item \textbf{Vista:} es responsable de la presentacio visual.
+          Renderitza les dades del model i captura les accions de l'usuari,
+          pero no coneix la logica de negoci. En el nostre cas, dibuixa la
+          grafica, mostra la taula de resultats i ofereix els controls.
+    \item \textbf{Controlador:} actua com a intermediari. Rep events
+          semantics de la vista, invoca operacions sobre el model i
+          actualitza la vista amb resultats. En el nostre cas, gestiona
+          els fils d'execucio dels algorismes.
+\end{enumerate}
+
+Un principi fonamental del MVC ben implementat es que la \textbf{Vista mai
+no ha d'exposar els seus components visuals} (botons, camps de text, etc.)
+al Controlador ni a cap altra capa. Tota comunicacio ha de ser a traves
+d'events semantics i metodes que operen amb dades. Aquesta restriccio es
+crucial perque, si el controlador accedis directament als botons o camps
+de text de la vista, qualsevol canvi a la interficie grafica obligaria a
+modificar tambe el controlador, trencant el principi de separacio de
+responsabilitats.
+
+En implementacions ingenues del MVC, es comu veure patrons com
+\texttt{view.getStartButton().addActionListener(...)}, on el controlador
+obte directament un \texttt{JButton} de la vista. Aixo viola el patro
+perque crea un acoblament directe entre el controlador i la representacio
+visual concreta. En la nostra implementacio, hem evitat completament
+aquest anti-patro.
+
+\subsection{Patro per Esdeveniments (Observer)}
+
+El patro Observer~\cite{ref_observer} estableix una relacio
+un-a-molts entre objectes, de manera que quan un objecte (el
+\textit{subjecte}) canvia d'estat, tots els seus observadors son
+notificats automaticament. En el context d'aquesta practica, s'utilitza
+en dues direccions:
+
+\begin{enumerate}
+    \item \textbf{Model $\rightarrow$ Vista:} El model defineix una
+          interficie \texttt{ModelListener} amb el metode
+          \texttt{modelChanged()}. Quan s'afegeix una mesura o s'esborren
+          dades, el model invoca aquest metode, i la vista actualitza la
+          taula i la grafica.
+    \item \textbf{Vista $\rightarrow$ Controlador:} La vista defineix
+          una interficie \texttt{ViewListener} amb set metodes semantics
+          (\texttt{onStartAlgorithm}, \texttt{onStopAlgorithm},
+          \texttt{onStartAll}, \texttt{onStopAll}, \texttt{onPredict},
+          \texttt{onClear}, \texttt{onLogScaleChanged}). El controlador
+          implementa aquesta interficie i rep events ja processats (amb
+          valors parsejats), mai components Swing.
+\end{enumerate}
+
+Aquesta doble aplicacio del patro Observer garanteix un desacoblament
+complet: el model no sap qui l'observa, i el controlador no sap com es
+la interficie grafica. Es podria substituir tota la vista Swing per una
+interficie web o de terminal sense modificar ni una sola linia del model
+o del controlador.
+
+\subsection{Concurrencia i el Fil EDT}
+
+En Java Swing, totes les operacions sobre components visuals s'han de
+realitzar des del fil de despatx d'events (\textit{Event Dispatch Thread},
+EDT)~\cite{ref_java}. Si un algorisme lent s'executes directament al fil
+EDT, la interficie es bloquejaria fins que acabes, impedint qualsevol
+interaccio amb l'usuari.
+
+La solucio estandard es \texttt{SwingWorker}, una classe que permet
+executar tasques llargues en un fil de fons i publicar resultats parcials
+al fil EDT de forma segura. El cicle de vida d'un \texttt{SwingWorker} es:
+
+\begin{enumerate}
+    \item \texttt{doInBackground()}: s'executa en un fil de fons. Aqui
+          s'executa l'algorisme i es crida \texttt{publish()} per enviar
+          resultats intermedis.
+    \item \texttt{process(List<V>)}: s'invoca al fil EDT amb els resultats
+          publicats. Aqui s'afegeixen les mesures al model.
+    \item \texttt{done()}: s'invoca al fil EDT quan la tasca acaba o es
+          cancel-la. Aqui s'actualitza l'estat visual del boto.
+\end{enumerate}
+
+La cancel-lacio es cooperativa: \texttt{SwingWorker.cancel(true)} envia
+una interrupcio al fil de fons, que ha de comprovar periodicament
+\texttt{Thread.currentThread().isInterrupted()} per aturar-se netament.
+
+%% ================================================================
+\section{Disseny i Implementacio de la Practica}
+
+\subsection{Estructura del Projecte}
+
+El projecte Maven s'organitza en tres paquets dins
+\texttt{com.serafinebot.p1}:
+
+\begin{verbatim}
+src/main/java/com/serafinebot/p1/
+  Main.java
+  model/
+    AlgorithmType.java
+    Measurement.java
+    Model.java
+  view/
+    ViewListener.java
+    ControlPanel.java
+    GraphPanel.java
+    ResultsPanel.java
+    MainView.java
+  controller/
+    Controller.java
+\end{verbatim}
+
+Cada paquet correspon exactament a una capa del patro MVC, amb el punt
+d'entrada \texttt{Main.java} a l'arrel. L'ordre d'instanciacio segueix
+la sequencia classica:
+
+\begin{lstlisting}[caption={Punt d'entrada de l'aplicacio (\texttt{Main.java}).}]
+Model model = new Model();
+MainView view = new MainView(model);
+new Controller(model, view);
+view.setVisible(true);
+\end{lstlisting}
+
+El model es crea primer perque no depen de res; la vista rep el model per
+poder registrar-se com a observadora dels seus canvis; i el controlador
+rep ambdos i es registra com a \texttt{ViewListener} de la vista. Tota
+la inicialitzacio es realitza dins \texttt{SwingUtilities.invokeLater()}
+per garantir que es fa al fil EDT.
+
+\subsection{Capa del Model}
+
+La capa del model consta de tres classes, cadascuna amb una responsabilitat
+clara i ben delimitada.
+
+\subsubsection{AlgorithmType (Enum)}
+
+Defineix els quatre algorismes com a constants d'un \texttt{enum}. Cada
+constant implementa dos metodes abstractes:
+\begin{itemize}
+    \item \texttt{execute(long n)}: executa l'algorisme amb mida $n$ i
+          retorna un resultat numericament dependent de l'entrada per
+          evitar que el compilador JIT l'optimitzi o l'elimini.
+    \item \texttt{theoreticalCost(long n)}: retorna el valor numeric de
+          $f(n)$.
+\end{itemize}
+
+A mes, cada algorisme te associat un nom visible, una notacio matematica
+i un color per a la grafica. L'us d'un \texttt{enum} amb metodes
+abstractes es una aplicacio del \textit{Strategy pattern}: cada constant
+de l'enumeracio encapsula el seu propi comportament.
+
+Per exemple, l'algorisme quadratic es defineix com:
+
+\begin{lstlisting}[caption={Definicio de l'algorisme $O(n^2)$.}]
+QUADRATIC("O(n^2)", "Quadratic",
+          new Color(220, 120, 0)) {
+    public double theoreticalCost(long n) {
+        return (double) n * n;
+    }
+    public long execute(long n)
+            throws InterruptedException {
+        long sum = 0;
+        for (long i = 0; i < n; i++) {
+            if (Thread.currentThread()
+                      .isInterrupted())
+                throw new InterruptedException();
+            for (long j = 0; j < n; j++) {
+                sum += i * j; // instruccio critica
+            }
+        }
+        return sum;
+    }
+};
+\end{lstlisting}
+
+Cal destacar dos aspectes: primer, la comprovacio d'\texttt{isInterrupted()}
+al bucle extern (no al mes intern, per no penalitzar el rendiment amb
+comprovacions massa frequents); segon, el llancament d'\texttt{InterruptedException}
+que permet la cancel-lacio cooperativa des del controlador.
+
+\subsubsection{Measurement}
+
+Classe immutable que emmagatzema el resultat d'una mesura: el tipus
+d'algorisme, la mida $n$, el temps en nanosegons i la constant
+multiplicativa, que es pre-calcula al constructor:
+
+\begin{equation}
+\label{eq:constant}
+c = \frac{T(n)}{f(n)}
+\end{equation}
+
+on $T(n)$ es el temps mesurat en nanosegons i $f(n)$ es el cost teoric
+retornat per \texttt{theoreticalCost(n)}. El codi del constructor es:
+
+\begin{lstlisting}[caption={Constructor de \texttt{Measurement}.}]
+public Measurement(AlgorithmType type,
+                   long n, long timeNanos) {
+    this.type = type;
+    this.n = n;
+    this.timeNanos = timeNanos;
+    double cost = type.theoreticalCost(n);
+    this.constant = cost > 0
+        ? timeNanos / cost : 0;
+}
+\end{lstlisting}
+
+Pre-calcular $c$ a cada mesura individual permet despres obtenir la
+mitjana de forma directa, sense necessitat de recalcular divisions
+repetidament.
+
+\subsubsection{Model}
+
+Classe central que manté un \texttt{EnumMap} de llistes de mesures. Els
+metodes principals son:
+\begin{itemize}
+    \item \texttt{addMeasurement(Measurement m)}: afegeix una mesura,
+          ordena la llista per $n$ creixent (per facilitar el dibuix de
+          la grafica) i notifica els observadors.
+    \item \texttt{getAverageConstant(AlgorithmType t)}: retorna la mitjana
+          aritmetica de les constants individuals, calculada amb l'API
+          de \textit{streams} de Java.
+    \item \texttt{predict(AlgorithmType t, long n)}: calcula el temps
+          predit com $\hat{T}(n) = \bar{c} \cdot f(n)$, on $\bar{c}$ es
+          la constant mitjana.
+    \item \texttt{clearAll()}: esborra totes les mesures i notifica.
+\end{itemize}
+
+Tots els metodes que modifiquen o llegeixen l'estat son
+\texttt{synchronized}, ja que els fils de fons dels \texttt{SwingWorker}
+poden accedir al model concurrentment. El model implementa el patro
+Observer mitjancant la interficie \texttt{ModelListener}:
+
+\begin{lstlisting}[caption={Patro Observer al model.}]
+public interface ModelListener {
+    void modelChanged();
+}
+
+private void fireModelChanged() {
+    for (ModelListener l : listeners) {
+        l.modelChanged();
+    }
+}
+\end{lstlisting}
+
+\subsection{Capa de la Vista}
+
+La vista es composa de quatre classes i una interficie. \textbf{Cap
+d'elles exposa components Swing a l'exterior.}
+
+\subsubsection{ViewListener (Interficie)}
+
+Defineix el contracte semantic entre la vista i el controlador:
+
+\begin{lstlisting}[caption={Interficie \texttt{ViewListener}.}]
+public interface ViewListener {
+    void onStartAlgorithm(AlgorithmType type,
+                          long[] nValues);
+    void onStopAlgorithm(AlgorithmType type);
+    void onStartAll(long[] nValues);
+    void onStopAll();
+    void onPredict(long predictN);
+    void onClear();
+    void onLogScaleChanged(boolean logScale);
+}
+\end{lstlisting}
+
+Tots els parametres son dades primitives o enums. No hi ha cap referencia
+a \texttt{JButton}, \texttt{JTextField} ni cap altre component visual.
+Aquesta es la clau de la separacio MVC.
+
+\subsubsection{ControlPanel}
+
+Panell que conte els camps d'entrada, els botons d'execucio i el camp de
+previsio. Les responsabilitats son exclusivament de la vista:
+
+\begin{enumerate}
+    \item Capturar les accions de l'usuari (clics de botons, canvi de
+          checkbox d'escala logaritmica).
+    \item Validar l'entrada internament: parsejar els camps de text a
+          valors \texttt{long}/\texttt{int} i mostrar dialogs d'error
+          (\texttt{JOptionPane}) si els valors son invalids.
+    \item Generar l'array de valors de $n$ equidistants dins el rang
+          $[\texttt{nInicial}, \texttt{nFinal}]$ amb la formula:
+\end{enumerate}
+
+\begin{equation}
+n_i = n_{\text{inici}} + \frac{(n_{\text{final}} - n_{\text{inici}}) \cdot i}{p - 1}, \quad i = 0, \ldots, p-1
+\end{equation}
+
+on $p$ es el nombre de passos. Nomes quan la validacio passa
+satisfactoriament s'emet l'event semantic a traves de \texttt{ViewListener}.
+
+Quan un algorisme esta en execucio, el seu boto canvia d'icona
+($\blacktriangleright \rightarrow \blacksquare$) i de color (del color
+de l'algorisme a vermell), permetent aturar-lo individualment amb un
+segon clic.
+
+\subsubsection{GraphPanel}
+
+Panell personalitzat que sobreescriu \texttt{paintComponent(Graphics g)}
+per dibuixar la grafica amb l'API \texttt{Graphics2D}. Les
+caracteristiques principals son:
+
+\begin{itemize}
+    \item \textbf{Eixos i graella:} eix X per a $n$, eix Y per al temps
+          en mil-lisegons, amb marques numeriques i linies de graella
+          de color gris clar.
+    \item \textbf{Escala dual:} suporta escala lineal i logaritmica a
+          l'eix Y, commutable en temps real. En escala logaritmica, la
+          posicio vertical es calcula com:
+\end{itemize}
+
+\begin{equation}
+y = h - h \cdot \frac{\log_{10}(t) - \log_{\min}}{\log_{\max} - \log_{\min}}
+\end{equation}
+
+\begin{itemize}
+    \item \textbf{Series de dades:} dibuixa punts (cercles plens de
+          8$\times$8 pixels) i linies de connexio per a cada algorisme
+          amb el seu color assignat i un tracat de 2.5~punts.
+    \item \textbf{Llegenda:} rectangle semitransparent amb fons blanc i
+          opacitat 220/255 a la cantonada superior esquerra.
+    \item \textbf{Formatejat dinamic:} les etiquetes s'adapten
+          automaticament (ns, $\mu$s, ms, s, min per al temps; K, M per
+          a $n$).
+    \item \textbf{Antialiasing:} activat tant per a linies com per a
+          text per obtenir un renderitzat suau.
+\end{itemize}
+
+L'escala logaritmica es especialment util quan es comparen algorismes
+amb ordres de magnitud molt diferents (per exemple, $O(n)$ vs. $O(n^3)$),
+ja que en escala logaritmica les funcions potencials $n^k$ es visualitzen
+com rectes amb pendent $k$.
+
+\subsubsection{ResultsPanel}
+
+Panell dividit verticalment en dues parts mitjancant un \texttt{JSplitPane}:
+\begin{itemize}
+    \item Una \texttt{JTable} no editable que mostra totes les mesures
+          amb quatre columnes: algorisme, $n$, temps en ms i constant
+          $c$ en notacio cientifica.
+    \item Una \texttt{JTextArea} de nomes lectura amb font monoespaiada
+          que mostra les constants multiplicatives mitjanes i les
+          previsions sol-licitades per l'usuari, amb formatejat adaptatiu
+          (mil-lisegons, segons, minuts, hores o dies).
+\end{itemize}
+
+\subsubsection{MainView}
+
+\texttt{JFrame} principal que compon els tres sub-panells en un
+\texttt{BorderLayout} (controls al \texttt{NORTH}, grafica al
+\texttt{CENTER}, resultats a l'\texttt{EAST}). Es registra com a
+observadora del model amb una lambda:
+
+\begin{lstlisting}[caption={Registre com a observadora del model.}]
+model.addListener(() -> {
+    graphPanel.repaint();
+    resultsPanel.updateResults();
+});
+\end{lstlisting}
+
+L'API publica de \texttt{MainView} consta exclusivament de metodes
+que operen amb dades:
+
+\begin{lstlisting}[caption={API publica de \texttt{MainView}.}]
+void addViewListener(ViewListener l);
+void setAlgorithmRunning(
+    AlgorithmType t, boolean b);
+void setLogScale(boolean logScale);
+void showPredictions(long n,
+    Map<AlgorithmType, Double> preds);
+\end{lstlisting}
+
+Cap metode retorna ni rep un component Swing. Aquesta restriccio es
+fonamental per a la separacio MVC i ha estat un dels punts de disseny
+mes importants del projecte.
+
+\subsection{Capa del Controlador}
+
+La classe \texttt{Controller} implementa \texttt{ViewListener} i gestiona
+el cicle de vida dels algorismes. El codi del metode principal d'execucio
+mostra el patro de \texttt{SwingWorker}:
+
+\begin{lstlisting}[caption={Execucio d'un algorisme al controlador.}]
+private void startExecution(
+        AlgorithmType type, long[] nValues) {
+  SwingWorker<Void, Measurement> worker =
+    new SwingWorker<>() {
+      protected Void doInBackground() {
+        for (long n : nValues) {
+          if (isCancelled()) break;
+          // Escalfament JIT
+          type.execute(Math.min(n, 500));
+          // Mesura real
+          long start = System.nanoTime();
+          type.execute(n);
+          long elapsed = System.nanoTime()-start;
+          publish(new Measurement(
+              type, n, elapsed));
+        }
+        return null;
+      }
+      protected void process(
+              List<Measurement> chunks) {
+        for (Measurement m : chunks)
+          model.addMeasurement(m);
+      }
+      protected void done() {
+        workers.remove(type);
+        view.setAlgorithmRunning(type, false);
+      }
+    };
+  workers.put(type, worker);
+  view.setAlgorithmRunning(type, true);
+  worker.execute();
+}
+\end{lstlisting}
+
+Cal destacar l'\textit{escalfament} (warm-up) que es fa abans de cada
+mesura: s'executa l'algorisme amb una mida petita ($\min(n, 500)$) per
+forcar la compilacio JIT de la JVM. Aixo evita que la primera mesura
+estigui distorsionada pel cost de compilacio.
+
+El controlador mante un \texttt{EnumMap} de \texttt{SwingWorker} per
+poder cancel-lar cada algorisme individualment. \textbf{Mai no accedeix a
+cap component visual}: la seva unica referencia a la vista es a traves
+dels metodes de dades de \texttt{MainView}.
+
+%% ================================================================
+\section{Calcul del Cost Asimptotic\\ per la Instruccio Critica}
+
+La instruccio critica de cada algorisme es l'operacio dins el bucle mes
+intern que s'executa el major nombre de vegades. El nombre total
+d'execucions d'aquesta instruccio determina $f(n)$.
+
+\subsection{Algorisme Lineal --- $O(n)$}
+
+\begin{lstlisting}[caption={Algorisme lineal.}]
+for (long i = 0; i < n; i++) {
+    sum += i * i;  // instruccio critica
+}
+\end{lstlisting}
+
+La instruccio critica \texttt{sum += i * i} s'executa exactament $n$
+vegades. No hi ha bucles imbricats, per tant:
+\begin{equation}
+f(n) = n \implies T(n) \in \Theta(n)
+\end{equation}
+
+\subsection{Algorisme Quasilineal --- $O(n \cdot \log n)$}
+
+\begin{lstlisting}[caption={Algorisme $O(n \cdot \log n)$.}]
+int logN = (int)(Math.log(n) / Math.log(2));
+for (long i = 0; i < n; i++) {
+    for (int j = 0; j < logN; j++) {
+        sum += i ^ j;  // instruccio critica
+    }
+}
+\end{lstlisting}
+
+El bucle extern itera $n$ vegades i l'intern $\lfloor \log_2 n \rfloor$
+vegades per cada iteracio externa. La instruccio critica
+\texttt{sum += i \^{} j} s'executa:
+\begin{equation}
+f(n) = n \cdot \lfloor \log_2 n \rfloor \implies T(n) \in \Theta(n \log n)
+\end{equation}
+
+\subsection{Algorisme Quadratic --- $O(n^2)$}
+
+\begin{lstlisting}[caption={Algorisme quadratic.}]
+for (long i = 0; i < n; i++) {
+    for (long j = 0; j < n; j++) {
+        sum += i * j;  // instruccio critica
+    }
+}
+\end{lstlisting}
+
+Dos bucles imbricats, cadascun de $n$ iteracions. La instruccio critica
+\texttt{sum += i * j} s'executa:
+\begin{equation}
+f(n) = n \times n = n^2 \implies T(n) \in \Theta(n^2)
+\end{equation}
+
+\subsection{Algorisme Cubic --- $O(n^3)$}
+
+\begin{lstlisting}[caption={Algorisme cubic.}]
+for (long i = 0; i < n; i++) {
+    for (long j = 0; j < n; j++) {
+        for (long k = 0; k < n; k++) {
+            sum += (i*j) + k; // inst. critica
+        }
+    }
+}
+\end{lstlisting}
+
+Tres bucles imbricats, cadascun de $n$ iteracions. La instruccio critica
+\texttt{sum += (i * j) + k} s'executa:
+\begin{equation}
+f(n) = n^3 \implies T(n) \in \Theta(n^3)
+\end{equation}
+
+\subsection{Resum Comparatiu}
+
+La Taula~\ref{tab:critical} resumeix la instruccio critica, el nombre
+d'execucions i la complexitat de cada algorisme.
+
+\begin{table}[!t]
+\caption{Instruccio critica i complexitat de cada algorisme.\label{tab:critical}}
+\centering
+\begin{tabular}{lllc}
+\toprule
+Algorisme & Instruccio critica & Execucions & $\Theta$ \\
+\midrule
+Lineal     & \texttt{sum += i*i}   & $n$                           & $n$ \\
+N Log N    & \texttt{sum += i\^{}j}  & $n \lfloor\log_2 n\rfloor$   & $n\log n$ \\
+Quadratic  & \texttt{sum += i*j}   & $n^2$                         & $n^2$ \\
+Cubic      & \texttt{sum += (i*j)+k} & $n^3$                       & $n^3$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Constant Multiplicativa i Prediccio}
+
+Per a cada mesura individual, la constant multiplicativa es calcula
+segons l'equacio~(\ref{eq:constant}). La constant mitjana $\bar{c}$
+s'obte com la mitjana aritmetica de totes les constants individuals
+d'un algorisme:
+
+\begin{equation}
+\bar{c} = \frac{1}{m} \sum_{k=1}^{m} c_k = \frac{1}{m} \sum_{k=1}^{m}
+\frac{T(n_k)}{f(n_k)}
+\end{equation}
+
+on $m$ es el nombre de mesures realitzades. Aquesta constant reflexa el
+cost temporal per unitat d'operacio basica a la maquina concreta.
+
+Per fer una prediccio del temps d'execucio per a un valor de $n$ no
+mesurat, s'utilitza la formula:
+\begin{equation}
+\hat{T}(n) = \bar{c} \cdot f(n)
+\end{equation}
+
+Per exemple, si tenim $\bar{c} = 2.5$ ns per a l'algorisme quadratic
+i volem predir $n = 100\,000$:
+\begin{equation}
+\hat{T}(100\,000) = 2.5 \times (100\,000)^2 = 2.5 \times 10^{10} \text{ ns}
+= 25 \text{ s}
+\end{equation}
+
+Aquesta capacitat de prediccio es un dels avantatges clau de l'analisi
+asimptotic: amb unes poques mesures per a valors petits de $n$, es pot
+estimar el temps d'execucio per a valors molt mes grans sense necessitat
+d'executar l'algorisme.
+
+%% ================================================================
+\section{Resultats i Discussio}
+
+L'aplicacio implementada permet verificar experimentalment que els temps
+d'execucio mesurats segueixen les funcions de cost teoric. A la grafica,
+s'observa clarament com:
+
+\begin{itemize}
+    \item La serie lineal $O(n)$ creix de forma gairebe imperceptible en
+          comparacio amb les altres series.
+    \item La serie $O(n \cdot \log n)$ creix lleugerament mes que la
+          lineal, pero de forma moderada i controlada.
+    \item La serie quadratica $O(n^2)$ creix de forma parabolica,
+          essent significativament mes costosa per a valors grans de $n$.
+    \item La serie cubica $O(n^3)$ domina clarament totes les altres,
+          fent-se impracticable per a valors de $n$ moderadament grans.
+\end{itemize}
+
+L'us de l'escala logaritmica a l'eix Y permet comparar totes quatre series
+simultaniament sense que les mes rapides quedin comprimides contra l'eix X.
+En escala logaritmica, les funcions potencials $n^k$ es visualitzen com a
+rectes amb pendent proporcional a $k$, facilitant la verificacio visual
+de la complexitat.
+
+Les constants multiplicatives calculades es mantenen raonablement estables
+per a un algorisme donat, la qual cosa confirma que el model asimptotic
+$T(n) = c \cdot f(n)$ es una bona aproximacio. Petites variacions
+s'atribueixen a:
+
+\begin{itemize}
+    \item Efectes de la jerarquia de memoria (cache L1/L2/L3 del
+          processador): per a valors grans de $n$, les dades poden
+          excedir la cache, augmentant la latencia.
+    \item La compilacio JIT de la JVM: el compilador optimitza el codi
+          progressivament durant l'execucio, la qual cosa pot fer que
+          les primeres mesures siguin mes lentes. L'escalfament previ
+          mitiga parcialment aquest efecte.
+    \item La planificacio del sistema operatiu: altres processos poden
+          competir pel temps de CPU.
+\end{itemize}
+
+La funcionalitat de prediccio ha mostrat resultats coherents: les
+prediccions per a valors de $n$ dins el rang mesurat concorden amb les
+mesures reals, i les prediccions per a valors mes grans segueixen
+l'extrapolacio esperada.
+
+Respecte al disseny del programari, l'estricta separacio MVC amb
+comunicacio per esdeveniments ha permes:
+
+\begin{itemize}
+    \item Desenvolupar i provar la logica del model independentment de la
+          vista.
+    \item Modificar la interficie grafica (per exemple, afegir l'escala
+          logaritmica o millorar el formatejat de la grafica) sense alterar
+          el controlador ni el model.
+    \item Garantir que l'aplicacio roman responsiva durant l'execucio
+          d'algorismes lents, gracies a l'us de \texttt{SwingWorker} que
+          executa els algorismes en fils de fons separats del fil EDT.
+    \item Cancel-lar algorismes individualment sense afectar els altres
+          que s'estan executant concurrentment.
+\end{itemize}
+
+%% ================================================================
+\section{Conclusions}
+
+Aquesta practica ha permes aplicar de forma conjunta els conceptes
+d'analisi asimptotic i de disseny de programari amb el patro MVC.
+
+Des del punt de vista teoric, s'ha verificat experimentalment que els
+temps d'execucio dels quatre algorismes implementats corresponen a les
+seves complexitats teoriques. La identificacio de la instruccio critica
+de cada algorisme ---l'operacio del bucle mes intern--- i el calcul de la
+constant multiplicativa han permes fer prediccions fiables del temps
+d'execucio per a mides d'entrada arbitraries. L'experiment confirma que
+el model $T(n) = c \cdot f(n)$ es una aproximacio valida quan $n$ es prou
+gran i les condicions d'execucio son estables.
+
+Des del punt de vista del disseny de programari, s'ha aconseguit una
+implementacio estricta del patro MVC on:
+
+\begin{enumerate}
+    \item La vista \textbf{no exposa cap component visual} al controlador;
+          tota interaccio es a traves d'events semantics.
+    \item La interficie \texttt{ViewListener} defineix set events amb
+          parametres de dades (enums, arrays de \texttt{long}, booleans),
+          mai objectes Swing.
+    \item El model notifica canvis a traves de \texttt{ModelListener}
+          sense coneixer qui l'observa.
+    \item El controlador opera exclusivament amb dades, delegant la
+          presentacio visual a la vista i la logica de negoci al model.
+    \item La concurrencia es gestiona amb \texttt{SwingWorker}, garantint
+          la responsivitat de la interficie i la cancel-lacio segura.
+\end{enumerate}
+
+El patro per esdeveniments ha demostrat ser essencial per mantenir el
+desacoblament entre capes, permetent que cada component evolucioni de
+forma independent. Aquesta separacio no es una mera formalitat academica:
+facilita el manteniment, la testabilitat i l'extensibilitat del
+programari. Per exemple, es podria substituir la vista Swing per una
+interficie JavaFX o web sense modificar ni una linia del model o del
+controlador.
+
+Com a treball futur, es podrien afegir mes algorismes (per exemple,
+$O(2^n)$ o $O(n!)$), implementar l'exportacio de dades a CSV, permetre
+a l'usuari definir algorismes personalitzats, o afegir mes estrategies
+de mesura com la repeticio multiple amb mitjana per reduir la variancia
+experimental.
+
+%% ================================================================
+
+\begin{thebibliography}{9}
+\bibliographystyle{IEEEtran}
+
+\bibitem{ref_mvc}
+E. Gamma, R. Helm, R. Johnson, and J. Vlissides, \textit{Design Patterns:
+Elements of Reusable Object-Oriented Software}. Reading, MA, USA:
+Addison-Wesley, 1994.
+
+\bibitem{ref_observer}
+F. Buschmann, R. Meunier, H. Rohnert, P. Sommerlad, and M. Stal,
+\textit{Pattern-Oriented Software Architecture: A System of Patterns}.
+Chichester, U.K.: Wiley, 1996.
+
+\bibitem{ref_cormen}
+T. H. Cormen, C. E. Leiserson, R. L. Rivest, and C. Stein,
+\textit{Introduction to Algorithms}, 4th~ed. Cambridge, MA, USA:
+MIT Press, 2022.
+
+\bibitem{ref_sedgewick}
+R. Sedgewick and K. Wayne, \textit{Algorithms}, 4th~ed. Upper Saddle
+River, NJ, USA: Addison-Wesley, 2011.
+
+\bibitem{ref_swing}
+J. Elliott, R. Eckstein, M. Loy, D. Wood, and B. Cole, \textit{Java
+Swing}, 2nd~ed. Sebastopol, CA, USA: O'Reilly Media, 2002.
+
+\bibitem{ref_java}
+Oracle Corporation, ``The Java Tutorials --- Concurrency,''
+[Online]. Available:
+\url{https://docs.oracle.com/javase/tutorial/essential/concurrency/}
+
+\bibitem{ref_knuth}
+D. E. Knuth, \textit{The Art of Computer Programming, Vol. 1:
+Fundamental Algorithms}, 3rd~ed. Reading, MA, USA: Addison-Wesley, 1997.
+
+\end{thebibliography}
+
+\end{document}
