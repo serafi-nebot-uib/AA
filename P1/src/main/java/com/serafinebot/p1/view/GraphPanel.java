@@ -233,22 +233,42 @@ public class GraphPanel extends JPanel {
 
     private String formatTime(double ms) {
         if (ms >= 60_000) {
-            long mins = Math.round(ms / 60_000);
-            return mins + " min";
+            double mins = ms / 60_000.0;
+            if (mins == Math.floor(mins)) {
+                return String.format("%d min", (long)mins);
+            } else {
+                return String.format("%.1f min", mins);
+            }
         }
         if (ms >= 1_000) {
-            long secs = Math.round(ms / 1_000);
-            return secs + " s";
+            double secs = ms / 1_000.0;
+            if (secs == Math.floor(secs)) {
+                return String.format("%d s", (long)secs);
+            } else {
+                return String.format("%.1f s", secs);
+            }
         }
         if (ms >= 1) {
-            return String.format("%d ms", Math.round(ms));
+            if (ms == Math.floor(ms)) {
+                return String.format("%d ms", (long)ms);
+            } else {
+                return String.format("%.1f ms", ms);
+            }
         }
         if (ms >= 0.001) {
-            long micros = Math.round(ms * 1_000);
-            return micros + " us";
+            double micros = ms * 1_000;
+            if (micros == Math.floor(micros)) {
+                return String.format("%d us", (long)micros);
+            } else {
+                return String.format("%.1f us", micros);
+            }
         }
-        long nanos = Math.round(ms * 1_000_000);
-        return nanos + " ns";
+        double nanos = ms * 1_000_000;
+        if (nanos == Math.floor(nanos)) {
+            return String.format("%d ns", (long)nanos);
+        } else {
+            return String.format("%.1f ns", nanos);
+        }
     }
 
     private double[] generateRoundTicks(double maxValue, int maxTicks) {
