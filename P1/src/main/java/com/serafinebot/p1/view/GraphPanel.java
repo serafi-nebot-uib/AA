@@ -141,11 +141,11 @@ public class GraphPanel extends JPanel {
 
         g2.setStroke(new BasicStroke(1f));
 
-        // Marques eix X
-        int numXTicks = 10;
-        for (int i = 0; i <= numXTicks; i++) {
-            double val = maxN * i / numXTicks;
-            int x = PAD_LEFT + plotW * i / numXTicks;
+        // Marques eix X - valors exactes i rodons
+        double[] xTicks = generateRoundTicks(maxN, 10);
+        for (int i = 0; i < xTicks.length; i++) {
+            double val = xTicks[i];
+            int x = PAD_LEFT + (int) (plotW * val / maxN);
             g2.setColor(new Color(220, 220, 220));
             g2.drawLine(x, PAD_TOP, x, PAD_TOP + plotH);
             g2.setColor(Color.BLACK);
@@ -154,10 +154,11 @@ public class GraphPanel extends JPanel {
             g2.drawString(label, x - fm.stringWidth(label) / 2, PAD_TOP + plotH + 18);
         }
 
-        // Marques eix Y
-        int numYTicks = 8;
-        for (int i = 0; i <= numYTicks; i++) {
-            int y = PAD_TOP + plotH - (plotH * i / numYTicks);
+        // Marques eix Y - valors exactes i rodons
+        double[] yTicks = generateRoundTicks(maxTime, 8);
+        for (int i = 0; i < yTicks.length; i++) {
+            double val = yTicks[i];
+            int y = computeY(val, plotH, maxTime, logMin, logMax);
             g2.setColor(new Color(220, 220, 220));
             g2.drawLine(PAD_LEFT, y, PAD_LEFT + plotW, y);
             g2.setColor(Color.BLACK);
@@ -165,10 +166,9 @@ public class GraphPanel extends JPanel {
 
             String label;
             if (logScale) {
-                double logVal = logMin + (logMax - logMin) * i / numYTicks;
-                label = formatTime(Math.pow(10, logVal));
+                label = formatTime(val);
             } else {
-                label = formatTime(maxTime * i / numYTicks);
+                label = formatTime(val);
             }
             g2.drawString(label, PAD_LEFT - fm.stringWidth(label) - 6, y + fm.getAscent() / 2);
         }
@@ -211,16 +211,73 @@ public class GraphPanel extends JPanel {
     }
 
     private String formatN(double val) {
-        if (val >= 1_000_000) return String.format("%.1fM", val / 1_000_000);
-        if (val >= 1_000) return String.format("%.0fK", val / 1_000);
-        return String.format("%.0f", val);
+        long rounded = Math.round(val);
+        if (rounded >= 1_000_000) {
+            double millions = rounded / 1_000_000.0;
+            if (millions == Math.floor(millions)) {
+                return String.format("%dM", (long)millions);
+            } else {
+                return String.format("%.1fM", millions);
+            }
+        }
+        if (rounded >= 1_000) {
+            double thousands = rounded / 1_000.0;
+            if (thousands == Math.floor(thousands)) {
+                return String.format("%dK", (long)thousands);
+            } else {
+                return String.format("%.1fK", thousands);
+            }
+        }
+        return String.format("%d", rounded);
     }
 
     private String formatTime(double ms) {
-        if (ms >= 60_000) return String.format("%.1f min", ms / 60_000);
-        if (ms >= 1_000) return String.format("%.1f s", ms / 1_000);
-        if (ms >= 0.1) return String.format("%.1f ms", ms);
-        if (ms >= 0.001) return String.format("%.0f us", ms * 1_000);
-        return String.format("%.1f ns", ms * 1_000_000);
+        if (ms >= 60_000) {
+            long mins = Math.round(ms / 60_000);
+            return mins + " min";
+        }
+        if (ms >= 1_000) {
+            long secs = Math.round(ms / 1_000);
+            return secs + " s";
+        }
+        if (ms >= 1) {
+            return String.format("%d ms", Math.round(ms));
+        }
+        if (ms >= 0.001) {
+            long micros = Math.round(ms * 1_000);
+            return micros + " us";
+        }
+        long nanos = Math.round(ms * 1_000_000);
+        return nanos + " ns";
+    }
+
+    private double[] generateRoundTicks(double maxValue, int maxTicks) {
+        if (maxValue <= 0) return new double[]{0};
+        
+        double step = maxValue / (maxTicks - 1);
+        double magnitude = Math.pow(10, Math.floor(Math.log10(step)));
+        
+        double normalizedStep = step / magnitude;
+        double roundNormalizedStep;
+        
+        if (normalizedStep <= 1.5) {
+            roundNormalizedStep = 1;
+        } else if (normalizedStep <= 3) {
+            roundNormalizedStep = 2;
+        } else if (normalizedStep <= 7) {
+            roundNormalizedStep = 5;
+        } else {
+            roundNormalizedStep = 10;
+        }
+        
+        double roundStep = roundNormalizedStep * magnitude;
+        int numTicks = (int) Math.ceil(maxValue / roundStep) + 1;
+        double[] ticks = new double[numTicks];
+        
+        for (int i = 0; i < numTicks; i++) {
+            ticks[i] = roundStep * i;
+        }
+        
+        return ticks;
     }
 }

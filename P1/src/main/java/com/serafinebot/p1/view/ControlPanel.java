@@ -16,7 +16,6 @@ import java.util.Map;
  */
 public class ControlPanel extends JPanel {
 
-    private final JTextField startNField;
     private final JTextField endNField;
     private final JTextField stepsField;
     private final JTextField predictNField;
@@ -37,13 +36,10 @@ public class ControlPanel extends JPanel {
 
         // Fila 1: Rang de n
         JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        row1.add(new JLabel("n inicial:"));
-        startNField = new JTextField("100", 7);
-        row1.add(startNField);
         row1.add(new JLabel("n final:"));
         endNField = new JTextField("5000", 7);
         row1.add(endNField);
-        row1.add(new JLabel("Passos:"));
+        row1.add(new JLabel("Mostres:"));
         stepsField = new JTextField("10", 4);
         row1.add(stepsField);
         JCheckBox logScaleCheck = new JCheckBox("Escala logaritmica");
@@ -126,16 +122,44 @@ public class ControlPanel extends JPanel {
 
     private long[] parseNValues() {
         try {
-            long start = Long.parseLong(startNField.getText().trim());
             long end = Long.parseLong(endNField.getText().trim());
-            int steps = Integer.parseInt(stepsField.getText().trim());
-            if (start <= 0 || end <= 0 || steps <= 0)
+            int numSamples = Integer.parseInt(stepsField.getText().trim());
+            if (end <= 0 || numSamples <= 0)
                 throw new NumberFormatException("Els valors han de ser positius");
-            if (steps == 1) return new long[]{start};
-            long[] values = new long[steps];
-            for (int i = 0; i < steps; i++) {
-                values[i] = start + (end - start) * i / (steps - 1);
+            
+            if (numSamples == 1) return new long[]{end};
+            
+            long[] values = new long[numSamples];
+            double rawStep = (double) end / numSamples;
+            double magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+            
+            double normalizedStep = rawStep / magnitude;
+            double roundNormalizedStep;
+            
+            if (normalizedStep <= 1.5) {
+                roundNormalizedStep = 1;
+            } else if (normalizedStep <= 3) {
+                roundNormalizedStep = 2;
+            } else if (normalizedStep <= 7) {
+                roundNormalizedStep = 5;
+            } else {
+                roundNormalizedStep = 10;
             }
+            
+            long roundStep = Math.round(roundNormalizedStep * magnitude);
+            
+            for (int i = 0; i < numSamples; i++) {
+                values[i] = roundStep * (i + 1);
+            }
+            
+            if (values[numSamples - 1] > end) {
+                for (int i = 0; i < numSamples; i++) {
+                    values[i] = end * (i + 1) / numSamples;
+                }
+            } else {
+                values[numSamples - 1] = end;
+            }
+            
             return values;
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(
