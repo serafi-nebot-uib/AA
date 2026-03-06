@@ -16,6 +16,7 @@
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{booktabs}
+\usepackage{cuted}
 
 % Configuracio de listings per a Java
 \lstset{
@@ -38,78 +39,76 @@
 
 \begin{document}
 
-\title{Analisi de Costos Computacionals Asimptotics:\\
-Practica 1 -- Visualitzacio amb Patro MVC}
+\title{Anàlisi de Costos Computacionals Asimptòtics \\ Pràctica 1}
 
-\author{Serafí~Nebot~Ginard
-\thanks{Universitat de les Illes Balears (UIB), Grau en Enginyeria Informatica, Analisi d'Algorismes, Curs 2025--2026.}}
+\author{Serafí~Nebot~Ginard}
+% \thanks{Universitat de les Illes Balears (UIB), Grau en Enginyeria Informàtica, Anàlisi d'Algorismes, Curs 2025--2026.}}
 
-\markboth{Analisi d'Algorismes -- Practica 1, Curs 2025--2026}%
-{Nebot Sans: Analisi de Costos Computacionals Asimptotics}
+\markboth{Pràctica 1, Curs 2025--2026}
+{Serafí Nebot Ginard: Anàlisi de Costos Computacionals Asimptòtics}
 
 \maketitle
 
+\begin{strip}
 \begin{abstract}
-Aquesta memoria presenta el desenvolupament d'una aplicacio Java 
-que permet visualitzar i comparar el cost computacional asimptotic de
-quatre algorismes amb complexitats $O(n)$, $O(n \cdot \log n)$, $O(n^2)$
-i $O(n^3)$. L'aplicacio segueix estrictament el patro arquitectonic
-Model-Vista-Controlador (MVC) combinat amb el patro per esdeveniments,
-garantint una separacio neta entre la logica de negoci, la
-interficie grafica i el control del flux. Es presenten els fonaments
-teorics de l'analisi asimptotic, el disseny del programari, la
-identificacio de la instruccio critica de cada algorisme, el calcul de la
-constant multiplicativa i la prediccio de temps d'execucio per a mides
+Aquesta memòria presenta el desenvolupament d'una aplicació Java 
+que permet visualitzar i comparar el cost computacional asimptòtic de
+quatre algorismes amb complexitats computacionals $O(n)$, $O(n \cdot \log n)$, $O(n^2)$
+i $O(n^3)$. L'aplicació segueix estrictament el patró arquitectònic
+Model-Vista-Controlador (MVC),
+garantint una separació neta entre la lògica de negoci, la
+interfície gràfica i les dades. Es presenten els fonaments
+teòrics de l'anàlisi asimptòtic, el disseny del programari, la
+identificació de la instrucció crítica de cada algorisme, el càlcul de la
+constant multiplicativa i la predicció de temps d'execució per a mides
 d'entrada arbitraries.
 \end{abstract}
 
-\begin{IEEEkeywords}
-Analisi asimptotic, complexitat computacional, MVC, patro per
-esdeveniments, Java Swing, instruccio critica, constant multiplicativa.
-\end{IEEEkeywords}
+\end{strip}
 
 %% ================================================================
-\section{Introduccio}
-\IEEEPARstart{L}{'analisi} d'algorismes es una de les disciplines fonamentals
-de la informatica. Permet avaluar l'eficiencia d'un algorisme en funcio de
+\section{Introducció}
+\IEEEPARstart{L}{'anàlisi} d'algorismes es una de les disciplines fonamentals
+de la informàtica. Permet avaluar l'eficiència d'un algorisme en funció de
 la mida de l'entrada, independentment del maquinari o del llenguatge de
-programacio emprat. El concepte central es el \textit{cost asimptotic}, que
-descriu com creix el temps d'execucio quan la mida de l'entrada $n$ tendeix
+programació emprat. El concepte central es el cost asimptòtic, que
+descriu com creix el temps d'execució quan la mida de l'entrada $n$ tendeix
 a infinit.
 
-Quan es dissenya un algorisme, sovint existeixen multiples estrategies per
-resoldre el mateix problema. L'analisi asimptotic proporciona una eina
+Quan es dissenya un algorisme, sovint existeixen múltiples estratègies per
+resoldre el mateix problema. L'anàlisi asimptòtic proporciona una eina
 objectiva per comparar-les: un algorisme amb cost $O(n \log n)$ sera
 sempre mes eficient que un amb cost $O(n^2)$ per a entrades prou grans,
-independentment de les constants implicades. Aquesta observacio, que pot
-semblar abstracta, te consequencies practiques immediates: la diferencia
+independentment de les constants implicades. Aquesta observació, que pot
+semblar abstracta, te conseqüències practiques immediates: la diferència
 entre un algorisme lineal i un cubic pot ser la diferencia entre una
-execucio de mil-lisegons i una de dies.
+execució de mil·lisegons i una de dies.
 
-L'objectiu d'aquesta practica es doble. D'una banda, es proposa
-implementar i mesurar experimentalment el temps d'execucio de quatre
-algorismes amb costos asimptotics coneguts: lineal, quasilineal, quadratic
-i cubic. D'altra banda, l'aplicacio s'ha de construir seguint el patro
-Model-Vista-Controlador (MVC) amb comunicacio basada en el patro per
+L'objectiu d'aquesta pràctica es doble. D'una banda, es proposa
+implementar i mesurar experimentalment el temps d'execució de quatre
+algorismes amb costos asimptòtics coneguts: lineal, quasilineal, quadratic
+i cubic. D'altra banda, l'aplicació s'ha de construir seguint el patró
+Model-Vista-Controlador (MVC) amb comunicació basada en el patró per
 esdeveniments, un principi de disseny que desacobla completament les
 responsabilitats de cada capa del programari.
 
-El resultat es una aplicacio d'escriptori Java Swing que permet a l'usuari
+El resultat es una aplicació d'escriptori Java Swing que permet a l'usuari
 seleccionar rangs de mida d'entrada, executar algorismes de forma
-individual o conjunta, visualitzar els resultats en una grafica en temps
-real (amb escala lineal o logaritmica), consultar les constants
+individual o conjunta, visualitzar els resultats en una gràfica en temps
+real (amb escala lineal o logarítmica), consultar les constants
 multiplicatives mitjanes i fer previsions de temps per a mides d'entrada
 no mesurades.
 
-La memoria s'estructura de la seguent manera: la Seccio~II descriu
-l'entorn de programacio; la Seccio~III exposa els fonaments teorics; la
-Seccio~IV detalla el disseny i la implementacio de la practica; la
-Seccio~V analitza el calcul del cost asimptotic per la instruccio critica;
-la Seccio~VI presenta els resultats; i la Seccio~VII tanca amb les
+La memòria s'estructura de la següent manera: la Secció~II descriu
+l'entorn de programació; la Secció~III exposa els fonaments teòrics; la
+Secció~IV detalla el disseny i la implementació de la practica; la
+Secció~V analitza el calcul del cost asimptòtic per la instrucció crítica;
+la Secció~VI presenta els resultats; i la Secció~VII tanca amb les
 conclusions.
 
 %% ================================================================
-\section{Entorn de Programacio}
+% TODO: is this seciton necessary?
+\section{Entorn de Programació}
 
 L'aplicacio s'ha desenvolupat integrament en \textbf{Java}, un llenguatge
 orientat a objectes que ofereix portabilitat, tipatge estatic i un ecosistema
@@ -120,7 +119,7 @@ madur de biblioteques. L'entorn concret es el seguent:
           \texttt{target} 16).
     \item \textbf{JDK:} OpenJDK 23 (Valhalla), compatible cap enrere amb
           Java~16.
-    \item \textbf{IDE:} IntelliJ IDEA, que proporciona eines d'analisi de
+    \item \textbf{IDE:} IntelliJ IDEA, que proporciona eines d'anàlisi de
           codi, refactoritzacio automatitzada i integracio amb Maven.
     \item \textbf{Sistema de construccio:} Apache Maven 3.x, amb un fitxer
           \texttt{pom.xml} que defineix el \texttt{groupId}
@@ -155,17 +154,17 @@ projecte: tota la funcionalitat ---des del renderitzat de grafiques fins a
 la concurrencia--- s'implementa amb les eines estandard del JDK.
 
 %% ================================================================
-\section{Fonaments Teorics}
+\section{Fonaments Teòrics}
 
-\subsection{Analisi Asimptotic de Costos}
+\subsection{Anàlisi Asimptòtic de Costos}
 
-L'analisi asimptotic permet classificar algorismes segons el seu
-comportament a llarg termini, es a dir, com creix el seu temps d'execucio
-en funcio de la mida de l'entrada~\cite{ref_cormen}. Es defineixen les
-notacions seguents:
+L'anàlisi asimptòtic permet classificar algorismes segons el seu
+comportament a llarg termini, es a dir, com creix el seu temps d'execució
+en funció de la mida de l'entrada~\cite{ref_cormen}. Es defineixen les
+notacions següents:
 
 \begin{itemize}
-    \item \textbf{$O(f(n))$} (cota superior asimptotica): existeixen
+    \item \textbf{$O(f(n))$} (cota superior asimptòtica): existeixen
           constants $c > 0$ i $n_0$ tals que $T(n) \leq c \cdot f(n)$ per
           a tot $n \geq n_0$.
     \item \textbf{$\Omega(f(n))$} (cota inferior): existeixen constants
@@ -175,35 +174,35 @@ notacions seguents:
           $O(f(n))$ i $\Omega(f(n))$.
 \end{itemize}
 
-El temps d'execucio real d'un algorisme es pot modelar com:
+El temps d'execució real d'un algorisme es pot modelar com:
 \begin{equation}
 \label{eq:temps}
 T(n) = c \cdot f(n)
 \end{equation}
-on $f(n)$ es la funcio de cost teoric i $c$ es la \textit{constant
-multiplicativa}, que depen del maquinari, el compilador i altres factors
-constants. La notacio asimptotica abstrau aquesta constant i es centra
+on $f(n)$ es la funció de cost teòric i $c$ es la \textit{constant
+multiplicativa}, que depèn del maquinari, el compilador i altres factors
+constants. La notació asimptòtica extreu aquesta constant per a centrar-se només
 en l'ordre de creixement.
 
 \subsection{Ordres de Creixement}
 
-Les quatre funcions de cost que s'analitzen en aquesta practica presenten
-comportaments de creixement drasicament diferents. La Taula~\ref{tab:growth}
-il-lustra aquesta diferencia amb valors numerics concrets.
+Les quatre funcions de cost que s'analitzen en aquesta pràctica presenten
+comportaments de creixement dràsticament diferents. La Taula~\ref{tab:growth}
+il·lustra aquesta diferència amb valors numèrics concrets.
 
 \begin{table}[!t]
-\caption{Comparacio d'ordres de creixement per a diferents valors de $n$.\label{tab:growth}}
-\centering
-\begin{tabular}{r|rrrr}
-\toprule
-$n$ & $n$ & $n \log_2 n$ & $n^2$ & $n^3$ \\
-\midrule
-10     & 10       & 33         & 100         & 1\,000 \\
-100    & 100      & 664        & 10\,000     & $10^6$ \\
-1\,000  & 1\,000  & 9\,966     & $10^6$      & $10^9$ \\
-10\,000 & 10\,000 & 132\,877   & $10^8$      & $10^{12}$ \\
-\bottomrule
-\end{tabular}
+      \caption{Comparació d'ordres de creixement per a diferents valors de $n$.\label{tab:growth}}
+      \centering
+      \begin{tabular}{r|rrrr}
+            \toprule
+            $n$ & $n$ & $n \log_2 n$ & $n^2$ & $n^3$ \\
+            \midrule
+            10     & 10       & 33         & 100         & 1\,000 \\
+            100    & 100      & 664        & 10\,000     & $10^6$ \\
+            1\,000  & 1\,000  & 9\,966     & $10^6$      & $10^9$ \\
+            10\,000 & 10\,000 & 132\,877   & $10^8$      & $10^{12}$ \\
+            \bottomrule
+      \end{tabular}
 \end{table}
 
 Com es pot observar, per a $n = 10\,000$, un algorisme cubic realitza
@@ -217,14 +216,14 @@ mentre que el cubic necessitaria aproximadament 17~minuts.
 La \textit{instruccio critica} es aquella operacio dins l'algorisme que
 s'executa el major nombre de vegades i que, per tant, domina el cost
 total~\cite{ref_knuth}. Identificar-la es clau per determinar la
-complexitat asimptotica. En algorismes iteratius, la instruccio critica
+complexitat asimptòtica. En algorismes iteratius, la instruccio critica
 es habitualment l'operacio dins el bucle mes intern. El nombre total
 d'execucions d'aquesta instruccio depen del nombre d'iteracions de tots
 els bucles que l'envolten.
 
 Per exemple, en un algorisme amb dos bucles imbricats, cadascun iterant
 $n$ vegades, la instruccio critica s'executa $n \times n = n^2$ vegades,
-i per tant el cost asimptotic es $\Theta(n^2)$.
+i per tant el cost asimptòtic es $\Theta(n^2)$.
 
 \subsection{Patro Model-Vista-Controlador (MVC)}
 
@@ -259,7 +258,7 @@ En implementacions ingenues del MVC, es comu veure patrons com
 \texttt{view.getStartButton().addActionListener(...)}, on el controlador
 obte directament un \texttt{JButton} de la vista. Aixo viola el patro
 perque crea un acoblament directe entre el controlador i la representacio
-visual concreta. En la nostra implementacio, hem evitat completament
+visual concreta. En la nostra implementació, hem evitat completament
 aquest anti-patro.
 
 \subsection{Patro per Esdeveniments (Observer)}
@@ -318,7 +317,7 @@ una interrupcio al fil de fons, que ha de comprovar periodicament
 \texttt{Thread.currentThread().isInterrupted()} per aturar-se netament.
 
 %% ================================================================
-\section{Disseny i Implementacio de la Practica}
+\section{Disseny i Implementació de la Practica}
 
 \subsection{Estructura del Projecte}
 
@@ -421,7 +420,7 @@ multiplicativa, que es pre-calcula al constructor:
 c = \frac{T(n)}{f(n)}
 \end{equation}
 
-on $T(n)$ es el temps mesurat en nanosegons i $f(n)$ es el cost teoric
+on $T(n)$ es el temps mesurat en nanosegons i $f(n)$ es el cost teòric
 retornat per \texttt{theoreticalCost(n)}. El codi del constructor es:
 
 \begin{lstlisting}[caption={Constructor de \texttt{Measurement}.}]
@@ -659,7 +658,7 @@ cap component visual}: la seva unica referencia a la vista es a traves
 dels metodes de dades de \texttt{MainView}.
 
 %% ================================================================
-\section{Calcul del Cost Asimptotic\\ per la Instruccio Critica}
+\section{Calcul del Cost Asimptòtic\\ per la Instruccio Critica}
 
 La instruccio critica de cada algorisme es l'operacio dins el bucle mes
 intern que s'executa el major nombre de vegades. El nombre total
@@ -779,8 +778,8 @@ i volem predir $n = 100\,000$:
 = 25 \text{ s}
 \end{equation}
 
-Aquesta capacitat de prediccio es un dels avantatges clau de l'analisi
-asimptotic: amb unes poques mesures per a valors petits de $n$, es pot
+Aquesta capacitat de prediccio es un dels avantatges clau de l'anàlisi
+asimptòtic: amb unes poques mesures per a valors petits de $n$, es pot
 estimar el temps d'execucio per a valors molt mes grans sense necessitat
 d'executar l'algorisme.
 
@@ -788,7 +787,7 @@ d'executar l'algorisme.
 \section{Resultats i Discussio}
 
 L'aplicacio implementada permet verificar experimentalment que els temps
-d'execucio mesurats segueixen les funcions de cost teoric. A la grafica,
+d'execucio mesurats segueixen les funcions de cost teòric. A la grafica,
 s'observa clarament com:
 
 \begin{itemize}
@@ -809,7 +808,7 @@ rectes amb pendent proporcional a $k$, facilitant la verificacio visual
 de la complexitat.
 
 Les constants multiplicatives calculades es mantenen raonablement estables
-per a un algorisme donat, la qual cosa confirma que el model asimptotic
+per a un algorisme donat, la qual cosa confirma que el model asimptòtic
 $T(n) = c \cdot f(n)$ es una bona aproximacio. Petites variacions
 s'atribueixen a:
 
@@ -850,9 +849,9 @@ comunicacio per esdeveniments ha permes:
 \section{Conclusions}
 
 Aquesta practica ha permes aplicar de forma conjunta els conceptes
-d'analisi asimptotic i de disseny de programari amb el patro MVC.
+d'anàlisi asimptòtic i de disseny de programari amb el patro MVC.
 
-Des del punt de vista teoric, s'ha verificat experimentalment que els
+Des del punt de vista teòric, s'ha verificat experimentalment que els
 temps d'execucio dels quatre algorismes implementats corresponen a les
 seves complexitats teoriques. La identificacio de la instruccio critica
 de cada algorisme ---l'operacio del bucle mes intern--- i el calcul de la
@@ -862,7 +861,7 @@ el model $T(n) = c \cdot f(n)$ es una aproximacio valida quan $n$ es prou
 gran i les condicions d'execucio son estables.
 
 Des del punt de vista del disseny de programari, s'ha aconseguit una
-implementacio estricta del patro MVC on:
+implementació estricta del patro MVC on:
 
 \begin{enumerate}
     \item La vista \textbf{no exposa cap component visual} al controlador;

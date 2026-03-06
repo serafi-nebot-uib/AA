@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.29)  26 FEB 2026 12:24
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.29)  6 MAR 2026 17:37
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -352,12 +352,32 @@ Package: booktabs 2020/01/12 v1.61803398 Publication quality tables
 \@thisruleclass=\count316
 \@lastruleclass=\count317
 \@thisrulewidth=\dimen263
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/sttools/cuted.sty
+Package: cuted 2021/10/04 v2.0 Mixing onecolumn and twocolumn modes
+\At@ViperColsBreak=\toks33
+\preCutedStrip=\toks34
+\postCutedStrip=\toks35
+\cuted@@tempbox@a=\box62
+\cuted@@tempbox@c=\box63
+\cuted@@tempbox@var=\box64
+\hold@viper=\box65
+\@viper=\box66
+\cuted@@varbox@a=\box67
+\cuted@@varbox@c=\box68
+\cuted@@tempdim@spread=\dimen264
+\cuted@@tempdim@a=\dimen265
+\cuted@@tempdim@b=\dimen266
+\ht@hold@viper=\dimen267
+\ht@viper=\dimen268
+\var@@pagediscards@ht=\dimen269
+\stripsep=\skip64
+\viper@penalty=\count318
 ) (/usr/local/texlive/2025/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2024/09/23 1.10c listings language file
 ) (/usr/local/texlive/2025/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2024-05-08 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count318
-\l__pdf_internal_box=\box62
+\l__color_backend_stack_int=\count319
+\l__pdf_internal_box=\box69
 )
 
 LaTeX Warning: Unused global option(s):
@@ -366,20 +386,20 @@ LaTeX Warning: Unused global option(s):
 (./memoria.aux)
 \openout1 = `memoria.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 39.
-LaTeX Font Info:    ... okay on input line 39.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 39.
-LaTeX Font Info:    ... okay on input line 39.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 39.
-LaTeX Font Info:    ... okay on input line 39.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 39.
-LaTeX Font Info:    ... okay on input line 39.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 39.
-LaTeX Font Info:    ... okay on input line 39.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 39.
-LaTeX Font Info:    ... okay on input line 39.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 39.
-LaTeX Font Info:    ... okay on input line 39.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 40.
+LaTeX Font Info:    ... okay on input line 40.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 40.
+LaTeX Font Info:    ... okay on input line 40.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 40.
+LaTeX Font Info:    ... okay on input line 40.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 40.
+LaTeX Font Info:    ... okay on input line 40.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 40.
+LaTeX Font Info:    ... okay on input line 40.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 40.
+LaTeX Font Info:    ... okay on input line 40.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 40.
+LaTeX Font Info:    ... okay on input line 40.
 
 -- Lines per column: 58 (exact).
 Package caption Info: Begin \AtBeginDocument code.
@@ -387,55 +407,71 @@ Package caption Info: subfig package v1.3 is loaded.
 Package caption Info: End \AtBeginDocument code.
 (/usr/local/texlive/2025/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count319
-\scratchdimen=\dimen264
-\scratchbox=\box63
-\nofMPsegments=\count320
-\nofMParguments=\count321
-\everyMPshowfont=\toks33
-\MPscratchCnt=\count322
-\MPscratchDim=\dimen265
-\MPnumerator=\count323
-\makeMPintoPDFobject=\count324
-\everyMPtoPDFconversion=\toks34
+\scratchcounter=\count320
+\scratchdimen=\dimen270
+\scratchbox=\box70
+\nofMPsegments=\count321
+\nofMParguments=\count322
+\everyMPshowfont=\toks36
+\MPscratchCnt=\count323
+\MPscratchDim=\dimen271
+\MPnumerator=\count324
+\makeMPintoPDFobject=\count325
+\everyMPtoPDFconversion=\toks37
 ) (/usr/local/texlive/2025/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
 Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 485.
  (/usr/local/texlive/2025/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
 ))
-\c@lstlisting=\count325
-LaTeX Info: Redefining \l on input line 39.
-LaTeX Info: Redefining \L on input line 39.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 55.
+\c@lstlisting=\count326
+LaTeX Info: Redefining \l on input line 40.
+LaTeX Info: Redefining \L on input line 40.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 56.
  (/usr/local/texlive/2025/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 55.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 56.
  (/usr/local/texlive/2025/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
+CUTED [- LAST -]
+Extra skip:0.0pt
+Left:0.0pt/0.0pt
+Right:0.0pt/0.0pt
+Split: 0.0pt
+Output:0.0pt
+Pageshrink: 0.0pt
+Pagestretch: 0.0pt
+@colht:588.0pt
+CUTED [output]: 0.0pt
+CUTED [leftcolumn badness]: 0
+CUTED [rightcolumn badness]: 0
+LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 85.
+ (/usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/ts1ptm.fd
+File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
+)
 
-LaTeX Font Info:    Trying to load font information for T1+pcr on input line 119.
+LaTeX Font Info:    Trying to load font information for T1+pcr on input line 118.
 (/usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/t1pcr.fd
 File: t1pcr.fd 2001/06/04 font definitions for T1/pcr.
 )
-Underfull \hbox (badness 3240) in paragraph at lines 119--121
+Underfull \hbox (badness 3240) in paragraph at lines 118--120
 []\T1/ptm/b/n/10 Llenguatge: \T1/ptm/m/n/10 Ja-va 16 (com-pi-la-cio amb \T1/pcr/m/n/10 source \T1/ptm/m/n/10 i
  []
 
 
-Underfull \hbox (badness 1748) in paragraph at lines 125--129
+Underfull \hbox (badness 1748) in paragraph at lines 124--128
 []\T1/ptm/b/n/10 Sistema de cons-truc-cio: \T1/ptm/m/n/10 Apac-he Ma-ven 3.x, amb
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 125--129
+Underfull \hbox (badness 10000) in paragraph at lines 124--128
 \T1/ptm/m/n/10 un fit-xer \T1/pcr/m/n/10 pom.xml \T1/ptm/m/n/10 que de-fi-neix el \T1/pcr/m/n/10 groupId
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 125--129
+Underfull \hbox (badness 10000) in paragraph at lines 124--128
 \T1/pcr/m/n/10 com.serafinebot.p1\T1/ptm/m/n/10 , la co-di-fi-ca-cio UTF-8 i
  []
 
@@ -451,87 +487,87 @@ File: lstmisc.sty 2024/09/23 1.10c (Carsten Heinz)
 ]
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 258--264
+Underfull \hbox (badness 10000) in paragraph at lines 257--263
 []\T1/ptm/m/n/10 En im-ple-men-ta-ci-ons in-ge-nu-es del
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 258--264
+Underfull \hbox (badness 10000) in paragraph at lines 257--263
 \T1/ptm/m/n/10 MVC, es co-mu veu-re pa-trons com
  []
 
 
-Overfull \hbox (14.5pt too wide) in paragraph at lines 258--264
+Overfull \hbox (14.5pt too wide) in paragraph at lines 257--263
 \T1/pcr/m/n/10 view.getStartButton().addActionListener(...)\T1/ptm/m/n/10 ,
  []
 
 
-Underfull \hbox (badness 1496) in paragraph at lines 279--286
+Underfull \hbox (badness 1496) in paragraph at lines 278--285
 []\T1/ptm/b/n/10 Vista $\OMS/cmsy/m/n/10 !$ \T1/ptm/b/n/10 Con-tro-la-dor: \T1/ptm/m/n/10 La vis-ta de-fi-neix una in-
  []
 
 
-Underfull \hbox (badness 1852) in paragraph at lines 279--286
+Underfull \hbox (badness 1852) in paragraph at lines 278--285
 \T1/ptm/m/n/10 ter-fi-cie \T1/pcr/m/n/10 ViewListener \T1/ptm/m/n/10 amb set me-to-des se-man-
  []
 
 
-Underfull \hbox (badness 7133) in paragraph at lines 279--286
+Underfull \hbox (badness 7133) in paragraph at lines 278--285
 \T1/ptm/m/n/10 tics (\T1/pcr/m/n/10 onStartAlgorithm\T1/ptm/m/n/10 , \T1/pcr/m/n/10 onStopAlgorithm\T1/ptm/m/n/10 ,
  []
 
 
 
 [2]
-Underfull \hbox (badness 10000) in paragraph at lines 316--319
+Underfull \hbox (badness 10000) in paragraph at lines 315--318
 []\T1/ptm/m/n/10 La cancel-lacio es co-o-pe-ra-ti-va:
  []
 
 
-Underfull \hbox (badness 6300) in paragraph at lines 316--319
+Underfull \hbox (badness 6300) in paragraph at lines 315--318
 \T1/pcr/m/n/10 SwingWorker.cancel(true) \T1/ptm/m/n/10 en-via una in-ter-rup-cio
  []
 
 
-Underfull \hbox (badness 5563) in paragraph at lines 316--319
+Underfull \hbox (badness 5563) in paragraph at lines 315--318
 \T1/ptm/m/n/10 al fil de fons, que ha de com-pro-var pe-ri-o-di-ca-ment
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 316--319
+Underfull \hbox (badness 10000) in paragraph at lines 315--318
 \T1/pcr/m/n/10 Thread.currentThread().isInterrupted()
  []
 
 
-Underfull \hbox (badness 3291) in paragraph at lines 325--327
+Underfull \hbox (badness 3291) in paragraph at lines 324--326
 []\T1/ptm/m/n/10 El pro-jec-te Ma-ven s'or-ga-nit-za en tres pa-quets dins
  []
 
 
 
 LaTeX Font Info:    Font shape `T1/pcr/m/it' in size <8> not available
-(Font)              Font shape `T1/pcr/m/sl' tried instead on input line 400.
+(Font)              Font shape `T1/pcr/m/sl' tried instead on input line 399.
 
-Underfull \hbox (badness 6691) in paragraph at lines 408--412
+Underfull \hbox (badness 6691) in paragraph at lines 407--411
 []\T1/ptm/m/n/10 Cal des-ta-car dos as-pec-tes: pri-mer, la com-pro-va-cio
  []
 
 
 
 [3]
-Underfull \hbox (badness 2735) in paragraph at lines 451--454
+Underfull \hbox (badness 2735) in paragraph at lines 450--453
 []\T1/pcr/m/n/10 getAverageConstant(AlgorithmType t)\T1/ptm/m/n/10 : re-
  []
 
 
-Underfull \hbox (badness 4416) in paragraph at lines 454--457
+Underfull \hbox (badness 4416) in paragraph at lines 453--456
 []\T1/pcr/m/n/10 predict(AlgorithmType t, long n)\T1/ptm/m/n/10 : cal-cu-la
  []
 
 
 
 
-Underfull \hbox (badness 7451) in paragraph at lines 532--535
+Underfull \hbox (badness 7451) in paragraph at lines 531--534
  \T1/ptm/m/it/10 3) Graph-Pa-nel: [][] \T1/ptm/m/n/10 Pa-nell per-so-na-lit-zat que so-bre-es-criu
  []
 
@@ -558,15 +594,15 @@ L3 programming layer <2025-01-18>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 8920 strings out of 473190
- 141187 string characters out of 5715800
- 1118481 words of memory out of 5000000
- 32036 multiletter control sequences out of 15000+600000
- 664976 words of font info for 153 fonts, out of 8000000 for 9000
+ 9030 strings out of 473190
+ 143060 string characters out of 5715800
+ 1092438 words of memory out of 5000000
+ 32139 multiletter control sequences out of 15000+600000
+ 665290 words of font info for 154 fonts, out of 8000000 for 9000
  1147 hyphenation exceptions out of 8191
- 57i,10n,65p,287b,1680s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 57i,10n,65p,287b,1217s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrb8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrro8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on memoria.pdf (7 pages, 268061 bytes).
+Output written on memoria.pdf (7 pages, 267710 bytes).
 PDF statistics:
  139 PDF objects out of 1000 (max. 8388607)
  85 compressed objects within 1 object stream
