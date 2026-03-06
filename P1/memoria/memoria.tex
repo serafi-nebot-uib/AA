@@ -35,7 +35,7 @@
     captionpos=b
 }
 
-\hyphenation{a-sin-to-tic a-sin-to-tics al-go-ris-me al-go-ris-mes con-tro-la-dor mul-ti-pli-ca-ti-va}
+\hyphenation{a-sin-to-tic a-sin-to-tics al-go-ris-me al-go-ris-més con-tro-la-dor mul-ti-pli-ca-ti-va}
 
 \begin{document}
 
@@ -68,31 +68,31 @@ d'entrada arbitraries.
 
 %% ================================================================
 \section{Introducció}
-\IEEEPARstart{L}{'anàlisi} d'algorismes es una de les disciplines fonamentals
+\IEEEPARstart{L}{'anàlisi} d'algorismes és una de les disciplines fonamentals
 de la informàtica. Permet avaluar l'eficiència d'un algorisme en funció de
-la mida de l'entrada, independentment del maquinari o del llenguatge de
-programació emprat. El concepte central es el cost asimptòtic, que
+la mida de l'entrada, independentment del màquinari o del llenguatge de
+programació emprat. El concepte central és el cost asimptòtic, que
 descriu com creix el temps d'execució quan la mida de l'entrada $n$ tendeix
 a infinit.
 
 Quan es dissenya un algorisme, sovint existeixen múltiples estratègies per
 resoldre el mateix problema. L'anàlisi asimptòtic proporciona una eina
-objectiva per comparar-les: un algorisme amb cost $O(n \log n)$ sera
-sempre mes eficient que un amb cost $O(n^2)$ per a entrades prou grans,
+objectiva per comparar-les: un algorisme amb cost $O(n \log n)$ serà
+sempre més eficient que un amb cost $O(n^2)$ per a entrades prou grans,
 independentment de les constants implicades. Aquesta observació, que pot
-semblar abstracta, te conseqüències practiques immediates: la diferència
-entre un algorisme lineal i un cubic pot ser la diferencia entre una
+semblar abstracta, té conseqüències practiques immediates: la diferència
+entre un algorisme lineal i un cúbic pot ser la diferència entre una
 execució de mil·lisegons i una de dies.
 
-L'objectiu d'aquesta pràctica es doble. D'una banda, es proposa
+L'objectiu d'aquesta pràctica és doble. D'una banda, es proposa
 implementar i mesurar experimentalment el temps d'execució de quatre
-algorismes amb costos asimptòtics coneguts: lineal, quasilineal, quadratic
-i cubic. D'altra banda, l'aplicació s'ha de construir seguint el patró
+algorismes amb costos asimptòtics coneguts: lineal, quasilineal, quadràtic
+i cúbic. D'altra banda, l'aplicació s'ha de construir seguint el patró
 Model-Vista-Controlador (MVC) amb comunicació basada en el patró per
 esdeveniments, un principi de disseny que desacobla completament les
 responsabilitats de cada capa del programari.
 
-El resultat es una aplicació d'escriptori Java Swing que permet a l'usuari
+El resultat és una aplicació d'escriptori Java Swing que permet a l'usuari
 seleccionar rangs de mida d'entrada, executar algorismes de forma
 individual o conjunta, visualitzar els resultats en una gràfica en temps
 real (amb escala lineal o logarítmica), consultar les constants
@@ -101,8 +101,8 @@ no mesurades.
 
 La memòria s'estructura de la següent manera: la Secció~II descriu
 l'entorn de programació; la Secció~III exposa els fonaments teòrics; la
-Secció~IV detalla el disseny i la implementació de la practica; la
-Secció~V analitza el calcul del cost asimptòtic per la instrucció crítica;
+Secció~IV detalla el disseny i la implementació de la pràctica; la
+Secció~V analitza el càlcul del cost asimptòtic per la instrucció crítica;
 la Secció~VI presenta els resultats; i la Secció~VII tanca amb les
 conclusions.
 
@@ -110,9 +110,9 @@ conclusions.
 % TODO: is this seciton necessary?
 \section{Entorn de Programació}
 
-L'aplicacio s'ha desenvolupat integrament en \textbf{Java}, un llenguatge
-orientat a objectes que ofereix portabilitat, tipatge estatic i un ecosistema
-madur de biblioteques. L'entorn concret es el seguent:
+L'aplicació s'ha desenvolupat integrament en \textbf{Java}, un llenguatge
+orientat a objectes que ofereix portabilitat, tipatge estàtic i un ecosistema
+madur de biblioteques. L'entorn concret és el següent:
 
 \begin{itemize}
     \item \textbf{Llenguatge:} Java 16 (compilacio amb \texttt{source} i
@@ -120,24 +120,24 @@ madur de biblioteques. L'entorn concret es el seguent:
     \item \textbf{JDK:} OpenJDK 23 (Valhalla), compatible cap enrere amb
           Java~16.
     \item \textbf{IDE:} IntelliJ IDEA, que proporciona eines d'anàlisi de
-          codi, refactoritzacio automatitzada i integracio amb Maven.
-    \item \textbf{Sistema de construccio:} Apache Maven 3.x, amb un fitxer
+          codi, refactoritzacio automatitzada i integració amb Maven.
+    \item \textbf{Sistema de construcció:} Apache Maven 3.x, amb un fitxer
           \texttt{pom.xml} que defineix el \texttt{groupId}
-          \texttt{com.serafinebot.p1}, la codificacio UTF-8 i les versions
+          \texttt{com.serafinebot.p1}, la codificació UTF-8 i les versions
           del compilador.
-    \item \textbf{Interficie grafica:} Java Swing (paquets \texttt{javax.swing}
+    \item \textbf{Interfície gràfica:} Java Swing (paquets \texttt{javax.swing}
           i \texttt{java.awt}), sense cap biblioteca externa de grafiques.
     \item \textbf{Control de versions:} Git.
 \end{itemize}
 
 La decisio d'utilitzar exclusivament Java Swing ---sense biblioteques
-de tercers com JFreeChart--- respon a un requisit de la practica i obliga
-a implementar manualment el renderitzat de la grafica amb l'API
-\texttt{Graphics2D}, incloent-hi eixos, graella, series de dades i
+de tercers com JFreeChart--- respon a un requisit de la pràctica i obliga
+a implementar manualment el renderitzat de la gràfica amb l'API
+\texttt{Graphics2D}, incloent-hi eixos, graella, sèries de dades i
 llegenda.
 
 El fitxer \texttt{pom.xml} segueix una configuracio minima, ja que el
-projecte no te cap dependencia externa:
+projecte no té cap dependencia externa:
 
 \begin{lstlisting}[caption={Configuracio Maven del projecte.},language=XML]
 <properties>
@@ -149,9 +149,9 @@ projecte no te cap dependencia externa:
 </properties>
 \end{lstlisting}
 
-Aquesta absencia de dependencies externes es un aspecte rellevant del
+Aquesta absència de dependències externes és un aspecte rellevant del
 projecte: tota la funcionalitat ---des del renderitzat de grafiques fins a
-la concurrencia--- s'implementa amb les eines estandard del JDK.
+la concurrència--- s'implementa amb les eines estandard del JDK.
 
 %% ================================================================
 \section{Fonaments Teòrics}
@@ -159,9 +159,9 @@ la concurrencia--- s'implementa amb les eines estandard del JDK.
 \subsection{Anàlisi Asimptòtic de Costos}
 
 L'anàlisi asimptòtic permet classificar algorismes segons el seu
-comportament a llarg termini, es a dir, com creix el seu temps d'execució
+comportament a llarg termini, és a dir, com creix el seu temps d'execució
 en funció de la mida de l'entrada~\cite{ref_cormen}. Es defineixen les
-notacions següents:
+notacións següents:
 
 \begin{itemize}
     \item \textbf{$O(f(n))$} (cota superior asimptòtica): existeixen
@@ -170,7 +170,7 @@ notacions següents:
     \item \textbf{$\Omega(f(n))$} (cota inferior): existeixen constants
           $c > 0$ i $n_0$ tals que $T(n) \geq c \cdot f(n)$ per a tot
           $n \geq n_0$.
-    \item \textbf{$\Theta(f(n))$} (cota ajustada): $T(n)$ es alhora
+    \item \textbf{$\Theta(f(n))$} (cota ajustada): $T(n)$ és alhora
           $O(f(n))$ i $\Omega(f(n))$.
 \end{itemize}
 
@@ -179,7 +179,7 @@ El temps d'execució real d'un algorisme es pot modelar com:
 \label{eq:temps}
 T(n) = c \cdot f(n)
 \end{equation}
-on $f(n)$ es la funció de cost teòric i $c$ es la \textit{constant
+on $f(n)$ és la funció de cost teòric i $c$ és la \textit{constant
 multiplicativa}, que depèn del maquinari, el compilador i altres factors
 constants. La notació asimptòtica extreu aquesta constant per a centrar-se només
 en l'ordre de creixement.
@@ -190,7 +190,7 @@ Les quatre funcions de cost que s'analitzen en aquesta pràctica presenten
 comportaments de creixement dràsticament diferents. La Taula~\ref{tab:growth}
 il·lustra aquesta diferència amb valors numèrics concrets.
 
-\begin{table}[!t]
+\begin{table}[!h]
       \caption{Comparació d'ordres de creixement per a diferents valors de $n$.\label{tab:growth}}
       \centering
       \begin{tabular}{r|rrrr}
@@ -205,119 +205,119 @@ il·lustra aquesta diferència amb valors numèrics concrets.
       \end{tabular}
 \end{table}
 
-Com es pot observar, per a $n = 10\,000$, un algorisme cubic realitza
-$10^{12}$ operacions basiques, mentre que un de lineal nomes en fa
-$10^4$: una diferencia de vuit ordres de magnitud. Si cada operacio
+Com es pot observar, per a $n = 10\,000$, un algorisme cúbic realitza
+$10^{12}$ operacions bàsiques, mentre que un de lineal només en fa
+$10^4$: una diferència de vuit ordres de magnitud. Si cada operació
 trigues 1~nanosegon, l'algorisme lineal acabaria en 10~microsegons,
-mentre que el cubic necessitaria aproximadament 17~minuts.
+mentre que el cúbic necessitaria aproximadament 17~minuts.
 
-\subsection{Instruccio Critica}
+\subsection{Instrucció Critica}
 
-La \textit{instruccio critica} es aquella operacio dins l'algorisme que
+La \textit{instrucció critica} és aquella operació dins l'algorisme que
 s'executa el major nombre de vegades i que, per tant, domina el cost
-total~\cite{ref_knuth}. Identificar-la es clau per determinar la
-complexitat asimptòtica. En algorismes iteratius, la instruccio critica
-es habitualment l'operacio dins el bucle mes intern. El nombre total
-d'execucions d'aquesta instruccio depen del nombre d'iteracions de tots
+total~\cite{ref_knuth}. Identificar-la és clau per determinar la
+complexitat asimptòtica. En algorismes iteratius, la instrucció critica
+és habitualment l'operació dins el bucle més intern. El nombre total
+d'execucions d'aquesta instrucció depèn del nombre d'iteracions de tots
 els bucles que l'envolten.
 
 Per exemple, en un algorisme amb dos bucles imbricats, cadascun iterant
-$n$ vegades, la instruccio critica s'executa $n \times n = n^2$ vegades,
-i per tant el cost asimptòtic es $\Theta(n^2)$.
+$n$ vegades, la instrucció critica s'executa $n \times n = n^2$ vegades,
+i per tant el cost asimptòtic és $\Theta(n^2)$.
 
-\subsection{Patro Model-Vista-Controlador (MVC)}
+\subsection{Patró Model-Vista-Controlador (MVC)}
 
-El patro MVC~\cite{ref_mvc} divideix una aplicacio en tres components
+El patró MVC~\cite{ref_mvc} divideix una aplicació en tres components
 amb responsabilitats ben definides:
 
 \begin{enumerate}
-    \item \textbf{Model:} encapsula les dades i la logica de negoci.
-          Notifica als observadors quan el seu estat canvia, pero no coneix
-          la interficie grafica. En el nostre cas, emmagatzema les mesures
-          d'execucio, calcula constants multiplicatives i fa prediccions.
-    \item \textbf{Vista:} es responsable de la presentacio visual.
+    \item \textbf{Model:} encapsula les dades i la lògica de negoci.
+          Notifica als observadors quan el seu estat canvia, però no coneix
+          la interfície gràfica. En el nostre cas, emmagatzema les mesures
+          d'execució, calcula constants multiplicatives i fa prediccions.
+    \item \textbf{Vista:} és responsable de la presentació visual.
           Renderitza les dades del model i captura les accions de l'usuari,
-          pero no coneix la logica de negoci. En el nostre cas, dibuixa la
-          grafica, mostra la taula de resultats i ofereix els controls.
-    \item \textbf{Controlador:} actua com a intermediari. Rep events
-          semantics de la vista, invoca operacions sobre el model i
+          però no coneix la lògica de negoci. En el nostre cas, dibuixa la
+          gràfica, mostra la taula de resultats i ofereix els controls.
+    \item \textbf{Controlador:} actua com a intermediari. Reb events
+          semàntics de la vista, invoca operacions sobre el model i
           actualitza la vista amb resultats. En el nostre cas, gestiona
-          els fils d'execucio dels algorismes.
+          els fils d'execució dels algorismes.
 \end{enumerate}
 
-Un principi fonamental del MVC ben implementat es que la \textbf{Vista mai
+Un principi fonamental del MVC ben implementat es que \textbf{la vista mai
 no ha d'exposar els seus components visuals} (botons, camps de text, etc.)
-al Controlador ni a cap altra capa. Tota comunicacio ha de ser a traves
-d'events semantics i metodes que operen amb dades. Aquesta restriccio es
-crucial perque, si el controlador accedis directament als botons o camps
-de text de la vista, qualsevol canvi a la interficie grafica obligaria a
-modificar tambe el controlador, trencant el principi de separacio de
+al Controlador ni a cap altra capa. Tota comunicació ha de ser a traves
+d'events semantics i mètodes que operen amb dades. Aquesta restricció és
+crucial perquè, si el controlador accedís directament als botons o camps
+de text de la vista, qualsevol canvi a la interfície gràfica obligaria a
+modificar també el controlador, trencant el principi de separació de
 responsabilitats.
 
-En implementacions ingenues del MVC, es comu veure patrons com
-\texttt{view.getStartButton().addActionListener(...)}, on el controlador
-obte directament un \texttt{JButton} de la vista. Aixo viola el patro
-perque crea un acoblament directe entre el controlador i la representacio
-visual concreta. En la nostra implementació, hem evitat completament
-aquest anti-patro.
+En implementacions ingènues del MVC, és comú veure patróns com
+\texttt{view.getButton().addActionListener(...)}, on el controlador
+obté directament un \texttt{JButton} de la vista. Això viola el patró
+perquè crea un acoblament directe entre el controlador i la representació
+visual concreta. En aquesta implementació, s'ha evitat completament
+aquest anti-patró.
 
-\subsection{Patro per Esdeveniments (Observer)}
+\subsection{Patró per Esdeveniments (Observer)}
 
-El patro Observer~\cite{ref_observer} estableix una relacio
+El patró Observer~\cite{ref_observer} estableix una relació
 un-a-molts entre objectes, de manera que quan un objecte (el
-\textit{subjecte}) canvia d'estat, tots els seus observadors son
-notificats automaticament. En el context d'aquesta practica, s'utilitza
+\textit{subjecte}) canvia d'estat, tots els seus observadors són
+notificats automàticament. En el context d'aquesta pràctica, s'utilitza
 en dues direccions:
 
 \begin{enumerate}
     \item \textbf{Model $\rightarrow$ Vista:} El model defineix una
-          interficie \texttt{ModelListener} amb el metode
+          interfície \texttt{ModelListener} amb el mètode
           \texttt{modelChanged()}. Quan s'afegeix una mesura o s'esborren
-          dades, el model invoca aquest metode, i la vista actualitza la
-          taula i la grafica.
+          dades, el model invoca aquest mètode, i la vista actualitza la
+          taula i la gràfica.
     \item \textbf{Vista $\rightarrow$ Controlador:} La vista defineix
-          una interficie \texttt{ViewListener} amb set metodes semantics
+          una interfície \texttt{ViewListener} amb set mètodes semàntics
           (\texttt{onStartAlgorithm}, \texttt{onStopAlgorithm},
           \texttt{onStartAll}, \texttt{onStopAll}, \texttt{onPredict},
           \texttt{onClear}, \texttt{onLogScaleChanged}). El controlador
-          implementa aquesta interficie i rep events ja processats (amb
-          valors parsejats), mai components Swing.
+          implementa aquesta interfície i reb events ja processats,
+          mai components Swing.
 \end{enumerate}
 
-Aquesta doble aplicacio del patro Observer garanteix un desacoblament
+Aquesta doble aplicació del patró Observer garanteix un desacoblament
 complet: el model no sap qui l'observa, i el controlador no sap com es
-la interficie grafica. Es podria substituir tota la vista Swing per una
-interficie web o de terminal sense modificar ni una sola linia del model
+la interfície gràfica. Es podria substituir tota la vista Swing per una
+interfície web o de terminal sense modificar ni una sola línia del model
 o del controlador.
 
-\subsection{Concurrencia i el Fil EDT}
+\subsection{Concurrència i el Fil EDT}
 
-En Java Swing, totes les operacions sobre components visuals s'han de
+En Java Swing, totes les operacións sobre components visuals s'han de
 realitzar des del fil de despatx d'events (\textit{Event Dispatch Thread},
 EDT)~\cite{ref_java}. Si un algorisme lent s'executes directament al fil
-EDT, la interficie es bloquejaria fins que acabes, impedint qualsevol
+EDT, la interfície es bloquejaria fins que acabes, impedint qualsevol
 interaccio amb l'usuari.
 
 La solucio estandard es \texttt{SwingWorker}, una classe que permet
-executar tasques llargues en un fil de fons i publicar resultats parcials
-al fil EDT de forma segura. El cicle de vida d'un \texttt{SwingWorker} es:
+executar tasques llargues en un fil de fons i públicar resultats parcials
+al fil EDT de forma segura. El cicle de vida d'un \texttt{SwingWorker} és:
 
 \begin{enumerate}
     \item \texttt{doInBackground()}: s'executa en un fil de fons. Aqui
           s'executa l'algorisme i es crida \texttt{publish()} per enviar
           resultats intermedis.
     \item \texttt{process(List<V>)}: s'invoca al fil EDT amb els resultats
-          publicats. Aqui s'afegeixen les mesures al model.
+          públicats. Aqui s'afegeixen les mesures al model.
     \item \texttt{done()}: s'invoca al fil EDT quan la tasca acaba o es
-          cancel-la. Aqui s'actualitza l'estat visual del boto.
+          cancel·la. Aqui s'actualitza l'estat visual del botó.
 \end{enumerate}
 
-La cancel-lacio es cooperativa: \texttt{SwingWorker.cancel(true)} envia
-una interrupcio al fil de fons, que ha de comprovar periodicament
+La cancel·lació es cooperativa: \texttt{SwingWorker.cancel(true)} envia
+una interrupcio al fil de fons, que ha de comprovar periòdicament
 \texttt{Thread.currentThread().isInterrupted()} per aturar-se netament.
 
 %% ================================================================
-\section{Disseny i Implementació de la Practica}
+\section{Disseny i Implementació de la Pràctica}
 
 \subsection{Estructura del Projecte}
 
@@ -341,21 +341,21 @@ src/main/java/com/serafinebot/p1/
     Controller.java
 \end{verbatim}
 
-Cada paquet correspon exactament a una capa del patro MVC, amb el punt
-d'entrada \texttt{Main.java} a l'arrel. L'ordre d'instanciacio segueix
-la sequencia classica:
+Cada paquet correspon exactament a una capa del patró MVC, amb el punt
+d'entrada \texttt{Main.java} a l'arrel. L'ordre d'instanciació segueix
+la seqüència clàssica:
 
-\begin{lstlisting}[caption={Punt d'entrada de l'aplicacio (\texttt{Main.java}).}]
+\begin{lstlisting}[caption={Punt d'entrada de l'aplicació (\texttt{Main.java}).}]
 Model model = new Model();
 MainView view = new MainView(model);
 new Controller(model, view);
 view.setVisible(true);
 \end{lstlisting}
 
-El model es crea primer perque no depen de res; la vista rep el model per
+El model es crea primer perquè no depen de res; la vista rep el model per
 poder registrar-se com a observadora dels seus canvis; i el controlador
 rep ambdos i es registra com a \texttt{ViewListener} de la vista. Tota
-la inicialitzacio es realitza dins \texttt{SwingUtilities.invokeLater()}
+la inicialització es realitza dins \texttt{SwingUtilities.invokeLater()}
 per garantir que es fa al fil EDT.
 
 \subsection{Capa del Model}
@@ -366,21 +366,21 @@ clara i ben delimitada.
 \subsubsection{AlgorithmType (Enum)}
 
 Defineix els quatre algorismes com a constants d'un \texttt{enum}. Cada
-constant implementa dos metodes abstractes:
+constant implementa dos mètodes abstractes:
 \begin{itemize}
     \item \texttt{execute(long n)}: executa l'algorisme amb mida $n$ i
-          retorna un resultat numericament dependent de l'entrada per
+          retorna un resultat numèricament dependent de l'entrada per
           evitar que el compilador JIT l'optimitzi o l'elimini.
     \item \texttt{theoreticalCost(long n)}: retorna el valor numeric de
           $f(n)$.
 \end{itemize}
 
-A mes, cada algorisme te associat un nom visible, una notacio matematica
-i un color per a la grafica. L'us d'un \texttt{enum} amb metodes
-abstractes es una aplicacio del \textit{Strategy pattern}: cada constant
+A més, cada algorisme té associat un nom visible, una notació matemàtica
+i un color per a la gràfica. L'us d'un \texttt{enum} amb mètodes
+abstractes és una aplicació del \textit{Strategy pattern}: cada constant
 de l'enumeracio encapsula el seu propi comportament.
 
-Per exemple, l'algorisme quadratic es defineix com:
+Per exemple, l'algorisme quadràtic es defineix com:
 
 \begin{lstlisting}[caption={Definicio de l'algorisme $O(n^2)$.}]
 QUADRATIC("O(n^2)", "Quadratic",
@@ -405,23 +405,23 @@ QUADRATIC("O(n^2)", "Quadratic",
 \end{lstlisting}
 
 Cal destacar dos aspectes: primer, la comprovacio d'\texttt{isInterrupted()}
-al bucle extern (no al mes intern, per no penalitzar el rendiment amb
-comprovacions massa frequents); segon, el llancament d'\texttt{InterruptedException}
-que permet la cancel-lacio cooperativa des del controlador.
+al bucle extern (no al més intern, per no penalitzar el rendiment amb
+comprovacions massa frequents); segon, el llançament d'\texttt{InterruptedException}
+que permet la cancel·lació cooperativa des del controlador.
 
 \subsubsection{Measurement}
 
 Classe immutable que emmagatzema el resultat d'una mesura: el tipus
 d'algorisme, la mida $n$, el temps en nanosegons i la constant
-multiplicativa, que es pre-calcula al constructor:
+multiplicativa, que es pre-càlcula al constructor:
 
 \begin{equation}
 \label{eq:constant}
 c = \frac{T(n)}{f(n)}
 \end{equation}
 
-on $T(n)$ es el temps mesurat en nanosegons i $f(n)$ es el cost teòric
-retornat per \texttt{theoreticalCost(n)}. El codi del constructor es:
+on $T(n)$ és el temps mesurat en nanosegons i $f(n)$ és el cost teòric
+retornat per \texttt{theoreticalCost(n)}. El codi del constructor és:
 
 \begin{lstlisting}[caption={Constructor de \texttt{Measurement}.}]
 public Measurement(AlgorithmType type,
@@ -435,33 +435,33 @@ public Measurement(AlgorithmType type,
 }
 \end{lstlisting}
 
-Pre-calcular $c$ a cada mesura individual permet despres obtenir la
-mitjana de forma directa, sense necessitat de recalcular divisions
+Pre-càlcular $c$ a cada mesura individual permet despres obtenir la
+mitjana de forma directa, sense necessitat de recàlcular divisions
 repetidament.
 
 \subsubsection{Model}
 
 Classe central que manté un \texttt{EnumMap} de llistes de mesures. Els
-metodes principals son:
+mètodes principals són:
 \begin{itemize}
     \item \texttt{addMeasurement(Measurement m)}: afegeix una mesura,
           ordena la llista per $n$ creixent (per facilitar el dibuix de
-          la grafica) i notifica els observadors.
+          la gràfica) i notifica els observadors.
     \item \texttt{getAverageConstant(AlgorithmType t)}: retorna la mitjana
-          aritmetica de les constants individuals, calculada amb l'API
+          aritmètica de les constants individuals, càlculada amb l'API
           de \textit{streams} de Java.
-    \item \texttt{predict(AlgorithmType t, long n)}: calcula el temps
+    \item \texttt{predict(AlgorithmType t, long n)}: càlcula el temps
           predit com $\hat{T}(n) = \bar{c} \cdot f(n)$, on $\bar{c}$ es
           la constant mitjana.
     \item \texttt{clearAll()}: esborra totes les mesures i notifica.
 \end{itemize}
 
-Tots els metodes que modifiquen o llegeixen l'estat son
+Tots els mètodes que modifiquen o llegeixen l'estat són
 \texttt{synchronized}, ja que els fils de fons dels \texttt{SwingWorker}
-poden accedir al model concurrentment. El model implementa el patro
-Observer mitjancant la interficie \texttt{ModelListener}:
+poden accedir al model concurrentment. El model implementa el patró
+Observer mitjançant la interfície \texttt{ModelListener}:
 
-\begin{lstlisting}[caption={Patro Observer al model.}]
+\begin{lstlisting}[caption={Patró Observer al model.}]
 public interface ModelListener {
     void modelChanged();
 }
@@ -475,14 +475,14 @@ private void fireModelChanged() {
 
 \subsection{Capa de la Vista}
 
-La vista es composa de quatre classes i una interficie. \textbf{Cap
+La vista es composa de quatre classes i una interfície. \textbf{Cap
 d'elles exposa components Swing a l'exterior.}
 
-\subsubsection{ViewListener (Interficie)}
+\subsubsection{ViewListener (Interfície)}
 
 Defineix el contracte semantic entre la vista i el controlador:
 
-\begin{lstlisting}[caption={Interficie \texttt{ViewListener}.}]
+\begin{lstlisting}[caption={Interfície \texttt{ViewListener}.}]
 public interface ViewListener {
     void onStartAlgorithm(AlgorithmType type,
                           long[] nValues);
@@ -495,33 +495,33 @@ public interface ViewListener {
 }
 \end{lstlisting}
 
-Tots els parametres son dades primitives o enums. No hi ha cap referencia
+Tots els paràmetres són dades primitives o enums. No hi ha cap referència
 a \texttt{JButton}, \texttt{JTextField} ni cap altre component visual.
-Aquesta es la clau de la separacio MVC.
+Aquesta és la clau de la separació MVC.
 
 \subsubsection{ControlPanel}
 
-Panell que conte els camps d'entrada, els botons d'execucio i el camp de
-previsio. Les responsabilitats son exclusivament de la vista:
+Panell que conte els camps d'entrada, els botóns d'execució i el camp de
+previsió. Les responsabilitats són exclusivament de la vista:
 
 \begin{enumerate}
-    \item Capturar les accions de l'usuari (clics de botons, canvi de
+    \item Capturar les accions de l'usuari (clics de botóns, canvi de
           checkbox d'escala logaritmica).
-    \item Validar l'entrada internament: parsejar els camps de text a
+    \item Vàlidar l'entrada internament: parsejar els camps de text a
           valors \texttt{long}/\texttt{int} i mostrar dialogs d'error
-          (\texttt{JOptionPane}) si els valors son invalids.
+          (\texttt{JOptionPane}) si els valors són invalids.
     \item Generar l'array de valors de $n$ equidistants dins el rang
-          $[\texttt{nInicial}, \texttt{nFinal}]$ amb la formula:
+          $[\texttt{nInicial}, \texttt{nFinal}]$ amb la fórmula:
 \end{enumerate}
 
 \begin{equation}
 n_i = n_{\text{inici}} + \frac{(n_{\text{final}} - n_{\text{inici}}) \cdot i}{p - 1}, \quad i = 0, \ldots, p-1
 \end{equation}
 
-on $p$ es el nombre de passos. Nomes quan la validacio passa
-satisfactoriament s'emet l'event semantic a traves de \texttt{ViewListener}.
+on $p$ és el nombre de passos. Només quan la vàlidació passa
+satisfactòriament s'emet l'event semantic a traves de \texttt{ViewListener}.
 
-Quan un algorisme esta en execucio, el seu boto canvia d'icona
+Quan un algorisme esta en execució, el seu botó canvia d'icona
 ($\blacktriangleright \rightarrow \blacksquare$) i de color (del color
 de l'algorisme a vermell), permetent aturar-lo individualment amb un
 segon clic.
@@ -529,16 +529,16 @@ segon clic.
 \subsubsection{GraphPanel}
 
 Panell personalitzat que sobreescriu \texttt{paintComponent(Graphics g)}
-per dibuixar la grafica amb l'API \texttt{Graphics2D}. Les
-caracteristiques principals son:
+per dibuixar la gràfica amb l'API \texttt{Graphics2D}. Les
+caracteristiques principals són:
 
 \begin{itemize}
     \item \textbf{Eixos i graella:} eix X per a $n$, eix Y per al temps
-          en mil-lisegons, amb marques numeriques i linies de graella
+          en mil·lisegons, amb marques numeriques i linies de graella
           de color gris clar.
     \item \textbf{Escala dual:} suporta escala lineal i logaritmica a
           l'eix Y, commutable en temps real. En escala logaritmica, la
-          posicio vertical es calcula com:
+          posicio vertical es càlcula com:
 \end{itemize}
 
 \begin{equation}
@@ -546,40 +546,40 @@ y = h - h \cdot \frac{\log_{10}(t) - \log_{\min}}{\log_{\max} - \log_{\min}}
 \end{equation}
 
 \begin{itemize}
-    \item \textbf{Series de dades:} dibuixa punts (cercles plens de
-          8$\times$8 pixels) i linies de connexio per a cada algorisme
-          amb el seu color assignat i un tracat de 2.5~punts.
+    \item \textbf{Sèries de dades:} dibuixa punts (cercles plens de
+          8$\times$8 píxels) i linies de connexio per a cada algorisme
+          amb el seu color assignat i un traçat de 2.5~punts.
     \item \textbf{Llegenda:} rectangle semitransparent amb fons blanc i
           opacitat 220/255 a la cantonada superior esquerra.
     \item \textbf{Formatejat dinamic:} les etiquetes s'adapten
-          automaticament (ns, $\mu$s, ms, s, min per al temps; K, M per
+          automàticament (ns, $\mu$s, ms, s, min per al temps; K, M per
           a $n$).
     \item \textbf{Antialiasing:} activat tant per a linies com per a
           text per obtenir un renderitzat suau.
 \end{itemize}
 
-L'escala logaritmica es especialment util quan es comparen algorismes
+L'escala logaritmica és especialment util quan es comparen algorismes
 amb ordres de magnitud molt diferents (per exemple, $O(n)$ vs. $O(n^3)$),
 ja que en escala logaritmica les funcions potencials $n^k$ es visualitzen
 com rectes amb pendent $k$.
 
 \subsubsection{ResultsPanel}
 
-Panell dividit verticalment en dues parts mitjancant un \texttt{JSplitPane}:
+Panell dividit verticalment en dues parts mitjançant un \texttt{JSplitPane}:
 \begin{itemize}
     \item Una \texttt{JTable} no editable que mostra totes les mesures
           amb quatre columnes: algorisme, $n$, temps en ms i constant
-          $c$ en notacio cientifica.
-    \item Una \texttt{JTextArea} de nomes lectura amb font monoespaiada
+          $c$ en notació científica.
+    \item Una \texttt{JTextArea} de només lectura amb font monoespaiada
           que mostra les constants multiplicatives mitjanes i les
-          previsions sol-licitades per l'usuari, amb formatejat adaptatiu
-          (mil-lisegons, segons, minuts, hores o dies).
+          previsións sol·licitades per l'usuari, amb formatejat adaptatiu
+          (mil·lisegons, segons, minuts, hores o dies).
 \end{itemize}
 
 \subsubsection{MainView}
 
 \texttt{JFrame} principal que compon els tres sub-panells en un
-\texttt{BorderLayout} (controls al \texttt{NORTH}, grafica al
+\texttt{BorderLayout} (controls al \texttt{NORTH}, gràfica al
 \texttt{CENTER}, resultats a l'\texttt{EAST}). Es registra com a
 observadora del model amb una lambda:
 
@@ -590,10 +590,10 @@ model.addListener(() -> {
 });
 \end{lstlisting}
 
-L'API publica de \texttt{MainView} consta exclusivament de metodes
+L'API pública de \texttt{MainView} consta exclusivament de mètodes
 que operen amb dades:
 
-\begin{lstlisting}[caption={API publica de \texttt{MainView}.}]
+\begin{lstlisting}[caption={API pública de \texttt{MainView}.}]
 void addViewListener(ViewListener l);
 void setAlgorithmRunning(
     AlgorithmType t, boolean b);
@@ -602,17 +602,17 @@ void showPredictions(long n,
     Map<AlgorithmType, Double> preds);
 \end{lstlisting}
 
-Cap metode retorna ni rep un component Swing. Aquesta restriccio es
-fonamental per a la separacio MVC i ha estat un dels punts de disseny
-mes importants del projecte.
+Cap mètode retorna ni rep un component Swing. Aquesta restricció és
+fonamental per a la separació MVC i ha estat un dels punts de disseny
+més importants del projecte.
 
 \subsection{Capa del Controlador}
 
 La classe \texttt{Controller} implementa \texttt{ViewListener} i gestiona
-el cicle de vida dels algorismes. El codi del metode principal d'execucio
-mostra el patro de \texttt{SwingWorker}:
+el cicle de vida dels algorismes. El codi del mètode principal d'execució
+mostra el patró de \texttt{SwingWorker}:
 
-\begin{lstlisting}[caption={Execucio d'un algorisme al controlador.}]
+\begin{lstlisting}[caption={Execució d'un algorisme al controlador.}]
 private void startExecution(
         AlgorithmType type, long[] nValues) {
   SwingWorker<Void, Measurement> worker =
@@ -649,20 +649,20 @@ private void startExecution(
 
 Cal destacar l'\textit{escalfament} (warm-up) que es fa abans de cada
 mesura: s'executa l'algorisme amb una mida petita ($\min(n, 500)$) per
-forcar la compilacio JIT de la JVM. Aixo evita que la primera mesura
+forçar la compilacio JIT de la JVM. Això evita que la primera mesura
 estigui distorsionada pel cost de compilacio.
 
 El controlador mante un \texttt{EnumMap} de \texttt{SwingWorker} per
-poder cancel-lar cada algorisme individualment. \textbf{Mai no accedeix a
-cap component visual}: la seva unica referencia a la vista es a traves
-dels metodes de dades de \texttt{MainView}.
+poder cancel·lar cada algorisme individualment. \textbf{Mai no accedeix a
+cap component visual}: la seva unica referència a la vista es a traves
+dels mètodes de dades de \texttt{MainView}.
 
 %% ================================================================
-\section{Calcul del Cost Asimptòtic\\ per la Instruccio Critica}
+\section{Càlcul del Cost Asimptòtic\\ per la Instrucció Critica}
 
-La instruccio critica de cada algorisme es l'operacio dins el bucle mes
+La instrucció critica de cada algorisme és l'operació dins el bucle més
 intern que s'executa el major nombre de vegades. El nombre total
-d'execucions d'aquesta instruccio determina $f(n)$.
+d'execucións d'aquesta instrucció determina $f(n)$.
 
 \subsection{Algorisme Lineal --- $O(n)$}
 
@@ -672,7 +672,7 @@ for (long i = 0; i < n; i++) {
 }
 \end{lstlisting}
 
-La instruccio critica \texttt{sum += i * i} s'executa exactament $n$
+La instrucció critica \texttt{sum += i * i} s'executa exactament $n$
 vegades. No hi ha bucles imbricats, per tant:
 \begin{equation}
 f(n) = n \implies T(n) \in \Theta(n)
@@ -690,15 +690,15 @@ for (long i = 0; i < n; i++) {
 \end{lstlisting}
 
 El bucle extern itera $n$ vegades i l'intern $\lfloor \log_2 n \rfloor$
-vegades per cada iteracio externa. La instruccio critica
+vegades per cada iteracio externa. La instrucció critica
 \texttt{sum += i \^{} j} s'executa:
 \begin{equation}
 f(n) = n \cdot \lfloor \log_2 n \rfloor \implies T(n) \in \Theta(n \log n)
 \end{equation}
 
-\subsection{Algorisme Quadratic --- $O(n^2)$}
+\subsection{Algorisme Quadràtic --- $O(n^2)$}
 
-\begin{lstlisting}[caption={Algorisme quadratic.}]
+\begin{lstlisting}[caption={Algorisme quadràtic.}]
 for (long i = 0; i < n; i++) {
     for (long j = 0; j < n; j++) {
         sum += i * j;  // instruccio critica
@@ -706,15 +706,15 @@ for (long i = 0; i < n; i++) {
 }
 \end{lstlisting}
 
-Dos bucles imbricats, cadascun de $n$ iteracions. La instruccio critica
+Dos bucles imbricats, cadascun de $n$ iteracions. La instrucció critica
 \texttt{sum += i * j} s'executa:
 \begin{equation}
 f(n) = n \times n = n^2 \implies T(n) \in \Theta(n^2)
 \end{equation}
 
-\subsection{Algorisme Cubic --- $O(n^3)$}
+\subsection{Algorisme Cúbic --- $O(n^3)$}
 
-\begin{lstlisting}[caption={Algorisme cubic.}]
+\begin{lstlisting}[caption={Algorisme cúbic.}]
 for (long i = 0; i < n; i++) {
     for (long j = 0; j < n; j++) {
         for (long k = 0; k < n; k++) {
@@ -724,7 +724,7 @@ for (long i = 0; i < n; i++) {
 }
 \end{lstlisting}
 
-Tres bucles imbricats, cadascun de $n$ iteracions. La instruccio critica
+Tres bucles imbricats, cadascun de $n$ iteracions. La instrucció critica
 \texttt{sum += (i * j) + k} s'executa:
 \begin{equation}
 f(n) = n^3 \implies T(n) \in \Theta(n^3)
@@ -732,29 +732,29 @@ f(n) = n^3 \implies T(n) \in \Theta(n^3)
 
 \subsection{Resum Comparatiu}
 
-La Taula~\ref{tab:critical} resumeix la instruccio critica, el nombre
-d'execucions i la complexitat de cada algorisme.
+La Taula~\ref{tab:critical} resumeix la instrucció critica, el nombre
+d'execucións i la complexitat de cada algorisme.
 
 \begin{table}[!t]
-\caption{Instruccio critica i complexitat de cada algorisme.\label{tab:critical}}
+\caption{Instrucció critica i complexitat de cada algorisme.\label{tab:critical}}
 \centering
 \begin{tabular}{lllc}
 \toprule
-Algorisme & Instruccio critica & Execucions & $\Theta$ \\
+Algorisme & Instrucció critica & Execucións & $\Theta$ \\
 \midrule
 Lineal     & \texttt{sum += i*i}   & $n$                           & $n$ \\
 N Log N    & \texttt{sum += i\^{}j}  & $n \lfloor\log_2 n\rfloor$   & $n\log n$ \\
-Quadratic  & \texttt{sum += i*j}   & $n^2$                         & $n^2$ \\
-Cubic      & \texttt{sum += (i*j)+k} & $n^3$                       & $n^3$ \\
+Quadràtic  & \texttt{sum += i*j}   & $n^2$                         & $n^2$ \\
+Cúbic      & \texttt{sum += (i*j)+k} & $n^3$                       & $n^3$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Constant Multiplicativa i Prediccio}
+\subsection{Constant Multiplicativa i Predicció}
 
-Per a cada mesura individual, la constant multiplicativa es calcula
+Per a cada mesura individual, la constant multiplicativa es càlcula
 segons l'equacio~(\ref{eq:constant}). La constant mitjana $\bar{c}$
-s'obte com la mitjana aritmetica de totes les constants individuals
+s'obte com la mitjana aritmètica de totes les constants individuals
 d'un algorisme:
 
 \begin{equation}
@@ -762,132 +762,132 @@ d'un algorisme:
 \frac{T(n_k)}{f(n_k)}
 \end{equation}
 
-on $m$ es el nombre de mesures realitzades. Aquesta constant reflexa el
-cost temporal per unitat d'operacio basica a la maquina concreta.
+on $m$ és el nombre de mesures realitzades. Aquesta constant reflecteix el
+cost temporal per unitat d'operació basica a la màquina concreta.
 
-Per fer una prediccio del temps d'execucio per a un valor de $n$ no
-mesurat, s'utilitza la formula:
+Per fer una predicció del temps d'execució per a un valor de $n$ no
+mesurat, s'utilitza la fórmula:
 \begin{equation}
 \hat{T}(n) = \bar{c} \cdot f(n)
 \end{equation}
 
-Per exemple, si tenim $\bar{c} = 2.5$ ns per a l'algorisme quadratic
+Per exemple, si tenim $\bar{c} = 2.5$ ns per a l'algorisme quadràtic
 i volem predir $n = 100\,000$:
 \begin{equation}
 \hat{T}(100\,000) = 2.5 \times (100\,000)^2 = 2.5 \times 10^{10} \text{ ns}
 = 25 \text{ s}
 \end{equation}
 
-Aquesta capacitat de prediccio es un dels avantatges clau de l'anàlisi
+Aquesta capacitat de predicció és un dels avantatges clau de l'anàlisi
 asimptòtic: amb unes poques mesures per a valors petits de $n$, es pot
-estimar el temps d'execucio per a valors molt mes grans sense necessitat
+estimar el temps d'execució per a valors molt més grans sense necessitat
 d'executar l'algorisme.
 
 %% ================================================================
-\section{Resultats i Discussio}
+\section{Resultats i Discussió}
 
-L'aplicacio implementada permet verificar experimentalment que els temps
-d'execucio mesurats segueixen les funcions de cost teòric. A la grafica,
+L'aplicació implementada permet verificar experimentalment que els temps
+d'execució mesurats segueixen les funcions de cost teòric. A la gràfica,
 s'observa clarament com:
 
 \begin{itemize}
-    \item La serie lineal $O(n)$ creix de forma gairebe imperceptible en
-          comparacio amb les altres series.
-    \item La serie $O(n \cdot \log n)$ creix lleugerament mes que la
-          lineal, pero de forma moderada i controlada.
-    \item La serie quadratica $O(n^2)$ creix de forma parabolica,
-          essent significativament mes costosa per a valors grans de $n$.
-    \item La serie cubica $O(n^3)$ domina clarament totes les altres,
-          fent-se impracticable per a valors de $n$ moderadament grans.
+    \item La sèrie lineal $O(n)$ creix de forma gairebé imperceptible en
+          comparacio amb les altres sèries.
+    \item La sèrie $O(n \cdot \log n)$ creix lleugerament més que la
+          lineal, però de forma moderada i controlada.
+    \item La sèrie quadràtica $O(n^2)$ creix de forma parabòlica,
+          essent significativament més costosa per a valors grans de $n$.
+    \item La sèrie cúbica $O(n^3)$ domina clarament totes les altres,
+          fent-se impràcticable per a valors de $n$ moderadament grans.
 \end{itemize}
 
-L'us de l'escala logaritmica a l'eix Y permet comparar totes quatre series
-simultaniament sense que les mes rapides quedin comprimides contra l'eix X.
+L'us de l'escala logaritmica a l'eix Y permet comparar totes quatre sèries
+simultàniament sense que les més rapides quedin comprimides contra l'eix X.
 En escala logaritmica, les funcions potencials $n^k$ es visualitzen com a
-rectes amb pendent proporcional a $k$, facilitant la verificacio visual
+rectes amb pendent proporcional a $k$, facilitant la verificació visual
 de la complexitat.
 
-Les constants multiplicatives calculades es mantenen raonablement estables
+Les constants multiplicatives càlculades es mantenen raonablement estables
 per a un algorisme donat, la qual cosa confirma que el model asimptòtic
-$T(n) = c \cdot f(n)$ es una bona aproximacio. Petites variacions
+$T(n) = c \cdot f(n)$ és una bona aproximació. Petites variacions
 s'atribueixen a:
 
 \begin{itemize}
     \item Efectes de la jerarquia de memoria (cache L1/L2/L3 del
           processador): per a valors grans de $n$, les dades poden
-          excedir la cache, augmentant la latencia.
+          excedir la cache, augmentant la latència.
     \item La compilacio JIT de la JVM: el compilador optimitza el codi
-          progressivament durant l'execucio, la qual cosa pot fer que
-          les primeres mesures siguin mes lentes. L'escalfament previ
+          progressivament durant l'execució, la qual cosa pot fer que
+          les primeres mesures siguin més lentes. L'escalfament previ
           mitiga parcialment aquest efecte.
     \item La planificacio del sistema operatiu: altres processos poden
           competir pel temps de CPU.
 \end{itemize}
 
-La funcionalitat de prediccio ha mostrat resultats coherents: les
-prediccions per a valors de $n$ dins el rang mesurat concorden amb les
-mesures reals, i les prediccions per a valors mes grans segueixen
-l'extrapolacio esperada.
+La funcionalitat de predicció ha mostrat resultats coherents: les
+prediccións per a valors de $n$ dins el rang mesurat concorden amb les
+mesures reals, i les prediccións per a valors més grans segueixen
+l'extrapolació esperada.
 
-Respecte al disseny del programari, l'estricta separacio MVC amb
-comunicacio per esdeveniments ha permes:
+Respecte al disseny del programari, l'estricta separació MVC amb
+comúnicacio per esdeveniments ha permès:
 
 \begin{itemize}
-    \item Desenvolupar i provar la logica del model independentment de la
+    \item Desenvolupar i provar la lògica del model independentment de la
           vista.
-    \item Modificar la interficie grafica (per exemple, afegir l'escala
-          logaritmica o millorar el formatejat de la grafica) sense alterar
+    \item Modificar la interfície gràfica (per exemple, afegir l'escala
+          logaritmica o millorar el formatejat de la gràfica) sense alterar
           el controlador ni el model.
-    \item Garantir que l'aplicacio roman responsiva durant l'execucio
-          d'algorismes lents, gracies a l'us de \texttt{SwingWorker} que
+    \item Garantir que l'aplicació roman responsiva durant l'execució
+          d'algorismes lents, gràcies a l'us de \texttt{SwingWorker} que
           executa els algorismes en fils de fons separats del fil EDT.
-    \item Cancel-lar algorismes individualment sense afectar els altres
+    \item Cancel·lar algorismes individualment sense afectar els altres
           que s'estan executant concurrentment.
 \end{itemize}
 
 %% ================================================================
 \section{Conclusions}
 
-Aquesta practica ha permes aplicar de forma conjunta els conceptes
-d'anàlisi asimptòtic i de disseny de programari amb el patro MVC.
+Aquesta pràctica ha permès aplicar de forma conjunta els conceptes
+d'anàlisi asimptòtic i de disseny de programari amb el patró MVC.
 
 Des del punt de vista teòric, s'ha verificat experimentalment que els
-temps d'execucio dels quatre algorismes implementats corresponen a les
-seves complexitats teoriques. La identificacio de la instruccio critica
-de cada algorisme ---l'operacio del bucle mes intern--- i el calcul de la
-constant multiplicativa han permes fer prediccions fiables del temps
-d'execucio per a mides d'entrada arbitraries. L'experiment confirma que
-el model $T(n) = c \cdot f(n)$ es una aproximacio valida quan $n$ es prou
-gran i les condicions d'execucio son estables.
+temps d'execució dels quatre algorismes implementats corresponen a les
+seves complexitats teoriques. La identificació de la instrucció critica
+de cada algorisme ---l'operació del bucle més intern--- i el càlcul de la
+constant multiplicativa han permès fer prediccións fiables del temps
+d'execució per a mides d'entrada arbitraries. L'experiment confirma que
+el model $T(n) = c \cdot f(n)$ és una aproximació vàlida quan $n$ és prou
+gran i les condicions d'execució són estables.
 
 Des del punt de vista del disseny de programari, s'ha aconseguit una
-implementació estricta del patro MVC on:
+implementació estricta del patró MVC on:
 
 \begin{enumerate}
     \item La vista \textbf{no exposa cap component visual} al controlador;
           tota interaccio es a traves d'events semantics.
-    \item La interficie \texttt{ViewListener} defineix set events amb
-          parametres de dades (enums, arrays de \texttt{long}, booleans),
+    \item La interfície \texttt{ViewListener} defineix set events amb
+          paràmetres de dades (enums, arrays de \texttt{long}, booleans),
           mai objectes Swing.
     \item El model notifica canvis a traves de \texttt{ModelListener}
           sense coneixer qui l'observa.
     \item El controlador opera exclusivament amb dades, delegant la
-          presentacio visual a la vista i la logica de negoci al model.
-    \item La concurrencia es gestiona amb \texttt{SwingWorker}, garantint
-          la responsivitat de la interficie i la cancel-lacio segura.
+          presentacio visual a la vista i la lògica de negoci al model.
+    \item La concurrència es gestiona amb \texttt{SwingWorker}, garantint
+          la responsivitat de la interfície i la cancel·lació segura.
 \end{enumerate}
 
-El patro per esdeveniments ha demostrat ser essencial per mantenir el
+El patró per esdeveniments ha demostrat ser essencial per mantenir el
 desacoblament entre capes, permetent que cada component evolucioni de
-forma independent. Aquesta separacio no es una mera formalitat academica:
+forma independent. Aquesta separació no és una mera formalitat acadèmica:
 facilita el manteniment, la testabilitat i l'extensibilitat del
 programari. Per exemple, es podria substituir la vista Swing per una
-interficie JavaFX o web sense modificar ni una linia del model o del
+interfície JavaFX o web sense modificar ni una línia del model o del
 controlador.
 
-Com a treball futur, es podrien afegir mes algorismes (per exemple,
+Com a treball futur, es podrien afegir més algorismes (per exemple,
 $O(2^n)$ o $O(n!)$), implementar l'exportacio de dades a CSV, permetre
-a l'usuari definir algorismes personalitzats, o afegir mes estrategies
+a l'usuari definir algorismes personalitzats, o afegir més estrategies
 de mesura com la repeticio multiple amb mitjana per reduir la variancia
 experimental.
 

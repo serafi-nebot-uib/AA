@@ -1,6 +1,6 @@
 # Fdb version 4
-["pdflatex"] 1772815065.63623 "/Users/serafi/Documents/uib/CS/Y3/AA/P1/memoria/memoria.tex" "memoria.pdf" "memoria" 1772815066.08031 0
-  "/Users/serafi/Documents/uib/CS/Y3/AA/P1/memoria/memoria.tex" 1772815065.46088 37013 037a24d03c1c01c6083dc0a818d9f671 ""
+["pdflatex"] 1772817650.29355 "/Users/serafi/Documents/uib/CS/Y3/AA/P1/memoria/memoria.tex" "memoria.pdf" "memoria" 1772817650.73721 0
+  "/Users/serafi/Documents/uib/CS/Y3/AA/P1/memoria/memoria.tex" 1772817650.12124 37322 8373e75f43972f3f4753985905ce9d28 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/base/8r.enc" 1165713224 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/local/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/courier/pcrb8r.tfm" 1136768653 1292 3059476c50a24578715759f22652f3d0 ""
@@ -129,8 +129,8 @@
   "/usr/local/texlive/2025/texmf-var/web2c/pdftex/pdflatex.fmt" 1743237537 3345739 7da140f55beb7e0878cefe3b9a895bb4 ""
   "/usr/local/texlive/2025/texmf.cnf" 1741450484 577 418a7058ec8e006d8704f60ecd22c938 ""
   "IEEEtran.cls" 1772104507.55711 288451 2ca944e3837f3f55e325ddfd2f1a2479 ""
-  "memoria.aux" 1772815066.02658 6472 f349112943920598bbeec203772dfa7c "pdflatex"
-  "memoria.tex" 1772815065.46088 37013 037a24d03c1c01c6083dc0a818d9f671 ""
+  "memoria.aux" 1772817650.68289 6492 9ea2f621fe1d71450872f08635aa754d "pdflatex"
+  "memoria.tex" 1772817650.12124 37322 8373e75f43972f3f4753985905ce9d28 ""
   (generated)
   "memoria.aux"
   "memoria.log"

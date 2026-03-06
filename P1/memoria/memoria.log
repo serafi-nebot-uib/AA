@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.29)  6 MAR 2026 17:37
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.29)  6 MAR 2026 18:20
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -462,7 +462,7 @@ Underfull \hbox (badness 3240) in paragraph at lines 118--120
 
 
 Underfull \hbox (badness 1748) in paragraph at lines 124--128
-[]\T1/ptm/b/n/10 Sistema de cons-truc-cio: \T1/ptm/m/n/10 Apac-he Ma-ven 3.x, amb
+[]\T1/ptm/b/n/10 Sistema de cons-truc-ció: \T1/ptm/m/n/10 Apac-he Ma-ven 3.x, amb
  []
 
 
@@ -472,7 +472,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 124--128
 
 
 Underfull \hbox (badness 10000) in paragraph at lines 124--128
-\T1/pcr/m/n/10 com.serafinebot.p1\T1/ptm/m/n/10 , la co-di-fi-ca-cio UTF-8 i
+\T1/pcr/m/n/10 com.serafinebot.p1\T1/ptm/m/n/10 , la co-di-fi-ca-ció UTF-8 i
  []
 
 (/usr/local/texlive/2025/texmf-dist/tex/latex/listings/lstlang1.sty
@@ -488,17 +488,17 @@ File: lstmisc.sty 2024/09/23 1.10c (Carsten Heinz)
 
 
 Underfull \hbox (badness 10000) in paragraph at lines 257--263
-[]\T1/ptm/m/n/10 En im-ple-men-ta-ci-ons in-ge-nu-es del
+[]\T1/ptm/m/n/10 En im-ple-men-ta-ci-ons in-gè-nu-es del
  []
 
 
 Underfull \hbox (badness 10000) in paragraph at lines 257--263
-\T1/ptm/m/n/10 MVC, es co-mu veu-re pa-trons com
+\T1/ptm/m/n/10 MVC, és co-mú veu-re pa-tróns com
  []
 
 
-Overfull \hbox (14.5pt too wide) in paragraph at lines 257--263
-\T1/pcr/m/n/10 view.getStartButton().addActionListener(...)\T1/ptm/m/n/10 ,
+Underfull \hbox (badness 10000) in paragraph at lines 257--263
+\T1/pcr/m/n/10 view.getButton().addActionListener(...)\T1/ptm/m/n/10 ,
  []
 
 
@@ -507,8 +507,8 @@ Underfull \hbox (badness 1496) in paragraph at lines 278--285
  []
 
 
-Underfull \hbox (badness 1852) in paragraph at lines 278--285
-\T1/ptm/m/n/10 ter-fi-cie \T1/pcr/m/n/10 ViewListener \T1/ptm/m/n/10 amb set me-to-des se-man-
+Underfull \hbox (badness 1701) in paragraph at lines 278--285
+\T1/ptm/m/n/10 ter-fí-cie \T1/pcr/m/n/10 ViewListener \T1/ptm/m/n/10 amb set mè-to-des se-màn-
  []
 
 
@@ -520,7 +520,7 @@ Underfull \hbox (badness 7133) in paragraph at lines 278--285
 
 [2]
 Underfull \hbox (badness 10000) in paragraph at lines 315--318
-[]\T1/ptm/m/n/10 La cancel-lacio es co-o-pe-ra-ti-va:
+[]\T1/ptm/m/n/10 La can-cel\TS1/ptm/m/n/10 ·\T1/ptm/m/n/10 lació es co-o-pe-ra-ti-va:
  []
 
 
@@ -530,7 +530,7 @@ Underfull \hbox (badness 6300) in paragraph at lines 315--318
 
 
 Underfull \hbox (badness 5563) in paragraph at lines 315--318
-\T1/ptm/m/n/10 al fil de fons, que ha de com-pro-var pe-ri-o-di-ca-ment
+\T1/ptm/m/n/10 al fil de fons, que ha de com-pro-var pe-ri-ò-di-ca-ment
  []
 
 
@@ -561,7 +561,7 @@ Underfull \hbox (badness 2735) in paragraph at lines 450--453
 
 
 Underfull \hbox (badness 4416) in paragraph at lines 453--456
-[]\T1/pcr/m/n/10 predict(AlgorithmType t, long n)\T1/ptm/m/n/10 : cal-cu-la
+[]\T1/pcr/m/n/10 predict(AlgorithmType t, long n)\T1/ptm/m/n/10 : càl-cu-la
  []
 
 
@@ -602,7 +602,7 @@ Here is how much of TeX's memory you used:
  1147 hyphenation exceptions out of 8191
  57i,10n,65p,287b,1217s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrb8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrro8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on memoria.pdf (7 pages, 267710 bytes).
+Output written on memoria.pdf (7 pages, 268216 bytes).
 PDF statistics:
  139 PDF objects out of 1000 (max. 8388607)
  85 compressed objects within 1 object stream
