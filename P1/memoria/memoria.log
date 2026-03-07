@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.29)  7 MAR 2026 11:38
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.29)  7 MAR 2026 14:56
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -390,20 +390,20 @@ File: l3backend-pdftex.def 2024-05-08 L3 backend support: PDF output (pdfTeX)
 ) (./memoria.aux)
 \openout1 = `memoria.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 62.
+LaTeX Font Info:    ... okay on input line 62.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 62.
+LaTeX Font Info:    ... okay on input line 62.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 62.
+LaTeX Font Info:    ... okay on input line 62.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 62.
+LaTeX Font Info:    ... okay on input line 62.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 62.
+LaTeX Font Info:    ... okay on input line 62.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 62.
+LaTeX Font Info:    ... okay on input line 62.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 62.
+LaTeX Font Info:    ... okay on input line 62.
 
 -- Lines per column: 58 (exact).
 Package caption Info: Begin \AtBeginDocument code.
@@ -429,18 +429,18 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 48
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
 ))
 \c@lstlisting=\count326
-LaTeX Info: Redefining \l on input line 61.
-LaTeX Info: Redefining \L on input line 61.
-LaTeX Font Info:    Trying to load font information for T1+phv on input line 70.
+LaTeX Info: Redefining \l on input line 62.
+LaTeX Info: Redefining \L on input line 62.
+LaTeX Font Info:    Trying to load font information for T1+phv on input line 71.
  (/usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/t1phv.fd
 File: t1phv.fd 2020/03/25 scalable font definitions for T1/phv.
 )
-LaTeX Font Info:    Calculating math sizes for size <9.03374> on input line 76.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 76.
+LaTeX Font Info:    Calculating math sizes for size <9.03374> on input line 77.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 77.
  (/usr/local/texlive/2025/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 76.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 77.
  (/usr/local/texlive/2025/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
@@ -456,23 +456,15 @@ Pagestretch: 0.0pt
 CUTED [output]: 0.0pt
 CUTED [leftcolumn badness]: 0
 CUTED [rightcolumn badness]: 0
-LaTeX Font Info:    Calculating math sizes for size <10.03749> on input line 100.
-LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 110.
+LaTeX Font Info:    Calculating math sizes for size <10.03749> on input line 101.
+LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 111.
  (/usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/ts1ptm.fd
 File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
 )
 
-LaTeX Font Info:    Trying to load font information for T1+pcr on input line 143.
-(/usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/t1pcr.fd
-File: t1pcr.fd 2001/06/04 font definitions for T1/pcr.
-)
-Underfull \hbox (badness 1472) in paragraph at lines 149--153
-\T1/ptm/m/n/10.03749 un fit-xer \T1/pcr/m/n/10.03749 pom.xml \T1/ptm/m/n/10.03749 que de-fi-neix el \T1/pcr/m/n/10.03749 groupId
- []
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 153--155
-[]\T1/ptm/b/n/10.03749 Interfície grà-fi-ca: \T1/ptm/m/n/10.03749 Ja-va Swing (pa-quets
+Underfull \hbox (badness 2426) in paragraph at lines 146--149
+[]$\OML/cmm/m/it/10 O\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 f\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 n\OT1/cmr/m/n/10 ))$ \T1/ptm/m/n/10.03749 (co-ta su-pe-ri-or asimp-tò-ti-ca): exis-tei-xen
  []
 
 
@@ -480,118 +472,107 @@ Underfull \hbox (badness 10000) in paragraph at lines 153--155
 [1{/usr/local/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/base/8r.enc}
 
 
-] (/usr/local/texlive/2025/texmf-dist/tex/latex/listings/lstlang1.sty
-File: lstlang1.sty 2024/09/23 1.10c listings language file
-) (/usr/local/texlive/2025/texmf-dist/tex/latex/listings/lstmisc.sty
-File: lstmisc.sty 2024/09/23 1.10c (Carsten Heinz)
+]
+LaTeX Font Info:    Calculating math sizes for size <8.03> on input line 173.
+
+
+LaTeX Font Info:    Trying to load font information for T1+pcr on input line 237.
+(/usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/t1pcr.fd
+File: t1pcr.fd 2001/06/04 font definitions for T1/pcr.
 )
-Underfull \hbox (badness 2426) in paragraph at lines 192--195
-[]$\OML/cmm/m/it/10 O\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 f\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 n\OT1/cmr/m/n/10 ))$ \T1/ptm/m/n/10.03749 (co-ta su-pe-ri-or asimp-tò-ti-ca): exis-tei-xen
- []
-
-LaTeX Font Info:    Calculating math sizes for size <8.03> on input line 219.
-
-LaTeX Warning: `!h' float specifier changed to `!ht'.
-
-
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 282--288
+Underfull \hbox (badness 10000) in paragraph at lines 236--242
 []\T1/ptm/m/n/10.03749 En im-ple-men-ta-ci-ons in-gè-nu-es del
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 282--288
+Underfull \hbox (badness 10000) in paragraph at lines 236--242
 \T1/ptm/m/n/10.03749 MVC, és co-mú veu-re pa-tróns com
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 282--288
+Underfull \hbox (badness 10000) in paragraph at lines 236--242
 \T1/pcr/m/n/10.03749 view.getButton().addActionListener(...)\T1/ptm/m/n/10.03749 ,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 252--257
+[]\T1/ptm/b/n/10.03749 Model $\OMS/cmsy/m/n/10 !$ \T1/ptm/b/n/10.03749 Vis-ta: \T1/ptm/m/n/10.03749 El mo-del de-fi-neix una
+ []
+
+
+Underfull \hbox (badness 7832) in paragraph at lines 252--257
+\T1/ptm/m/n/10.03749 in-ter-fí-cie \T1/pcr/m/n/10.03749 ModelListener \T1/ptm/m/n/10.03749 amb el mè-to-de
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 257--264
+\T1/ptm/m/n/10.03749 (\T1/pcr/m/n/10.03749 onStartAlgorithm\T1/ptm/m/n/10.03749 , \T1/pcr/m/n/10.03749 onStopAlgorithm\T1/ptm/m/n/10.03749 ,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 257--264
+\T1/pcr/m/n/10.03749 onStartAll\T1/ptm/m/n/10.03749 , \T1/pcr/m/n/10.03749 onStopAll\T1/ptm/m/n/10.03749 , \T1/pcr/m/n/10.03749 onPredict\T1/ptm/m/n/10.03749 ,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 257--264
+\T1/pcr/m/n/10.03749 onClear\T1/ptm/m/n/10.03749 , \T1/pcr/m/n/10.03749 onLogScaleChanged\T1/ptm/m/n/10.03749 ). El
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 257--264
+\T1/ptm/m/n/10.03749 con-tro-la-dor im-ple-men-ta aques-ta in-ter-fí-cie i
  []
 
 
 
 [2]
-Underfull \hbox (badness 10000) in paragraph at lines 298--303
-[]\T1/ptm/b/n/10.03749 Model $\OMS/cmsy/m/n/10 !$ \T1/ptm/b/n/10.03749 Vis-ta: \T1/ptm/m/n/10.03749 El mo-del de-fi-neix una
- []
-
-
-Underfull \hbox (badness 7832) in paragraph at lines 298--303
-\T1/ptm/m/n/10.03749 in-ter-fí-cie \T1/pcr/m/n/10.03749 ModelListener \T1/ptm/m/n/10.03749 amb el mè-to-de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 303--310
-\T1/ptm/m/n/10.03749 (\T1/pcr/m/n/10.03749 onStartAlgorithm\T1/ptm/m/n/10.03749 , \T1/pcr/m/n/10.03749 onStopAlgorithm\T1/ptm/m/n/10.03749 ,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 303--310
-\T1/pcr/m/n/10.03749 onStartAll\T1/ptm/m/n/10.03749 , \T1/pcr/m/n/10.03749 onStopAll\T1/ptm/m/n/10.03749 , \T1/pcr/m/n/10.03749 onPredict\T1/ptm/m/n/10.03749 ,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 303--310
-\T1/pcr/m/n/10.03749 onClear\T1/ptm/m/n/10.03749 , \T1/pcr/m/n/10.03749 onLogScaleChanged\T1/ptm/m/n/10.03749 ). El
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 303--310
-\T1/ptm/m/n/10.03749 con-tro-la-dor im-ple-men-ta aques-ta in-ter-fí-cie i
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 340--343
+Underfull \hbox (badness 10000) in paragraph at lines 294--297
 []\T1/ptm/m/n/10.03749 La can-cel\TS1/ptm/m/n/10.03749 ·\T1/ptm/m/n/10.03749 lació es co-o-pe-ra-ti-va:
  []
 
 
-Underfull \hbox (badness 2884) in paragraph at lines 340--343
+Underfull \hbox (badness 2884) in paragraph at lines 294--297
 \T1/ptm/m/n/10.03749 al fil de fons, que ha de com-pro-var pe-ri-ò-di-ca-ment
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 340--343
+Underfull \hbox (badness 10000) in paragraph at lines 294--297
 \T1/pcr/m/n/10.03749 Thread.currentThread().isInterrupted()
  []
 
 
 
 
-
-[3]
-LaTeX Font Info:    Font shape `T1/pcr/m/it' in size <8.03> not available
-(Font)              Font shape `T1/pcr/m/sl' tried instead on input line 420.
-
-Underfull \hbox (badness 1571) in paragraph at lines 428--432
-[]\T1/ptm/m/n/10.03749 Cal des-ta-car dos as-pec-tes: pri-mer, la com-pro-va-ció
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 428--432
-\T1/ptm/m/n/10.03749 d'\T1/pcr/m/n/10.03749 isInterrupted() \T1/ptm/m/n/10.03749 al bu-cle ex-tern (no al
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 428--432
-\T1/ptm/m/n/10.03749 més in-tern, per no pe-na-lit-zar el ren-di-ment amb
- []
-
-
-Underfull \hbox (badness 1968) in paragraph at lines 428--432
-\T1/ptm/m/n/10.03749 com-pro-va-ci-ons mas-sa fre-quents); se-gon, el llan-ça-ment
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 459--461
+Underfull \hbox (badness 10000) in paragraph at lines 399--401
 []\T1/pcr/m/n/10.03749 getAverageConstant(AlgorithmType
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 461--464
+Underfull \hbox (badness 10000) in paragraph at lines 401--404
 []\T1/pcr/m/n/10.03749 predict(AlgorithmType t, long n)\T1/ptm/m/n/10.03749 :
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 404--406
+[]\T1/pcr/m/n/10.03749 clearMeasurements(AlgorithmType t)\T1/ptm/m/n/10.03749 :
+ []
+
+
+
+[3]
+Underfull \hbox (badness 10000) in paragraph at lines 427--428
+[]\T1/pcr/m/n/10.03749 onStartAlgorithm(AlgorithmType,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 428--429
+[]\T1/pcr/m/n/10.03749 onStopAlgorithm(AlgorithmType)\T1/ptm/m/n/10.03749 :
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 433--434
+[]\T1/pcr/m/n/10.03749 onLogScaleChanged(boolean)\T1/ptm/m/n/10.03749 : com-mu-ta
  []
 
 
@@ -599,29 +580,51 @@ Underfull \hbox (badness 10000) in paragraph at lines 461--464
 
 
 [4]
+Underfull \hbox (badness 10000) in paragraph at lines 535--536
+[]\T1/pcr/m/n/10.03749 setAlgorithmRunning(AlgorithmType,
+ []
+
+
+Underfull \hbox (badness 2726) in paragraph at lines 536--537
+[]\T1/pcr/m/n/10.03749 setLogScale(boolean)\T1/ptm/m/n/10.03749 : ac-ti-va o desac-ti-va
+ []
+
+
+Underfull \hbox (badness 1762) in paragraph at lines 537--538
+[]\T1/pcr/m/n/10.03749 showPredictions(long, Map)\T1/ptm/m/n/10.03749 : mos-tra les
+ []
+
+<mvc.png, id=34, 1776.6375pt x 980.66376pt>
+File: mvc.png Graphic file (type png)
+<use mvc.png>
+Package pdftex.def Info: mvc.png  used on input line 576.
+(pdftex.def)             Requested size: 243.91125pt x 134.62845pt.
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
-[5]
-LaTeX Font Info:    Calculating math sizes for size <11.04124> on input line 681.
+LaTeX Font Info:    Calculating math sizes for size <11.04124> on input line 587.
 
+
+[5 <./mvc.png>]
 
 
 
 [6]
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 886--888
-[]\T1/ptm/m/n/10.03749 El mo-del no-ti-fi-ca can-vis a tra-ves de
+Underfull \hbox (badness 10000) in paragraph at lines 793--795
+[]\T1/ptm/m/n/10.03749 El mo-del no-ti-fi-ca can-vis a tra-vés de
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 937--940
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 844--847
 []\T1/ptm/m/n/8.03 Oracle Cor-po-ra-ti-on, ``The Ja-va Tu-to-ri-als --- Con-cur-rency,''
  []
 
 
-Underfull \hbox (badness 3735) in paragraph at lines 937--940
+Underfull \hbox (badness 3735) in paragraph at lines 844--847
 \T1/ptm/m/n/8.03 [On-li-ne]. Avai-la-ble: $https : / / docs . oracle . com / javase / tutorial / essential /
  []
 
@@ -645,18 +648,18 @@ L3 programming layer <2025-01-18>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 9170 strings out of 473190
- 145982 string characters out of 5715800
- 952245 words of memory out of 5000000
- 32274 multiletter control sequences out of 15000+600000
- 686462 words of font info for 192 fonts, out of 8000000 for 9000
+ 9053 strings out of 473190
+ 144277 string characters out of 5715800
+ 835245 words of memory out of 5000000
+ 32163 multiletter control sequences out of 15000+600000
+ 685725 words of font info for 190 fonts, out of 8000000 for 9000
  1147 hyphenation exceptions out of 8191
- 57i,10n,65p,287b,1642s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrb8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrro8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on memoria.pdf (7 pages, 269534 bytes).
+ 57i,10n,65p,287b,1202s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrb8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on memoria.pdf (7 pages, 360543 bytes).
 PDF statistics:
- 139 PDF objects out of 1000 (max. 8388607)
- 85 compressed objects within 1 object stream
+ 137 PDF objects out of 1000 (max. 8388607)
+ 83 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 1 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 6 words of extra memory for PDF output out of 10000 (max. 10000000)
 

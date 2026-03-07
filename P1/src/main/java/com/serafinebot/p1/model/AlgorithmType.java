@@ -15,11 +15,9 @@ public enum AlgorithmType {
         }
 
         @Override
-        public long execute(long n) throws InterruptedException {
+        public long execute(long n) {
             long sum = 0;
             for (long i = 0; i < n; i++) {
-                if (i % 100_000 == 0 && Thread.currentThread().isInterrupted())
-                    throw new InterruptedException();
                 sum += i * i;
             }
             return sum;
@@ -33,13 +31,10 @@ public enum AlgorithmType {
         }
 
         @Override
-        public long execute(long n) throws InterruptedException {
+        public long execute(long n) {
             long sum = 0;
-            int logN = Math.max(1, (int) (Math.log(n) / Math.log(2)));
             for (long i = 0; i < n; i++) {
-                if (i % 100_000 == 0 && Thread.currentThread().isInterrupted())
-                    throw new InterruptedException();
-                for (int j = 0; j < logN; j++) {
+                for (long j = 1; j < n; j *= 2) {
                     sum += i ^ j;
                 }
             }
@@ -54,11 +49,9 @@ public enum AlgorithmType {
         }
 
         @Override
-        public long execute(long n) throws InterruptedException {
+        public long execute(long n) {
             long sum = 0;
             for (long i = 0; i < n; i++) {
-                if (Thread.currentThread().isInterrupted())
-                    throw new InterruptedException();
                 for (long j = 0; j < n; j++) {
                     sum += i * j;
                 }
@@ -74,11 +67,9 @@ public enum AlgorithmType {
         }
 
         @Override
-        public long execute(long n) throws InterruptedException {
+        public long execute(long n) {
             long sum = 0;
             for (long i = 0; i < n; i++) {
-                if (Thread.currentThread().isInterrupted())
-                    throw new InterruptedException();
                 for (long j = 0; j < n; j++) {
                     for (long k = 0; k < n; k++) {
                         sum += (i * j) + k;
@@ -104,5 +95,5 @@ public enum AlgorithmType {
     public Color getColor() { return color; }
 
     public abstract double theoreticalCost(long n);
-    public abstract long execute(long n) throws InterruptedException;
+    public abstract long execute(long n);
 }

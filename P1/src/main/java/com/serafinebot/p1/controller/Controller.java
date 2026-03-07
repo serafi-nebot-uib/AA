@@ -84,11 +84,8 @@ public class Controller implements ViewListener {
         SwingWorker<Void, Measurement> worker = new SwingWorker<>() {
             @Override
             protected Void doInBackground() {
-                // Escalfament per a valors petits (reduïr overhead JIT per a execucions reals)
-                try {
-                    type.execute(500);
-                } catch (InterruptedException ignored) {
-                }
+                // Escalfament JIT (una sola vegada)
+                type.execute(500);
 
                 for (long n : nValues) {
                     if (isCancelled()) break;
@@ -98,11 +95,7 @@ public class Controller implements ViewListener {
                     for (int rep = 0; rep < 5; rep++) {
                         if (isCancelled()) break;
                         long start = System.nanoTime();
-                        try {
-                            type.execute(n);
-                        } catch (InterruptedException e) {
-                            break;
-                        }
+                        type.execute(n);
                         long elapsed = System.nanoTime() - start;
                         if (elapsed < minElapsed) minElapsed = elapsed;
                     }

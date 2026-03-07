@@ -16,6 +16,7 @@
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{booktabs}
+\usepackage{float}
 \usepackage{cuted}
 
 % Catalan names for abstract and index terms
@@ -85,7 +86,7 @@ d'entrada arbitraries.
 \end{abstract}
 
 \begin{IEEEkeywords}
-anàlisi asimptòtic, complexitat computacional, algorismes, Model-Vista-Controlador, Java Swing, SwingWorker, patró Observer, instrucció crítica, constant multiplicativa, concurrència
+anàlisi asimptòtic, complexitat computacional, Model-Vista-Controlador, Java Swing, SwingWorker, constant multiplicativa, concurrència
 \end{IEEEkeywords}
 \end{strip}
 
@@ -132,53 +133,6 @@ la Secció~VI presenta els resultats; i la Secció~VII tanca amb les
 conclusions.
 
 %% ================================================================
-% TODO: is this seciton necessary?
-\section{Entorn de Programació}
-
-L'aplicació s'ha desenvolupat integrament en \textbf{Java}, un llenguatge
-orientat a objectes que ofereix portabilitat, tipatge estàtic i un ecosistema
-madur de biblioteques. L'entorn concret és el següent:
-
-\begin{itemize}
-    \item \textbf{Llenguatge:} Java 16 (compilacio amb \texttt{source} i
-          \texttt{target} 16).
-    \item \textbf{JDK:} OpenJDK 23 (Valhalla), compatible cap enrere amb
-          Java~16.
-    \item \textbf{IDE:} IntelliJ IDEA, que proporciona eines d'anàlisi de
-          codi, refactoritzacio automatitzada i integració amb Maven.
-    \item \textbf{Sistema de construcció:} Apache Maven 3.x, amb un fitxer
-          \texttt{pom.xml} que defineix el \texttt{groupId}
-          \texttt{com.serafinebot.p1}, la codificació UTF-8 i les versions
-          del compilador.
-    \item \textbf{Interfície gràfica:} Java Swing (paquets \texttt{javax.swing}
-          i \texttt{java.awt}), sense cap biblioteca externa de grafiques.
-    \item \textbf{Control de versions:} Git.
-\end{itemize}
-
-La decisio d'utilitzar exclusivament Java Swing ---sense biblioteques
-de tercers com JFreeChart--- respon a un requisit de la pràctica i obliga
-a implementar manualment el renderitzat de la gràfica amb l'API
-\texttt{Graphics2D}, incloent-hi eixos, graella, sèries de dades i
-llegenda.
-
-El fitxer \texttt{pom.xml} segueix una configuració mínima, ja que el
-projecte no té cap dependencia externa:
-
-\begin{lstlisting}[caption={Configuracio Maven del projecte.},language=XML]
-<properties>
-  <maven.compiler.source>16</maven.compiler.source>
-  <maven.compiler.target>16</maven.compiler.target>
-  <project.build.sourceEncoding>
-    UTF-8
-  </project.build.sourceEncoding>
-</properties>
-\end{lstlisting}
-
-Aquesta absència de dependències externes és un aspecte rellevant del
-projecte: tota la funcionalitat ---des del renderitzat de grafiques fins a
-la concurrència--- s'implementa amb les eines estandard del JDK.
-
-%% ================================================================
 \section{Fonaments Teòrics}
 
 \subsection{Anàlisi Asimptòtic de Costos}
@@ -195,7 +149,7 @@ notacións següents:
     \item \textbf{$\Omega(f(n))$} (cota inferior): existeixen constants
           $c > 0$ i $n_0$ tals que $T(n) \geq c \cdot f(n)$ per a tot
           $n \geq n_0$.
-    \item \textbf{$\Theta(f(n))$} (cota ajustada): $T(n)$ és alhora
+    \item \textbf{$O(f(n))$} (cota ajustada): $T(n)$ és alhora
           $O(f(n))$ i $\Omega(f(n))$.
 \end{itemize}
 
@@ -236,19 +190,19 @@ $10^4$: una diferència de vuit ordres de magnitud. Si cada operació
 trigues 1~nanosegon, l'algorisme lineal acabaria en 10~microsegons,
 mentre que el cúbic necessitaria aproximadament 17~minuts.
 
-\subsection{Instrucció Critica}
+\subsection{Instrucció crítica}
 
-La \textit{instrucció critica} és aquella operació dins l'algorisme que
+La \textit{instrucció crítica} és aquella operació dins l'algorisme que
 s'executa el major nombre de vegades i que, per tant, domina el cost
 total~\cite{ref_knuth}. Identificar-la és clau per determinar la
-complexitat asimptòtica. En algorismes iteratius, la instrucció critica
+complexitat asimptòtica. En algorismes iteratius, la instrucció crítica
 és habitualment l'operació dins el bucle més intern. El nombre total
 d'execucions d'aquesta instrucció depèn del nombre d'iteracions de tots
 els bucles que l'envolten.
 
 Per exemple, en un algorisme amb dos bucles imbricats, cadascun iterant
-$n$ vegades, la instrucció critica s'executa $n \times n = n^2$ vegades,
-i per tant el cost asimptòtic és $\Theta(n^2)$.
+$n$ vegades, la instrucció crítica s'executa $n \times n = n^2$ vegades,
+i per tant el cost asimptòtic és $O(n^2)$.
 
 \subsection{Patró Model-Vista-Controlador (MVC)}
 
@@ -403,32 +357,18 @@ constant implementa dos mètodes abstractes:
 A més, cada algorisme té associat un nom visible, una notació matemàtica
 i un color per a la gràfica.
 
-Per exemple, l'algorisme quadràtic es defineix com:
+Per exemple, la constant de l'algorisme quadràtic retorna $n^2$ i el seu
+mètode \texttt{execute()} implementa dos bucles imbricats de $n$ iteracions
+cadascun, on la instrucció crítica és \texttt{sum += i * j}. La cancel·lació
+es comprova al bucle extern per no penalitzar el rendiment.
 
-\begin{lstlisting}[caption={Definicio de l'algorisme $O(n^2)$.}]
-QUADRATIC("O(n^2)", "Quadratic",
-          new Color(220, 120, 0)) {
-    public double theoreticalCost(long n) {
-        return (double) n * n;
-    }
-    public long execute(long n) throws InterruptedException {
-        long sum = 0;
-        for (long i = 0; i < n; i++) {
-            if (Thread.currentThread().isInterrupted())
-                throw new InterruptedException();
-            for (long j = 0; j < n; j++) {
-                sum += i * j; // instruccio critica
-            }
-        }
-        return sum;
-    }
-};
-\end{lstlisting}
-
-Cal destacar dos aspectes: primer, la comprovació d'\texttt{isInterrupted()}
-al bucle extern (no al més intern, per no penalitzar el rendiment amb
-comprovacions massa frequents); segon, el llançament d'\texttt{InterruptedException}
-que permet la cancel·lació cooperativa des del controlador.
+Els mètodes \texttt{execute()} no contenen cap lògica de cancel·lació:
+són funcions pures que simplement executen els bucles i retornen un
+resultat. La responsabilitat de detectar la cancel·lació recau
+exclusivament al controlador, que comprova \texttt{isCancelled()} entre
+cada valor de $n$ i entre cada repetició. Aquesta separació manté el
+model lliure de conceptes de concurrència i elimina la necessitat de
+comprovacions periòdiques amb \texttt{isInterrupted()} dins els bucles.
 
 \subsubsection{Measurement}
 
@@ -461,31 +401,18 @@ mètodes principals són:
     \item \texttt{predict(AlgorithmType t, long n)}: calcula el temps
           predit com $\hat{T}(n) = \bar{c} \cdot f(n)$, on $\bar{c}$ es
           la constant mitjana.
+    \item \texttt{clearMeasurements(AlgorithmType t)}: esborra les mesures
+          d'un algorisme concret i notifica els observadors.
     \item \texttt{clearAll()}: esborra totes les mesures i ho notifica.
 \end{itemize}
 
 Tots els mètodes que modifiquen o llegeixen l'estat són
 \texttt{synchronized}, ja que els fils de fons dels \texttt{SwingWorker}
 poden accedir al model concurrentment. El model implementa el patró
-Observer mitjançant la interfície \texttt{ModelListener}:
-
-\begin{lstlisting}[caption={Patró Observer al model.}]
-public interface ModelListener {
-    void modelChanged();
-}
-
-private final List<ModelListener> listeners = new ArrayList<>();
-
-public void addListener(ModelListener listener) {
-      listeners.add(listener);
-}
-
-private void fireModelChanged() {
-    for (ModelListener l : listeners) {
-        l.modelChanged();
-    }
-}
-\end{lstlisting}
+Observer mitjançant la interfície \texttt{ModelListener}, que exposa un
+únic mètode \texttt{modelChanged()}. El model manté una llista
+d'observadors i els notifica tots cada vegada que s'afegeix o s'esborren
+mesures, invocant \texttt{modelChanged()} sobre cadascun.
 
 \subsection{Capa de la Vista}
 
@@ -494,19 +421,17 @@ La vista esta composta d'una interfície i quatre classes.
 \subsubsection{ViewListener (Interfície)}
 
 Defineix les operacions permeses que possibiliten la comunicació
-entre la vista i el controlador:
+entre la vista i el controlador. Els set mètodes semàntics que exposa són:
 
-\begin{lstlisting}[caption={Interfície \texttt{ViewListener}.}]
-public interface ViewListener {
-    void onStartAlgorithm(AlgorithmType type, long[] nValues);
-    void onStopAlgorithm(AlgorithmType type);
-    void onStartAll(long[] nValues);
-    void onStopAll();
-    void onPredict(long predictN);
-    void onClear();
-    void onLogScaleChanged(boolean logScale);
-}
-\end{lstlisting}
+\begin{itemize}
+    \item \texttt{onStartAlgorithm(AlgorithmType, long[])}: inicia l'execució d'un algorisme concret per als valors de $n$ indicats.
+    \item \texttt{onStopAlgorithm(AlgorithmType)}: cancel·la l'execució d'un algorisme concret.
+    \item \texttt{onStartAll(long[])}: inicia tots els algorismes simultàniament.
+    \item \texttt{onStopAll()}: cancel·la tots els algorismes en execució.
+    \item \texttt{onPredict(long)}: sol·licita una predicció de temps per a la mida $n$ indicada.
+    \item \texttt{onClear()}: esborra totes les mesures del model.
+    \item \texttt{onLogScaleChanged(boolean)}: commuta l'escala de l'eix Y entre lineal i logarítmica.
+\end{itemize}
 
 Tots els paràmetres són dades primitives o enums. No hi ha cap referència
 a \texttt{JButton}, \texttt{JTextField} ni cap altre component visual.
@@ -519,7 +444,7 @@ previsió. Les responsabilitats són exclusivament de la vista:
 
 \begin{enumerate}
     \item Capturar les accions de l'usuari (clics de botons, canvi de
-          checkbox d'escala logarítmica).
+          checkbox d'escala logarítmica, canvi de visibilitat d'algorismes).
     \item Validar l'entrada internament: convertir els camps de text a
           valors \texttt{long}/\texttt{int} i mostrar diàlegs d'error
           (\texttt{JOptionPane}) si els valors són invalids.
@@ -531,7 +456,16 @@ previsió. Les responsabilitats són exclusivament de la vista:
 \end{enumerate}
 
 on $p$ és el nombre de mostres. Només quan la validació passa
-satisfactòriament s'emet l'event semàntic a través de \texttt{ViewListener}.
+satisfactòriament s'emet l'event a través de \texttt{ViewListener}.
+
+El panell inclou també una fila de \textit{checkboxes} de visibilitat,
+una per algorisme, que permeten mostrar o ocultar cada sèrie de la
+gràfica independentment. Quan l'usuari canvia l'estat d'un checkbox,
+\texttt{ControlPanel} notifica \texttt{GraphPanel} directament a través
+d'una interfície interna \texttt{VisibilityListener}, sense passar pel
+controlador MVC, ja que es tracta d'una decisió purament visual que no
+afecta les dades del model. En ocultar una sèrie, el rang dels eixos
+es recalcula automàticament en funció de les sèries visibles.
 
 Quan un algorisme esta en execució, el seu botó canvia d'icona
 ($\blacktriangleright \rightarrow \blacksquare$) i de color (del color
@@ -545,34 +479,27 @@ per dibuixar la gràfica amb l'API \texttt{Graphics2D}. Les
 característiques principals són:
 
 \begin{itemize}
-    \item \textbf{Eixos i graella:} eix X per a $n$, eix Y per al temps
-          en mil·lisegons, amb marques numeriques i linies de graella
-          de color gris clar.
-    \item \textbf{Escala dual:} suporta escala lineal i logaritmica a
-          l'eix Y, commutable en temps real. En escala logaritmica, la
-          posicio vertical es càlcula com:
+    \item \textbf{Eixos i graella:} eix X per a $n$, eix Y per al temps,
+          amb marques numèriques i línies de graella de color gris clar.
+    \item \textbf{Escala dual:} suporta escala lineal i logarítmica a
+          l'eix Y, commutable en temps real. En escala logarítmica, la
+          posició vertical es calcula com:
+          \begin{equation}
+          y = h - h \cdot \frac{\log_{10}(t) - \log_{\min}}{\log_{\max} - \log_{\min}}
+          \end{equation}
+          on $h$ és l'alçada del panell en píxels, $t$ és el temps mesurat,
+          i $\log_{\min}$ i $\log_{\max}$ són els logaritmes del valor mínim
+          i màxim de l'eix Y respectivament. La fracció normalitza $t$ dins
+          el rang $[0, 1]$, i la resta $h - h\cdot(\cdots)$ inverteix l'eix
+          perquè els valors més grans quedin a la part superior.
+    \item \textbf{Sèries de dades:} dibuixa punts per a
+          cada mesura de l'algorisme amb el seu color assignat i un traçat que els connecta.
+    \item \textbf{Llegenda:} rectangle semitransparent amb fons blanc i a la cantonada superior esquerra.
 \end{itemize}
 
-\begin{equation}
-y = h - h \cdot \frac{\log_{10}(t) - \log_{\min}}{\log_{\max} - \log_{\min}}
-\end{equation}
-
-\begin{itemize}
-    \item \textbf{Sèries de dades:} dibuixa punts (cercles plens de
-          8$\times$8 píxels) i linies de connexio per a cada algorisme
-          amb el seu color assignat i un traçat de 2.5~punts.
-    \item \textbf{Llegenda:} rectangle semitransparent amb fons blanc i
-          opacitat 220/255 a la cantonada superior esquerra.
-    \item \textbf{Formatejat dinamic:} les etiquetes s'adapten
-          automàticament (ns, $\mu$s, ms, s, min per al temps; K, M per
-          a $n$).
-    \item \textbf{Antialiasing:} activat tant per a linies com per a
-          text per obtenir un renderitzat suau.
-\end{itemize}
-
-L'escala logaritmica és especialment util quan es comparen algorismes
+L'escala logarítmica és especialment util quan es comparen algorismes
 amb ordres de magnitud molt diferents (per exemple, $O(n)$ vs. $O(n^3)$),
-ja que en escala logaritmica les funcions potencials $n^k$ es visualitzen
+ja que en escala logarítmica les funcions potencials $n^k$ es visualitzen
 com rectes amb pendent $k$.
 
 \subsubsection{ResultsPanel}
@@ -582,17 +509,15 @@ Panell dividit verticalment en dues parts mitjançant un \texttt{JSplitPane}:
     \item Una \texttt{JTable} no editable que mostra totes les mesures
           amb quatre columnes: algorisme, $n$, temps en ms i constant
           $c$ en notació científica.
-    \item Una \texttt{JTextArea} de només lectura amb font monoespaiada
+    \item Una \texttt{JTextArea} de només lectura 
           que mostra les constants multiplicatives mitjanes i les
-          previsións sol·licitades per l'usuari, amb formatejat adaptatiu
-          (mil·lisegons, segons, minuts, hores o dies).
+          previsions sol·licitades per l'usuari.
 \end{itemize}
 
 \subsubsection{MainView}
 
 \texttt{JFrame} principal que compon els tres sub-panells en un
-\texttt{BorderLayout} (controls al \texttt{NORTH}, gràfica al
-\texttt{CENTER}, resultats a l'\texttt{EAST}). Es registra com a
+\texttt{BorderLayout}. Es registra com a
 observadora del model amb una lambda:
 
 \begin{lstlisting}[caption={Registre com a observadora del model.}]
@@ -605,109 +530,92 @@ model.addListener(() -> {
 L'API pública de \texttt{MainView} consta exclusivament de mètodes
 que operen amb dades:
 
-\begin{lstlisting}[caption={API pública de \texttt{MainView}.}]
-void addViewListener(ViewListener l);
-void setAlgorithmRunning(
-    AlgorithmType t, boolean b);
-void setLogScale(boolean logScale);
-void showPredictions(long n,
-    Map<AlgorithmType, Double> preds);
-\end{lstlisting}
+\begin{itemize}
+    \item \texttt{addViewListener(ViewListener)}: registra el controlador com a receptor d'events de la vista.
+    \item \texttt{setAlgorithmRunning(AlgorithmType, boolean)}: actualitza l'estat visual del botó d'un algorisme (en execució o aturat).
+    \item \texttt{setLogScale(boolean)}: activa o desactiva l'escala logarítmica a la gràfica.
+    \item \texttt{showPredictions(long, Map)}: mostra les prediccions de temps calculades pel model per a una mida $n$ donada.
+\end{itemize}
 
 Cap mètode retorna ni rep un component Swing. Aquesta restricció és
-fonamental per a la separació MVC i ha estat un dels punts de disseny
-més importants del projecte.
+fonamental per a la separació MVC.
 
 \subsection{Capa del Controlador}
 
 La classe \texttt{Controller} implementa \texttt{ViewListener} i gestiona
-el cicle de vida dels algorismes. El codi del mètode principal d'execució
-mostra el patró de \texttt{SwingWorker}:
+el cicle de vida dels algorismes. Quan l'usuari inicia una execució, el
+controlador crea un \texttt{SwingWorker} que separa el treball en tres
+fases: \texttt{doInBackground()} executa l'algorisme en un fil de fons;
+\texttt{process()} rep els resultats parcials al fil EDT i els afegeix al
+model; i \texttt{done()} actualitza l'estat visual quan la tasca acaba o
+es cancel·la.
 
-\begin{lstlisting}[caption={Execució d'un algorisme al controlador.}]
-private void startExecution(
-        AlgorithmType type, long[] nValues) {
-  SwingWorker<Void, Measurement> worker =
-    new SwingWorker<>() {
-      protected Void doInBackground() {
-        // Escalfament JIT (una sola vegada)
-        type.execute(500);
-        for (long n : nValues) {
-          if (isCancelled()) break;
-          // Mesura real
-          long start = System.nanoTime();
-          type.execute(n);
-          long elapsed = System.nanoTime()-start;
-          publish(new Measurement(
-              type, n, elapsed));
-        }
-        return null;
-      }
-      protected void process(
-              List<Measurement> chunks) {
-        for (Measurement m : chunks)
-          model.addMeasurement(m);
-      }
-      protected void done() {
-        workers.remove(type);
-        view.setAlgorithmRunning(type, false);
-      }
-    };
-  workers.put(type, worker);
-  view.setAlgorithmRunning(type, true);
-  worker.execute();
-}
-\end{lstlisting}
+Dins de \texttt{doInBackground()}, la mesura de cada punt $n$ segueix
+dos passos diferenciats. Primer, es realitza un \textit{escalfament}
+(warm-up) executant l'algorisme una vegada amb una mida fixa petita
+abans d'entrar al bucle de mesures. Això força la compilació JIT de la
+JVM sobre el mètode, evitant que la primera mesura real quedi distorsionada
+pel cost de compilació. Com que la compilació JIT opera a nivell de mètode
+i no depèn de la mida de l'entrada, un únic escalfament previ és suficient
+per a tota la sèrie. Segon, cada punt de mesura s'executa múltiples vegades
+i es conserva el \textbf{mínim} dels temps obtinguts. El mínim és preferible
+a la mitjana perquè el soroll de mesura (pauses del GC, commutació de
+context del sistema operatiu, efectes de la memòria cau) sempre afegeix
+temps mai no en resta; el mínim s'aproxima al cost real sense interferències.
 
-Cal destacar l'\textit{escalfament} (warm-up) que es fa una vegada
-abans del bucle de mesures: s'executa l'algorisme amb una mida petita
-($\min(n, 500)$) per forçar la compilació JIT de la JVM. Atès que la
-compilació JIT opera a nivell de mètode i no depèn de la mida de
-l'entrada, un únic escalfament previ és suficient per garantir que les
-mesures posteriors reflecteixen el rendiment en estat estacionari.
+El controlador manté un \texttt{EnumMap} de \texttt{SwingWorker} per
+poder cancel·lar cada algorisme individualment.
 
-El controlador mante un \texttt{EnumMap} de \texttt{SwingWorker} per
-poder cancel·lar cada algorisme individualment. \textbf{Mai no accedeix a
-cap component visual}: la seva unica referència a la vista es a traves
-dels mètodes de dades de \texttt{MainView}.
+\subsection{Esquema general del model MVC implementat}
+
+La Fig.~\ref{fig:mvc} mostra el diagrama de classes de l'aplicació amb
+les relacions entre les tres capes.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{mvc.png}
+    \caption{Diagrama de classes i relacions del patró MVC implementat.\label{fig:mvc}}
+\end{figure}
 
 %% ================================================================
-\section{Càlcul del Cost Asimptòtic\\ per la Instrucció Critica}
+\section{Càlcul del Cost Asimptòtic\\ per la Instrucció crítica}
 
-La instrucció critica de cada algorisme és l'operació dins el bucle més
+La instrucció crítica de cada algorisme és l'operació dins el bucle més
 intern que s'executa el major nombre de vegades. El nombre total
-d'execucións d'aquesta instrucció determina $f(n)$.
+d'execucions d'aquesta instrucció determina $f(n)$.
 
 \subsection{Algorisme Lineal --- $O(n)$}
 
 \begin{lstlisting}[caption={Algorisme lineal.}]
 for (long i = 0; i < n; i++) {
-    sum += i * i;  // instruccio critica
+    sum += i * i;
 }
 \end{lstlisting}
 
-La instrucció critica \texttt{sum += i * i} s'executa exactament $n$
+La instrucció crítica \texttt{sum += i * i} s'executa exactament $n$
 vegades. No hi ha bucles imbricats, per tant:
 \begin{equation}
-f(n) = n \implies T(n) \in \Theta(n)
+f(n) = n \implies T(n) \in O(n)
 \end{equation}
 
 \subsection{Algorisme Quasilineal --- $O(n \cdot \log n)$}
 
 \begin{lstlisting}[caption={Algorisme $O(n \cdot \log n)$.}]
-int logN = (int)(Math.log(n) / Math.log(2));
 for (long i = 0; i < n; i++) {
-    for (int j = 0; j < logN; j++) {
-        sum += i ^ j;  // instruccio critica
+    for (long j = 1; j < n; j *= 2) {
+        sum += i ^ j;
     }
 }
 \end{lstlisting}
 
-El bucle extern itera $n$ vegades i l'intern $\lfloor \log_2 n \rfloor$
-vegades per cada iteracio externa. La instrucció critica
-\texttt{sum += i \^{} j} s'executa:
+El bucle extern itera $n$ vegades. El bucle intern comença a $j = 1$ i
+dobla $j$ a cada iteració (\texttt{j *= 2}), de manera que s'executa
+exactament $\lfloor \log_2 n \rfloor$ vegades per cada $i$. Aquesta
+estructura reflecteix directament la divisió successiva per 2 pròpia
+dels algorismes quasilineals reals (com ara Mergesort). La instrucció
+crítica \texttt{sum += i \^{} j} s'executa:
 \begin{equation}
-f(n) = n \cdot \lfloor \log_2 n \rfloor \implies T(n) \in \Theta(n \log n)
+f(n) = n \cdot \lfloor \log_2 n \rfloor \implies T(n) \in O(n \log n)
 \end{equation}
 
 \subsection{Algorisme Quadràtic --- $O(n^2)$}
@@ -715,15 +623,15 @@ f(n) = n \cdot \lfloor \log_2 n \rfloor \implies T(n) \in \Theta(n \log n)
 \begin{lstlisting}[caption={Algorisme quadràtic.}]
 for (long i = 0; i < n; i++) {
     for (long j = 0; j < n; j++) {
-        sum += i * j;  // instruccio critica
+        sum += i * j;
     }
 }
 \end{lstlisting}
 
-Dos bucles imbricats, cadascun de $n$ iteracions. La instrucció critica
+Dos bucles imbricats, cadascun de $n$ iteracions. La instrucció crítica
 \texttt{sum += i * j} s'executa:
 \begin{equation}
-f(n) = n \times n = n^2 \implies T(n) \in \Theta(n^2)
+f(n) = n \times n = n^2 \implies T(n) \in O(n^2)
 \end{equation}
 
 \subsection{Algorisme Cúbic --- $O(n^3)$}
@@ -732,29 +640,29 @@ f(n) = n \times n = n^2 \implies T(n) \in \Theta(n^2)
 for (long i = 0; i < n; i++) {
     for (long j = 0; j < n; j++) {
         for (long k = 0; k < n; k++) {
-            sum += (i*j) + k; // inst. critica
+            sum += (i*j) + k;
         }
     }
 }
 \end{lstlisting}
 
-Tres bucles imbricats, cadascun de $n$ iteracions. La instrucció critica
+Tres bucles imbricats, cadascun de $n$ iteracions. La instrucció crítica
 \texttt{sum += (i * j) + k} s'executa:
 \begin{equation}
-f(n) = n^3 \implies T(n) \in \Theta(n^3)
+f(n) = n^3 \implies T(n) \in O(n^3)
 \end{equation}
 
 \subsection{Resum Comparatiu}
 
-La Taula~\ref{tab:critical} resumeix la instrucció critica, el nombre
-d'execucións i la complexitat de cada algorisme.
+La Taula~\ref{tab:critical} resumeix la instrucció crítica, el nombre
+d'execucions i la complexitat de cada algorisme.
 
-\begin{table}[!t]
-\caption{Instrucció critica i complexitat de cada algorisme.\label{tab:critical}}
+\begin{table}[H]
+\caption{Instrucció crítica i complexitat de cada algorisme.\label{tab:critical}}
 \centering
 \begin{tabular}{lllc}
 \toprule
-Algorisme & Instrucció critica & Execucións & $\Theta$ \\
+Algorisme & Instrucció crítica & Execucions & $O$ \\
 \midrule
 Lineal     & \texttt{sum += i*i}   & $n$                           & $n$ \\
 N Log N    & \texttt{sum += i\^{}j}  & $n \lfloor\log_2 n\rfloor$   & $n\log n$ \\
@@ -766,9 +674,9 @@ Cúbic      & \texttt{sum += (i*j)+k} & $n^3$                       & $n^3$ \\
 
 \subsection{Constant Multiplicativa i Predicció}
 
-Per a cada mesura individual, la constant multiplicativa es càlcula
-segons l'equacio~(\ref{eq:constant}). La constant mitjana $\bar{c}$
-s'obte com la mitjana aritmètica de totes les constants individuals
+Per a cada mesura individual, la constant multiplicativa es calcula
+segons l'equació~(\ref{eq:constant}). La constant mitjana $\bar{c}$
+s'obté com la mitjana aritmètica de totes les constants individuals
 d'un algorisme:
 
 \begin{equation}
@@ -777,7 +685,7 @@ d'un algorisme:
 \end{equation}
 
 on $m$ és el nombre de mesures realitzades. Aquesta constant reflecteix el
-cost temporal per unitat d'operació basica a la màquina concreta.
+cost temporal per unitat d'operació bàsica a la màquina concreta.
 
 Per fer una predicció del temps d'execució per a un valor de $n$ no
 mesurat, s'utilitza la fórmula:
@@ -806,51 +714,50 @@ s'observa clarament com:
 
 \begin{itemize}
     \item La sèrie lineal $O(n)$ creix de forma gairebé imperceptible en
-          comparacio amb les altres sèries.
+          comparació amb les altres sèries.
     \item La sèrie $O(n \cdot \log n)$ creix lleugerament més que la
           lineal, però de forma moderada i controlada.
     \item La sèrie quadràtica $O(n^2)$ creix de forma parabòlica,
           essent significativament més costosa per a valors grans de $n$.
     \item La sèrie cúbica $O(n^3)$ domina clarament totes les altres,
-          fent-se impràcticable per a valors de $n$ moderadament grans.
+          fent-se impracticable per a valors de $n$ grans.
 \end{itemize}
 
-L'us de l'escala logaritmica a l'eix Y permet comparar totes quatre sèries
-simultàniament sense que les més rapides quedin comprimides contra l'eix X.
-En escala logaritmica, les funcions potencials $n^k$ es visualitzen com a
+L'ús de l'escala logarítmica a l'eix Y permet comparar totes quatre sèries
+simultàniament sense que les més ràpides quedin comprimides contra l'eix X.
+En escala logarítmica, les funcions potencials $n^k$ es visualitzen com a
 rectes amb pendent proporcional a $k$, facilitant la verificació visual
 de la complexitat.
 
-Les constants multiplicatives càlculades es mantenen raonablement estables
+Les constants multiplicatives calculades es mantenen raonablement estables
 per a un algorisme donat, la qual cosa confirma que el model asimptòtic
 $T(n) = c \cdot f(n)$ és una bona aproximació. Petites variacions
 s'atribueixen a:
 
 \begin{itemize}
-    \item Efectes de la jerarquia de memoria (cache L1/L2/L3 del
-          processador): per a valors grans de $n$, les dades poden
+    \item Efectes de la jerarquia de memoria: per a valors grans de $n$, les dades poden
           excedir la cache, augmentant la latència.
-    \item La compilacio JIT de la JVM: el compilador optimitza el codi
+    \item La compilació JIT de la JVM: el compilador optimitza el codi
           progressivament durant l'execució, la qual cosa pot fer que
           les primeres mesures siguin més lentes. L'escalfament previ
           mitiga parcialment aquest efecte.
-    \item La planificacio del sistema operatiu: altres processos poden
+    \item La planificació del sistema operatiu: altres processos poden
           competir pel temps de CPU.
 \end{itemize}
 
 La funcionalitat de predicció ha mostrat resultats coherents: les
-prediccións per a valors de $n$ dins el rang mesurat concorden amb les
-mesures reals, i les prediccións per a valors més grans segueixen
+prediccions per a valors de $n$ dins el rang mesurat concorden amb les
+mesures reals, i les prediccions per a valors més grans segueixen
 l'extrapolació esperada.
 
 Respecte al disseny del programari, l'estricta separació MVC amb
-comúnicacio per esdeveniments ha permès:
+comunicació per esdeveniments ha permès:
 
 \begin{itemize}
     \item Desenvolupar i provar la lògica del model independentment de la
           vista.
     \item Modificar la interfície gràfica (per exemple, afegir l'escala
-          logaritmica o millorar el formatejat de la gràfica) sense alterar
+          logarítmica o millorar el format de la gràfica) sense alterar
           el controlador ni el model.
     \item Garantir que l'aplicació roman responsiva durant l'execució
           d'algorismes lents, gràcies a l'us de \texttt{SwingWorker} que
@@ -867,10 +774,10 @@ d'anàlisi asimptòtic i de disseny de programari amb el patró MVC.
 
 Des del punt de vista teòric, s'ha verificat experimentalment que els
 temps d'execució dels quatre algorismes implementats corresponen a les
-seves complexitats teoriques. La identificació de la instrucció critica
+seves complexitats teòriques. La identificació de la instrucció crítica
 de cada algorisme ---l'operació del bucle més intern--- i el càlcul de la
-constant multiplicativa han permès fer prediccións fiables del temps
-d'execució per a mides d'entrada arbitraries. L'experiment confirma que
+constant multiplicativa han permès fer prediccions fiables del temps
+d'execució per a mides d'entrada arbitràries. L'experiment confirma que
 el model $T(n) = c \cdot f(n)$ és una aproximació vàlida quan $n$ és prou
 gran i les condicions d'execució són estables.
 
@@ -879,16 +786,16 @@ implementació estricta del patró MVC on:
 
 \begin{enumerate}
     \item La vista \textbf{no exposa cap component visual} al controlador;
-          tota interaccio es a traves d'events semantics.
+          tota interacció és a traves d'events semantics.
     \item La interfície \texttt{ViewListener} defineix set events amb
           paràmetres de dades (enums, arrays de \texttt{long}, booleans),
           mai objectes Swing.
-    \item El model notifica canvis a traves de \texttt{ModelListener}
-          sense coneixer qui l'observa.
+    \item El model notifica canvis a través de \texttt{ModelListener}
+          sense conèixer qui l'observa.
     \item El controlador opera exclusivament amb dades, delegant la
-          presentacio visual a la vista i la lògica de negoci al model.
+          presentació visual a la vista i la lògica de negoci al model.
     \item La concurrència es gestiona amb \texttt{SwingWorker}, garantint
-          la responsivitat de la interfície i la cancel·lació segura.
+          una interfície responsiva i una cancel·lació segura.
 \end{enumerate}
 
 El patró per esdeveniments ha demostrat ser essencial per mantenir el
@@ -900,9 +807,9 @@ interfície JavaFX o web sense modificar ni una línia del model o del
 controlador.
 
 Com a treball futur, es podrien afegir més algorismes (per exemple,
-$O(2^n)$ o $O(n!)$), implementar l'exportacio de dades a CSV, permetre
-a l'usuari definir algorismes personalitzats, o afegir més estrategies
-de mesura com la repeticio multiple amb mitjana per reduir la variancia
+$O(2^n)$ o $O(n!)$), implementar l'exportació de dades a CSV, permetre
+a l'usuari definir algorismes personalitzats, o afegir més estratègies
+de mesura com la repetició multiple amb mitjana per reduir la variància
 experimental.
 
 %% ================================================================
