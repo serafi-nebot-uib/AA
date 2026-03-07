@@ -126,40 +126,11 @@ public class ControlPanel extends JPanel {
             int numSamples = Integer.parseInt(stepsField.getText().trim());
             if (end <= 0 || numSamples <= 0)
                 throw new NumberFormatException("Els valors han de ser positius");
-            
-            if (numSamples == 1) return new long[]{end};
-            
+
             long[] values = new long[numSamples];
-            double rawStep = (double) end / numSamples;
-            double magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
-            
-            double normalizedStep = rawStep / magnitude;
-            double roundNormalizedStep;
-            
-            if (normalizedStep <= 1.5) {
-                roundNormalizedStep = 1;
-            } else if (normalizedStep <= 3) {
-                roundNormalizedStep = 2;
-            } else if (normalizedStep <= 7) {
-                roundNormalizedStep = 5;
-            } else {
-                roundNormalizedStep = 10;
-            }
-            
-            long roundStep = Math.round(roundNormalizedStep * magnitude);
-            
             for (int i = 0; i < numSamples; i++) {
-                values[i] = roundStep * (i + 1);
+                values[i] = end * (i + 1) / numSamples;
             }
-            
-            if (values[numSamples - 1] > end) {
-                for (int i = 0; i < numSamples; i++) {
-                    values[i] = end * (i + 1) / numSamples;
-                }
-            } else {
-                values[numSamples - 1] = end;
-            }
-            
             return values;
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(

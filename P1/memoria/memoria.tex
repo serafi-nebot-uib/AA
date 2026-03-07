@@ -1,15 +1,15 @@
-\documentclass[lettersize,journal]{IEEEtran}
+\documentclass[conference,compsoc]{IEEEtran}
 \usepackage{amsmath,amsfonts,amssymb}
 \usepackage{algorithmic}
 \usepackage{algorithm}
 \usepackage{array}
-\usepackage[caption=false,font=normalsize,labelfont=sf,textfont=sf]{subfig}
+\usepackage[caption=false,font=footnotesize,labelfont=sf,textfont=sf]{subfig}
 \usepackage{textcomp}
 \usepackage{stfloats}
 \usepackage{url}
 \usepackage{verbatim}
 \usepackage{graphicx}
-\usepackage{cite}
+\usepackage[nocompress]{cite}
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage[catalan]{babel}
@@ -17,6 +17,27 @@
 \usepackage[utf8]{inputenc}
 \usepackage{booktabs}
 \usepackage{cuted}
+
+% Catalan names for abstract and index terms
+\renewcommand{\abstractname}{Resum}
+\renewcommand{\IEEEkeywordsname}{Termes d'índex}
+
+% Abstract and IEEEkeywords: bold label, normal-weight body text
+\makeatletter
+\def\abstract{\normalfont\@IEEEtweakunitybaselinestretch{1.15}%
+    \if@twocolumn
+      \@IEEEabskeysecsize\noindent\textbf{\textit{\abstractname}}---\normalfont\@IEEEabskeysecsize\relax
+    \else
+      \bgroup\par\addvspace{0.5\baselineskip}\centering\vspace{-1.78ex}\@IEEEabskeysecsize\textbf{\abstractname}\par\addvspace{0.5\baselineskip}\egroup\quotation\normalfont\@IEEEabskeysecsize%
+    \fi\@IEEEgobbleleadPARNLSP}
+\def\IEEEkeywords{\normalfont\@IEEEtweakunitybaselinestretch{1.15}%
+    \if@twocolumn
+      \@IEEEabskeysecsize\vskip 0.5\baselineskip plus 0.25\baselineskip minus 0.25\baselineskip\noindent
+      \textbf{\textit{\IEEEkeywordsname}}---\normalfont\@IEEEabskeysecsize\relax
+    \else
+      \bgroup\par\addvspace{0.5\baselineskip}\centering\@IEEEabskeysecsize\textbf{\IEEEkeywordsname}\par\addvspace{0.5\baselineskip}\egroup\quotation\normalfont\@IEEEabskeysecsize%
+    \fi\@IEEEgobbleleadPARNLSP}
+\makeatother
 
 % Configuracio de listings per a Java
 \lstset{
@@ -41,11 +62,10 @@
 
 \title{Anàlisi de Costos Computacionals Asimptòtics \\ Pràctica 1}
 
-\author{Serafí~Nebot~Ginard}
-% \thanks{Universitat de les Illes Balears (UIB), Grau en Enginyeria Informàtica, Anàlisi d'Algorismes, Curs 2025--2026.}}
-
-\markboth{Pràctica 1, Curs 2025--2026}
-{Serafí Nebot Ginard: Anàlisi de Costos Computacionals Asimptòtics}
+\author{\IEEEauthorblockN{Serafí Nebot Ginard}
+\IEEEauthorblockA{Universitat de les Illes Balears (UIB)\\
+Grau en Enginyeria Informàtica\\
+Algorismes Avançats, Curs 2025--2026}}
 
 \maketitle
 
@@ -64,11 +84,16 @@ constant multiplicativa i la predicció de temps d'execució per a mides
 d'entrada arbitraries.
 \end{abstract}
 
+\begin{IEEEkeywords}
+anàlisi asimptòtic, complexitat computacional, algorismes, Model-Vista-Controlador, Java Swing, SwingWorker, patró Observer, instrucció crítica, constant multiplicativa, concurrència
+\end{IEEEkeywords}
 \end{strip}
+
+\IEEEpeerreviewmaketitle
 
 %% ================================================================
 \section{Introducció}
-\IEEEPARstart{L}{'anàlisi} d'algorismes és una de les disciplines fonamentals
+L'anàlisi d'algorismes és una de les disciplines fonamentals
 de la informàtica. Permet avaluar l'eficiència d'un algorisme en funció de
 la mida de l'entrada, independentment del màquinari o del llenguatge de
 programació emprat. El concepte central és el cost asimptòtic, que
@@ -136,7 +161,7 @@ a implementar manualment el renderitzat de la gràfica amb l'API
 \texttt{Graphics2D}, incloent-hi eixos, graella, sèries de dades i
 llegenda.
 
-El fitxer \texttt{pom.xml} segueix una configuracio minima, ja que el
+El fitxer \texttt{pom.xml} segueix una configuració mínima, ja que el
 projecte no té cap dependencia externa:
 
 \begin{lstlisting}[caption={Configuracio Maven del projecte.},language=XML]
@@ -292,28 +317,28 @@ o del controlador.
 
 \subsection{Concurrència i el Fil EDT}
 
-En Java Swing, totes les operacións sobre components visuals s'han de
+En Java Swing, totes les operacions sobre components visuals s'han de
 realitzar des del fil de despatx d'events (\textit{Event Dispatch Thread},
-EDT)~\cite{ref_java}. Si un algorisme lent s'executes directament al fil
-EDT, la interfície es bloquejaria fins que acabes, impedint qualsevol
-interaccio amb l'usuari.
+EDT)~\cite{ref_java}. Si un algorisme que consumeix molt de recursos s'executa
+directament al fil EDT, la interfície es bloquejaria fins que acabes,
+impedint qualsevol interacció amb l'usuari.
 
-La solucio estandard es \texttt{SwingWorker}, una classe que permet
-executar tasques llargues en un fil de fons i públicar resultats parcials
+La solució estàndard es \texttt{SwingWorker}, una classe que permet
+executar tasques llargues en un fil de fons i publicar resultats parcials
 al fil EDT de forma segura. El cicle de vida d'un \texttt{SwingWorker} és:
 
 \begin{enumerate}
-    \item \texttt{doInBackground()}: s'executa en un fil de fons. Aqui
+    \item \texttt{doInBackground()}: s'executa en un fil de fons. Aquí
           s'executa l'algorisme i es crida \texttt{publish()} per enviar
           resultats intermedis.
     \item \texttt{process(List<V>)}: s'invoca al fil EDT amb els resultats
-          públicats. Aqui s'afegeixen les mesures al model.
+          publicats. Aquí s'afegeixen les mesures al model.
     \item \texttt{done()}: s'invoca al fil EDT quan la tasca acaba o es
-          cancel·la. Aqui s'actualitza l'estat visual del botó.
+          cancel·la. Aquí s'actualitza l'estat visual del botó.
 \end{enumerate}
 
 La cancel·lació es cooperativa: \texttt{SwingWorker.cancel(true)} envia
-una interrupcio al fil de fons, que ha de comprovar periòdicament
+una interrupció al fil de fons, que ha de comprovar periòdicament
 \texttt{Thread.currentThread().isInterrupted()} per aturar-se netament.
 
 %% ================================================================
@@ -352,9 +377,9 @@ new Controller(model, view);
 view.setVisible(true);
 \end{lstlisting}
 
-El model es crea primer perquè no depen de res; la vista rep el model per
+El model es crea primer perquè no depèn de res; la vista rep el model per
 poder registrar-se com a observadora dels seus canvis; i el controlador
-rep ambdos i es registra com a \texttt{ViewListener} de la vista. Tota
+rep ambdós i es registra com a \texttt{ViewListener} de la vista. Tota
 la inicialització es realitza dins \texttt{SwingUtilities.invokeLater()}
 per garantir que es fa al fil EDT.
 
@@ -371,14 +396,12 @@ constant implementa dos mètodes abstractes:
     \item \texttt{execute(long n)}: executa l'algorisme amb mida $n$ i
           retorna un resultat numèricament dependent de l'entrada per
           evitar que el compilador JIT l'optimitzi o l'elimini.
-    \item \texttt{theoreticalCost(long n)}: retorna el valor numeric de
+    \item \texttt{theoreticalCost(long n)}: retorna el valor numèric de
           $f(n)$.
 \end{itemize}
 
 A més, cada algorisme té associat un nom visible, una notació matemàtica
-i un color per a la gràfica. L'us d'un \texttt{enum} amb mètodes
-abstractes és una aplicació del \textit{Strategy pattern}: cada constant
-de l'enumeracio encapsula el seu propi comportament.
+i un color per a la gràfica.
 
 Per exemple, l'algorisme quadràtic es defineix com:
 
@@ -388,12 +411,10 @@ QUADRATIC("O(n^2)", "Quadratic",
     public double theoreticalCost(long n) {
         return (double) n * n;
     }
-    public long execute(long n)
-            throws InterruptedException {
+    public long execute(long n) throws InterruptedException {
         long sum = 0;
         for (long i = 0; i < n; i++) {
-            if (Thread.currentThread()
-                      .isInterrupted())
+            if (Thread.currentThread().isInterrupted())
                 throw new InterruptedException();
             for (long j = 0; j < n; j++) {
                 sum += i * j; // instruccio critica
@@ -404,7 +425,7 @@ QUADRATIC("O(n^2)", "Quadratic",
 };
 \end{lstlisting}
 
-Cal destacar dos aspectes: primer, la comprovacio d'\texttt{isInterrupted()}
+Cal destacar dos aspectes: primer, la comprovació d'\texttt{isInterrupted()}
 al bucle extern (no al més intern, per no penalitzar el rendiment amb
 comprovacions massa frequents); segon, el llançament d'\texttt{InterruptedException}
 que permet la cancel·lació cooperativa des del controlador.
@@ -413,7 +434,7 @@ que permet la cancel·lació cooperativa des del controlador.
 
 Classe immutable que emmagatzema el resultat d'una mesura: el tipus
 d'algorisme, la mida $n$, el temps en nanosegons i la constant
-multiplicativa, que es pre-càlcula al constructor:
+multiplicativa, que es pre-calcula al constructor:
 
 \begin{equation}
 \label{eq:constant}
@@ -421,22 +442,10 @@ c = \frac{T(n)}{f(n)}
 \end{equation}
 
 on $T(n)$ és el temps mesurat en nanosegons i $f(n)$ és el cost teòric
-retornat per \texttt{theoreticalCost(n)}. El codi del constructor és:
+retornat per \texttt{theoreticalCost(n)}.
 
-\begin{lstlisting}[caption={Constructor de \texttt{Measurement}.}]
-public Measurement(AlgorithmType type,
-                   long n, long timeNanos) {
-    this.type = type;
-    this.n = n;
-    this.timeNanos = timeNanos;
-    double cost = type.theoreticalCost(n);
-    this.constant = cost > 0
-        ? timeNanos / cost : 0;
-}
-\end{lstlisting}
-
-Pre-càlcular $c$ a cada mesura individual permet despres obtenir la
-mitjana de forma directa, sense necessitat de recàlcular divisions
+Pre-calcular $c$ a cada mesura individual permet després obtenir la
+mitjana de forma directa, sense necessitat de recalcular divisions
 repetidament.
 
 \subsubsection{Model}
@@ -448,12 +457,11 @@ mètodes principals són:
           ordena la llista per $n$ creixent (per facilitar el dibuix de
           la gràfica) i notifica els observadors.
     \item \texttt{getAverageConstant(AlgorithmType t)}: retorna la mitjana
-          aritmètica de les constants individuals, càlculada amb l'API
-          de \textit{streams} de Java.
-    \item \texttt{predict(AlgorithmType t, long n)}: càlcula el temps
+          aritmètica de les constants individuals.
+    \item \texttt{predict(AlgorithmType t, long n)}: calcula el temps
           predit com $\hat{T}(n) = \bar{c} \cdot f(n)$, on $\bar{c}$ es
           la constant mitjana.
-    \item \texttt{clearAll()}: esborra totes les mesures i notifica.
+    \item \texttt{clearAll()}: esborra totes les mesures i ho notifica.
 \end{itemize}
 
 Tots els mètodes que modifiquen o llegeixen l'estat són
@@ -466,6 +474,12 @@ public interface ModelListener {
     void modelChanged();
 }
 
+private final List<ModelListener> listeners = new ArrayList<>();
+
+public void addListener(ModelListener listener) {
+      listeners.add(listener);
+}
+
 private void fireModelChanged() {
     for (ModelListener l : listeners) {
         l.modelChanged();
@@ -475,17 +489,16 @@ private void fireModelChanged() {
 
 \subsection{Capa de la Vista}
 
-La vista es composa de quatre classes i una interfície. \textbf{Cap
-d'elles exposa components Swing a l'exterior.}
+La vista esta composta d'una interfície i quatre classes.
 
 \subsubsection{ViewListener (Interfície)}
 
-Defineix el contracte semantic entre la vista i el controlador:
+Defineix les operacions permeses que possibiliten la comunicació
+entre la vista i el controlador:
 
 \begin{lstlisting}[caption={Interfície \texttt{ViewListener}.}]
 public interface ViewListener {
-    void onStartAlgorithm(AlgorithmType type,
-                          long[] nValues);
+    void onStartAlgorithm(AlgorithmType type, long[] nValues);
     void onStopAlgorithm(AlgorithmType type);
     void onStartAll(long[] nValues);
     void onStopAll();
@@ -501,25 +514,24 @@ Aquesta és la clau de la separació MVC.
 
 \subsubsection{ControlPanel}
 
-Panell que conte els camps d'entrada, els botóns d'execució i el camp de
+Panell que conte els camps d'entrada, els botons d'execució i el camp de
 previsió. Les responsabilitats són exclusivament de la vista:
 
 \begin{enumerate}
-    \item Capturar les accions de l'usuari (clics de botóns, canvi de
-          checkbox d'escala logaritmica).
-    \item Vàlidar l'entrada internament: parsejar els camps de text a
-          valors \texttt{long}/\texttt{int} i mostrar dialogs d'error
+    \item Capturar les accions de l'usuari (clics de botons, canvi de
+          checkbox d'escala logarítmica).
+    \item Validar l'entrada internament: convertir els camps de text a
+          valors \texttt{long}/\texttt{int} i mostrar diàlegs d'error
           (\texttt{JOptionPane}) si els valors són invalids.
-    \item Generar l'array de valors de $n$ equidistants dins el rang
-          $[\texttt{nInicial}, \texttt{nFinal}]$ amb la fórmula:
+    \item Generar l'array de $p$ valors de $n$ distribuïts uniformement
+          entre $1$ i $n_{\text{final}}$ amb la fórmula:
+          \begin{equation}
+          n_i = \frac{n_{\text{final}} \cdot i}{p}, \quad i = 1, \ldots, p
+          \end{equation}
 \end{enumerate}
 
-\begin{equation}
-n_i = n_{\text{inici}} + \frac{(n_{\text{final}} - n_{\text{inici}}) \cdot i}{p - 1}, \quad i = 0, \ldots, p-1
-\end{equation}
-
-on $p$ és el nombre de passos. Només quan la vàlidació passa
-satisfactòriament s'emet l'event semantic a traves de \texttt{ViewListener}.
+on $p$ és el nombre de mostres. Només quan la validació passa
+satisfactòriament s'emet l'event semàntic a través de \texttt{ViewListener}.
 
 Quan un algorisme esta en execució, el seu botó canvia d'icona
 ($\blacktriangleright \rightarrow \blacksquare$) i de color (del color
@@ -530,7 +542,7 @@ segon clic.
 
 Panell personalitzat que sobreescriu \texttt{paintComponent(Graphics g)}
 per dibuixar la gràfica amb l'API \texttt{Graphics2D}. Les
-caracteristiques principals són:
+característiques principals són:
 
 \begin{itemize}
     \item \textbf{Eixos i graella:} eix X per a $n$, eix Y per al temps
@@ -618,10 +630,10 @@ private void startExecution(
   SwingWorker<Void, Measurement> worker =
     new SwingWorker<>() {
       protected Void doInBackground() {
+        // Escalfament JIT (una sola vegada)
+        type.execute(500);
         for (long n : nValues) {
           if (isCancelled()) break;
-          // Escalfament JIT
-          type.execute(Math.min(n, 500));
           // Mesura real
           long start = System.nanoTime();
           type.execute(n);
@@ -647,10 +659,12 @@ private void startExecution(
 }
 \end{lstlisting}
 
-Cal destacar l'\textit{escalfament} (warm-up) que es fa abans de cada
-mesura: s'executa l'algorisme amb una mida petita ($\min(n, 500)$) per
-forçar la compilacio JIT de la JVM. Això evita que la primera mesura
-estigui distorsionada pel cost de compilacio.
+Cal destacar l'\textit{escalfament} (warm-up) que es fa una vegada
+abans del bucle de mesures: s'executa l'algorisme amb una mida petita
+($\min(n, 500)$) per forçar la compilació JIT de la JVM. Atès que la
+compilació JIT opera a nivell de mètode i no depèn de la mida de
+l'entrada, un únic escalfament previ és suficient per garantir que les
+mesures posteriors reflecteixen el rendiment en estat estacionari.
 
 El controlador mante un \texttt{EnumMap} de \texttt{SwingWorker} per
 poder cancel·lar cada algorisme individualment. \textbf{Mai no accedeix a
