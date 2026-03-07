@@ -93,16 +93,22 @@ public class Controller implements ViewListener {
                 for (long n : nValues) {
                     if (isCancelled()) break;
 
-                    // Mesura real
-                    long start = System.nanoTime();
-                    try {
-                        type.execute(n);
-                    } catch (InterruptedException e) {
-                        break;
+                    // Mesura real: mínim de 5 repeticions per reduir soroll
+                    long minElapsed = Long.MAX_VALUE;
+                    for (int rep = 0; rep < 5; rep++) {
+                        if (isCancelled()) break;
+                        long start = System.nanoTime();
+                        try {
+                            type.execute(n);
+                        } catch (InterruptedException e) {
+                            break;
+                        }
+                        long elapsed = System.nanoTime() - start;
+                        if (elapsed < minElapsed) minElapsed = elapsed;
                     }
-                    long elapsed = System.nanoTime() - start;
+                    if (isCancelled()) break;
 
-                    publish(new Measurement(type, n, elapsed));
+                    publish(new Measurement(type, n, minElapsed));
                 }
                 return null;
             }
@@ -121,6 +127,7 @@ public class Controller implements ViewListener {
             }
         };
 
+        model.clearMeasurements(type);
         workers.put(type, worker);
         view.setAlgorithmRunning(type, true);
         worker.execute();

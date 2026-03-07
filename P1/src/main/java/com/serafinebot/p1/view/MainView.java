@@ -32,6 +32,8 @@ public class MainView extends JFrame {
         add(graphPanel, BorderLayout.CENTER);
         add(resultsPanel, BorderLayout.EAST);
 
+        controlPanel.addVisibilityListener(graphPanel::setAlgorithmVisible);
+
         // Escoltar canvis del model per actualitzar la vista
         model.addListener(() -> {
             graphPanel.repaint();

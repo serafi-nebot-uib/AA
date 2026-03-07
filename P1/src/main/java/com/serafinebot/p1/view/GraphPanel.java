@@ -17,6 +17,8 @@ public class GraphPanel extends JPanel {
 
     private final Model model;
     private boolean logScale = false;
+    private final java.util.Set<AlgorithmType> visibleAlgorithms =
+            java.util.EnumSet.allOf(AlgorithmType.class);
 
     private static final int PAD_LEFT = 75;
     private static final int PAD_RIGHT = 25;
@@ -31,6 +33,12 @@ public class GraphPanel extends JPanel {
 
     public void setLogScale(boolean logScale) {
         this.logScale = logScale;
+        repaint();
+    }
+
+    public void setAlgorithmVisible(AlgorithmType type, boolean visible) {
+        if (visible) visibleAlgorithms.add(type);
+        else visibleAlgorithms.remove(type);
         repaint();
     }
 
@@ -56,6 +64,7 @@ public class GraphPanel extends JPanel {
         boolean hasData = false;
 
         for (AlgorithmType type : AlgorithmType.values()) {
+            if (!visibleAlgorithms.contains(type)) continue;
             for (Measurement m : model.getMeasurements(type)) {
                 hasData = true;
                 maxN = Math.max(maxN, m.getN());
@@ -90,6 +99,7 @@ public class GraphPanel extends JPanel {
         // Dibuixar series de dades
         g2.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         for (AlgorithmType type : AlgorithmType.values()) {
+            if (!visibleAlgorithms.contains(type)) continue;
             List<Measurement> data = model.getMeasurements(type);
             if (data.isEmpty()) continue;
 
@@ -154,23 +164,45 @@ public class GraphPanel extends JPanel {
             g2.drawString(label, x - fm.stringWidth(label) / 2, PAD_TOP + plotH + 18);
         }
 
-        // Marques eix Y - valors exactes i rodons
-        double[] yTicks = generateRoundTicks(maxTime, 8);
-        for (int i = 0; i < yTicks.length; i++) {
-            double val = yTicks[i];
-            int y = computeY(val, plotH, maxTime, logMin, logMax);
-            g2.setColor(new Color(220, 220, 220));
-            g2.drawLine(PAD_LEFT, y, PAD_LEFT + plotW, y);
-            g2.setColor(Color.BLACK);
-            g2.drawLine(PAD_LEFT - 4, y, PAD_LEFT, y);
-
-            String label;
-            if (logScale) {
-                label = formatTime(val);
-            } else {
-                label = formatTime(val);
+        // Marques eix Y
+        if (logScale) {
+            int floorMin = (int) Math.floor(logMin);
+            int ceilMax  = (int) Math.ceil(logMax);
+            double span  = logMax - logMin;
+            for (int exp = floorMin; exp <= ceilMax; exp++) {
+                double base = Math.pow(10, exp);
+                // Minor ticks: 2x i 5x (nomes graella, sense etiqueta ni marca)
+                if (span <= 6) {
+                    for (double mult : new double[]{2, 5}) {
+                        double minor = base * mult;
+                        int y = computeY(minor, plotH, maxTime, logMin, logMax);
+                        if (y < PAD_TOP || y > PAD_TOP + plotH) continue;
+                        g2.setColor(new Color(235, 235, 235));
+                        g2.drawLine(PAD_LEFT, y, PAD_LEFT + plotW, y);
+                    }
+                }
+                // Major tick: potencia de 10 (graella, marca i etiqueta)
+                int y = computeY(base, plotH, maxTime, logMin, logMax);
+                if (y < PAD_TOP || y > PAD_TOP + plotH) continue;
+                g2.setColor(new Color(220, 220, 220));
+                g2.drawLine(PAD_LEFT, y, PAD_LEFT + plotW, y);
+                g2.setColor(Color.BLACK);
+                g2.drawLine(PAD_LEFT - 4, y, PAD_LEFT, y);
+                String label = formatTime(base);
+                g2.drawString(label, PAD_LEFT - fm.stringWidth(label) - 6, y + fm.getAscent() / 2);
             }
-            g2.drawString(label, PAD_LEFT - fm.stringWidth(label) - 6, y + fm.getAscent() / 2);
+        } else {
+            double[] yTicks = generateRoundTicks(maxTime, 8);
+            for (double val : yTicks) {
+                int y = computeY(val, plotH, maxTime, logMin, logMax);
+                if (y < PAD_TOP || y > PAD_TOP + plotH) continue;
+                g2.setColor(new Color(220, 220, 220));
+                g2.drawLine(PAD_LEFT, y, PAD_LEFT + plotW, y);
+                g2.setColor(Color.BLACK);
+                g2.drawLine(PAD_LEFT - 4, y, PAD_LEFT, y);
+                String label = formatTime(val);
+                g2.drawString(label, PAD_LEFT - fm.stringWidth(label) - 6, y + fm.getAscent() / 2);
+            }
         }
 
         // Etiquetes dels eixos
@@ -270,6 +302,7 @@ public class GraphPanel extends JPanel {
             return String.format("%.1f ns", nanos);
         }
     }
+
 
     private double[] generateRoundTicks(double maxValue, int maxTicks) {
         if (maxValue <= 0) return new double[]{0};

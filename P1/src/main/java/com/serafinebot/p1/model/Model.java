@@ -55,6 +55,12 @@ public class Model {
         return c * type.theoreticalCost(n) / 1_000_000.0;
     }
 
+    /** Esborra les mesures d'un algorisme concret. */
+    public synchronized void clearMeasurements(AlgorithmType type) {
+        measurements.get(type).clear();
+        fireModelChanged();
+    }
+
     /** Esborra totes les mesures de tots els algorismes. */
     public synchronized void clearAll() {
         for (AlgorithmType type : AlgorithmType.values()) {

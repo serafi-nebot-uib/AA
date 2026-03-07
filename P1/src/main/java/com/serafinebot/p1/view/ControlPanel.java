@@ -16,15 +16,20 @@ import java.util.Map;
  */
 public class ControlPanel extends JPanel {
 
+    public interface VisibilityListener {
+        void onVisibilityChanged(AlgorithmType type, boolean visible);
+    }
+
     private final JTextField endNField;
     private final JTextField stepsField;
     private final JTextField predictNField;
     private final Map<AlgorithmType, JButton> algorithmButtons = new EnumMap<>(AlgorithmType.class);
     private final Map<AlgorithmType, Boolean> runningState = new EnumMap<>(AlgorithmType.class);
     private final List<ViewListener> listeners = new ArrayList<>();
+    private final List<VisibilityListener> visibilityListeners = new ArrayList<>();
 
     public ControlPanel() {
-        setLayout(new GridLayout(3, 1, 5, 2));
+        setLayout(new GridLayout(4, 1, 5, 2));
         setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createTitledBorder("Controls"),
                 BorderFactory.createEmptyBorder(2, 5, 2, 5)
@@ -97,7 +102,22 @@ public class ControlPanel extends JPanel {
 
         add(row2);
 
-        // Fila 3: Previsio
+        // Fila 3: Visibilitat d'algorismes a la grafica
+        JPanel row3vis = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        row3vis.add(new JLabel("Mostrar:"));
+        for (AlgorithmType type : AlgorithmType.values()) {
+            JCheckBox cb = new JCheckBox(type.getDisplayName(), true);
+            cb.setForeground(type.getColor());
+            cb.setFont(cb.getFont().deriveFont(Font.BOLD, 11f));
+            cb.addActionListener(e -> {
+                for (VisibilityListener l : visibilityListeners)
+                    l.onVisibilityChanged(type, cb.isSelected());
+            });
+            row3vis.add(cb);
+        }
+        add(row3vis);
+
+        // Fila 4: Previsio
         JPanel row3 = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         row3.add(new JLabel("Previsio per n ="));
         predictNField = new JTextField("50000", 8);
@@ -173,5 +193,10 @@ public class ControlPanel extends JPanel {
     /** Registra un listener d'events de la vista. */
     public void addViewListener(ViewListener listener) {
         listeners.add(listener);
+    }
+
+    /** Registra un listener de canvis de visibilitat d'algorismes. */
+    public void addVisibilityListener(VisibilityListener listener) {
+        visibilityListeners.add(listener);
     }
 }
