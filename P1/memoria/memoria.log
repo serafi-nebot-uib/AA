@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.29)  7 MAR 2026 14:56
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.29)  7 MAR 2026 15:31
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -544,90 +544,114 @@ Underfull \hbox (badness 10000) in paragraph at lines 294--297
 
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 399--401
+Underfull \hbox (badness 10000) in paragraph at lines 360--362
 []\T1/pcr/m/n/10.03749 getAverageConstant(AlgorithmType
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 401--404
+Underfull \hbox (badness 10000) in paragraph at lines 362--365
 []\T1/pcr/m/n/10.03749 predict(AlgorithmType t, long n)\T1/ptm/m/n/10.03749 :
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 404--406
+Underfull \hbox (badness 10000) in paragraph at lines 365--367
 []\T1/pcr/m/n/10.03749 clearMeasurements(AlgorithmType t)\T1/ptm/m/n/10.03749 :
  []
 
 
-
-[3]
-Underfull \hbox (badness 10000) in paragraph at lines 427--428
+Underfull \hbox (badness 10000) in paragraph at lines 386--387
 []\T1/pcr/m/n/10.03749 onStartAlgorithm(AlgorithmType,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 428--429
+Underfull \hbox (badness 10000) in paragraph at lines 387--388
 []\T1/pcr/m/n/10.03749 onStopAlgorithm(AlgorithmType)\T1/ptm/m/n/10.03749 :
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 433--434
+Underfull \hbox (badness 10000) in paragraph at lines 392--393
 []\T1/pcr/m/n/10.03749 onLogScaleChanged(boolean)\T1/ptm/m/n/10.03749 : com-mu-ta
  []
 
 
 
+[3]
+<algorithm-controls.png, id=28, 764.8575pt x 67.25125pt>
+File: algorithm-controls.png Graphic file (type png)
+<use algorithm-controls.png>
+Package pdftex.def Info: algorithm-controls.png  used on input line 437.
+(pdftex.def)             Requested size: 243.91125pt x 21.44592pt.
 
 
-[4]
-Underfull \hbox (badness 10000) in paragraph at lines 535--536
+<results-panel.png, id=30, 374.39874pt x 662.475pt>
+File: results-panel.png Graphic file (type png)
+<use results-panel.png>
+Package pdftex.def Info: results-panel.png  used on input line 489.
+(pdftex.def)             Requested size: 182.93344pt x 323.68561pt.
+
+
+[4 <./algorithm-controls.png> <./results-panel.png>]
+Underfull \hbox (badness 10000) in paragraph at lines 513--514
 []\T1/pcr/m/n/10.03749 setAlgorithmRunning(AlgorithmType,
  []
 
 
-Underfull \hbox (badness 2726) in paragraph at lines 536--537
+Underfull \hbox (badness 2726) in paragraph at lines 514--515
 []\T1/pcr/m/n/10.03749 setLogScale(boolean)\T1/ptm/m/n/10.03749 : ac-ti-va o desac-ti-va
  []
 
 
-Underfull \hbox (badness 1762) in paragraph at lines 537--538
+Underfull \hbox (badness 1762) in paragraph at lines 515--516
 []\T1/pcr/m/n/10.03749 showPredictions(long, Map)\T1/ptm/m/n/10.03749 : mos-tra les
  []
 
-<mvc.png, id=34, 1776.6375pt x 980.66376pt>
+<mvc.png, id=38, 1776.6375pt x 980.66376pt>
 File: mvc.png Graphic file (type png)
 <use mvc.png>
-Package pdftex.def Info: mvc.png  used on input line 576.
+Package pdftex.def Info: mvc.png  used on input line 551.
 (pdftex.def)             Requested size: 243.91125pt x 134.62845pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
-LaTeX Font Info:    Calculating math sizes for size <11.04124> on input line 587.
+LaTeX Font Info:    Calculating math sizes for size <11.04124> on input line 562.
 
 
 [5 <./mvc.png>]
 
+<graph-linear-scale.png, id=45, 1359.0775pt x 951.555pt>
+File: graph-linear-scale.png Graphic file (type png)
+<use graph-linear-scale.png>
+Package pdftex.def Info: graph-linear-scale.png  used on input line 711.
+(pdftex.def)             Requested size: 243.91125pt x 170.76431pt.
+<graph-log-scale.png, id=46, 1359.0775pt x 951.555pt>
+File: graph-log-scale.png Graphic file (type png)
+<use graph-log-scale.png>
+Package pdftex.def Info: graph-log-scale.png  used on input line 719.
+(pdftex.def)             Requested size: 243.91125pt x 170.76431pt.
 
 
-[6]
-Underfull \hbox (badness 10000) in paragraph at lines 793--795
+[6 <./graph-linear-scale.png>]
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 792--794
 []\T1/ptm/m/n/10.03749 El mo-del no-ti-fi-ca can-vis a tra-vés de
  []
 
 
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 844--847
+Underfull \hbox (badness 10000) in paragraph at lines 843--846
 []\T1/ptm/m/n/8.03 Oracle Cor-po-ra-ti-on, ``The Ja-va Tu-to-ri-als --- Con-cur-rency,''
  []
 
 
-Underfull \hbox (badness 3735) in paragraph at lines 844--847
+Underfull \hbox (badness 3735) in paragraph at lines 843--846
 \T1/ptm/m/n/8.03 [On-li-ne]. Avai-la-ble: $https : / / docs . oracle . com / javase / tutorial / essential /
  []
 
+
+
+[7 <./graph-log-scale.png>]
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -641,25 +665,29 @@ Before submitting the final camera ready copy, remember to:
 
 
 
-[7] (./memoria.aux)
+
+
+[8
+
+] (./memoria.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 9053 strings out of 473190
- 144277 string characters out of 5715800
- 835245 words of memory out of 5000000
- 32163 multiletter control sequences out of 15000+600000
+ 9078 strings out of 473190
+ 144955 string characters out of 5715800
+ 832245 words of memory out of 5000000
+ 32188 multiletter control sequences out of 15000+600000
  685725 words of font info for 190 fonts, out of 8000000 for 9000
  1147 hyphenation exceptions out of 8191
- 57i,10n,65p,287b,1202s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 57i,10n,65p,357b,1191s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrb8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on memoria.pdf (7 pages, 360543 bytes).
+Output written on memoria.pdf (8 pages, 762782 bytes).
 PDF statistics:
- 137 PDF objects out of 1000 (max. 8388607)
- 83 compressed objects within 1 object stream
+ 148 PDF objects out of 1000 (max. 8388607)
+ 85 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 6 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 26 words of extra memory for PDF output out of 10000 (max. 10000000)
 

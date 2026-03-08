@@ -27,7 +27,7 @@ public class ResultsPanel extends JPanel {
         setPreferredSize(new Dimension(380, 0));
 
         // Taula de mesures
-        String[] columns = {"Algorisme", "n", "Temps (ms)", "Constant (ns/f(n))"};
+        String[] columns = {"Algorisme", "n", "Temps (ms)", "Constant c"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) { return false; }
@@ -78,7 +78,7 @@ public class ResultsPanel extends JPanel {
         for (AlgorithmType type : AlgorithmType.values()) {
             double c = model.getAverageConstant(type);
             if (!Double.isNaN(c)) {
-                sb.append(String.format("  %-10s %s : c = %.4e ns\n",
+                sb.append(String.format("  %-10s %s : c = %.4e\n",
                         type.getDisplayName(), type.getNotation(), c));
                 anyData = true;
             }

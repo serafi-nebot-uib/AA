@@ -298,45 +298,6 @@ una interrupció al fil de fons, que ha de comprovar periòdicament
 %% ================================================================
 \section{Disseny i Implementació de la Pràctica}
 
-\subsection{Estructura del Projecte}
-
-El projecte Maven s'organitza en tres paquets dins
-\texttt{com.serafinebot.p1}:
-
-\begin{verbatim}
-src/main/java/com/serafinebot/p1/
-  Main.java
-  model/
-    AlgorithmType.java
-    Measurement.java
-    Model.java
-  view/
-    ViewListener.java
-    ControlPanel.java
-    GraphPanel.java
-    ResultsPanel.java
-    MainView.java
-  controller/
-    Controller.java
-\end{verbatim}
-
-Cada paquet correspon exactament a una capa del patró MVC, amb el punt
-d'entrada \texttt{Main.java} a l'arrel. L'ordre d'instanciació segueix
-la seqüència clàssica:
-
-\begin{lstlisting}[caption={Punt d'entrada de l'aplicació (\texttt{Main.java}).}]
-Model model = new Model();
-MainView view = new MainView(model);
-new Controller(model, view);
-view.setVisible(true);
-\end{lstlisting}
-
-El model es crea primer perquè no depèn de res; la vista rep el model per
-poder registrar-se com a observadora dels seus canvis; i el controlador
-rep ambdós i es registra com a \texttt{ViewListener} de la vista. Tota
-la inicialització es realitza dins \texttt{SwingUtilities.invokeLater()}
-per garantir que es fa al fil EDT.
-
 \subsection{Capa del Model}
 
 La capa del model consta de tres classes, cadascuna amb una responsabilitat
@@ -416,8 +377,6 @@ mesures, invocant \texttt{modelChanged()} sobre cadascun.
 
 \subsection{Capa de la Vista}
 
-La vista esta composta d'una interfície i quatre classes.
-
 \subsubsection{ViewListener (Interfície)}
 
 Defineix les operacions permeses que possibiliten la comunicació
@@ -470,7 +429,15 @@ es recalcula automàticament en funció de les sèries visibles.
 Quan un algorisme esta en execució, el seu botó canvia d'icona
 ($\blacktriangleright \rightarrow \blacksquare$) i de color (del color
 de l'algorisme a vermell), permetent aturar-lo individualment amb un
-segon clic.
+segon clic. La Fig.~\ref{fig:controls} mostra l'aspecte del panell
+de controls amb els botons i els \textit{checkboxes} de visibilitat.
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=\columnwidth]{algorithm-controls.png}
+    \caption{Panell de controls: botons d'execució per algorisme, botons
+    globals i fila de \textit{checkboxes} de visibilitat.\label{fig:controls}}
+\end{figure}
 
 \subsubsection{GraphPanel}
 
@@ -514,6 +481,17 @@ Panell dividit verticalment en dues parts mitjançant un \texttt{JSplitPane}:
           previsions sol·licitades per l'usuari.
 \end{itemize}
 
+La Fig.~\ref{fig:results} mostra l'aspecte del panell de resultats amb
+dades reals d'una execució.
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=0.75\columnwidth]{results-panel.png}
+    \caption{Panell de resultats: taula de mesures individuals (dalt) i
+    àrea de constants multiplicatives mitjanes i previsions
+    (baix).\label{fig:results}}
+\end{figure}
+
 \subsubsection{MainView}
 
 \texttt{JFrame} principal que compon els tres sub-panells en un
@@ -551,17 +529,14 @@ model; i \texttt{done()} actualitza l'estat visual quan la tasca acaba o
 es cancel·la.
 
 Dins de \texttt{doInBackground()}, la mesura de cada punt $n$ segueix
-dos passos diferenciats. Primer, es realitza un \textit{escalfament}
-(warm-up) executant l'algorisme una vegada amb una mida fixa petita
-abans d'entrar al bucle de mesures. Això força la compilació JIT de la
-JVM sobre el mètode, evitant que la primera mesura real quedi distorsionada
-pel cost de compilació. Com que la compilació JIT opera a nivell de mètode
-i no depèn de la mida de l'entrada, un únic escalfament previ és suficient
-per a tota la sèrie. Segon, cada punt de mesura s'executa múltiples vegades
-i es conserva el \textbf{mínim} dels temps obtinguts. El mínim és preferible
-a la mitjana perquè el soroll de mesura (pauses del GC, commutació de
-context del sistema operatiu, efectes de la memòria cau) sempre afegeix
-temps mai no en resta; el mínim s'aproxima al cost real sense interferències.
+dos passos. Primer, es realitza un \textit{escalfament} (warm-up)
+executant l'algorisme una vegada amb una mida fixa petita abans d'entrar
+al bucle de mesures. Això força la compilació JIT de la JVM sobre el
+mètode, evitant que la primera mesura real quedi distorsionada pel cost
+de compilació. Com que la compilació JIT opera a nivell de mètode i no
+depèn de la mida de l'entrada, un únic escalfament previ és suficient
+per a tota la sèrie. Segon, cada valor de $n$ s'executa una única
+vegada i el temps obtingut es publica directament com a mesura.
 
 El controlador manté un \texttt{EnumMap} de \texttt{SwingWorker} per
 poder cancel·lar cada algorisme individualment.
@@ -722,6 +697,30 @@ s'observa clarament com:
     \item La sèrie cúbica $O(n^3)$ domina clarament totes les altres,
           fent-se impracticable per a valors de $n$ grans.
 \end{itemize}
+
+La Fig.~\ref{fig:linear} i la Fig.~\ref{fig:log} il·lustren clarament
+la necessitat de l'escala logarítmica. En escala lineal, la sèrie cúbica
+domina de tal manera que les tres sèries inferiors queden comprimides
+contra l'eix X i resulten indistingibles. En escala logarítmica, les
+quatre sèries se separen visualment i les funcions potencials $n^k$ es
+visualitzen com a rectes amb pendent proporcional a $k$, facilitant la
+verificació visual de la complexitat.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{graph-linear-scale.png}
+    \caption{Gràfica en escala lineal: les sèries $O(n)$, $O(n\log n)$ i
+    $O(n^2)$ queden comprimides contra l'eix X per la dominància de
+    $O(n^3)$.\label{fig:linear}}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{graph-log-scale.png}
+    \caption{Gràfica en escala logarítmica: les quatre sèries se separen
+    clarament i les pendents reflecteixen els ordres de creixement
+    $1$, $\approx\!1$, $2$ i $3$ respectivament.\label{fig:log}}
+\end{figure}
 
 L'ús de l'escala logarítmica a l'eix Y permet comparar totes quatre sèries
 simultàniament sense que les més ràpides quedin comprimides contra l'eix X.

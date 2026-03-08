@@ -90,18 +90,12 @@ public class Controller implements ViewListener {
                 for (long n : nValues) {
                     if (isCancelled()) break;
 
-                    // Mesura real: mínim de 5 repeticions per reduir soroll
-                    long minElapsed = Long.MAX_VALUE;
-                    for (int rep = 0; rep < 5; rep++) {
-                        if (isCancelled()) break;
-                        long start = System.nanoTime();
-                        type.execute(n);
-                        long elapsed = System.nanoTime() - start;
-                        if (elapsed < minElapsed) minElapsed = elapsed;
-                    }
-                    if (isCancelled()) break;
+                    // Mesura real
+                    long start = System.nanoTime();
+                    type.execute(n);
+                    long elapsed = System.nanoTime() - start;
 
-                    publish(new Measurement(type, n, minElapsed));
+                    publish(new Measurement(type, n, elapsed));
                 }
                 return null;
             }
