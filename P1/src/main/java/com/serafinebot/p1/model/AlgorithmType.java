@@ -18,6 +18,7 @@ public enum AlgorithmType {
         public long execute(long n) {
             long sum = 0;
             for (long i = 0; i < n; i++) {
+                if (Thread.currentThread().isInterrupted()) return 0;
                 sum += i * i;
             }
             return sum;
@@ -34,6 +35,7 @@ public enum AlgorithmType {
         public long execute(long n) {
             long sum = 0;
             for (long i = 0; i < n; i++) {
+                if (Thread.currentThread().isInterrupted()) return 0;
                 for (long j = 1; j < n; j *= 2) {
                     sum += i ^ j;
                 }
@@ -52,6 +54,7 @@ public enum AlgorithmType {
         public long execute(long n) {
             long sum = 0;
             for (long i = 0; i < n; i++) {
+                if (Thread.currentThread().isInterrupted()) return 0;
                 for (long j = 0; j < n; j++) {
                     sum += i * j;
                 }
@@ -71,6 +74,7 @@ public enum AlgorithmType {
             long sum = 0;
             for (long i = 0; i < n; i++) {
                 for (long j = 0; j < n; j++) {
+                    if (Thread.currentThread().isInterrupted()) return 0;
                     for (long k = 0; k < n; k++) {
                         sum += (i * j) + k;
                     }

@@ -95,6 +95,7 @@ public class Controller implements ViewListener {
                     type.execute(n);
                     long elapsed = System.nanoTime() - start;
 
+                    if (isCancelled()) break;
                     publish(new Measurement(type, n, elapsed));
                 }
                 return null;

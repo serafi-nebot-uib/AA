@@ -1,0 +1,239 @@
+% UIB Advanced Algorithms Report Template
+% Based on IEEE conference format with custom modifications for course reports
+% This template includes the formatting customizations from P1
+
+\documentclass[conference,compsoc]{IEEEtran}
+
+% ===== PACKAGES =====
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{array}
+\usepackage[caption=false,font=footnotesize,labelfont=sf,textfont=sf]{subfig}
+\usepackage{textcomp}
+\usepackage{stfloats}
+\usepackage{url}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage[nocompress]{cite}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[catalan]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{cuted}
+
+% ===== CATALAN LANGUAGE CUSTOMIZATION =====
+% Rename abstract and keywords to Catalan
+\renewcommand{\abstractname}{Resum}
+\renewcommand{\IEEEkeywordsname}{Termes d'índex}
+
+% ===== ABSTRACT AND KEYWORDS FORMATTING =====
+% Custom formatting: bold italic labels, normal-weight body text
+\makeatletter
+\def\abstract{\normalfont\@IEEEtweakunitybaselinestretch{1.15}%
+    \if@twocolumn
+      \@IEEEabskeysecsize\noindent\textbf{\textit{\abstractname}}---\normalfont\@IEEEabskeysecsize\relax
+    \else
+      \bgroup\par\addvspace{0.5\baselineskip}\centering\vspace{-1.78ex}\@IEEEabskeysecsize\textbf{\abstractname}\par\addvspace{0.5\baselineskip}\egroup\quotation\normalfont\@IEEEabskeysecsize%
+    \fi\@IEEEgobbleleadPARNLSP}
+\def\IEEEkeywords{\normalfont\@IEEEtweakunitybaselinestretch{1.15}%
+    \if@twocolumn
+      \@IEEEabskeysecsize\vskip 0.5\baselineskip plus 0.25\baselineskip minus 0.25\baselineskip\noindent
+      \textbf{\textit{\IEEEkeywordsname}}---\normalfont\@IEEEabskeysecsize\relax
+    \else
+      \bgroup\par\addvspace{0.5\baselineskip}\centering\@IEEEabskeysecsize\textbf{\IEEEkeywordsname}\par\addvspace{0.5\baselineskip}\egroup\quotation\normalfont\@IEEEabskeysecsize%
+    \fi\@IEEEgobbleleadPARNLSP}
+\makeatother
+
+% ===== CODE LISTING CONFIGURATION =====
+% Configuration for Java code listings (adjust language as needed)
+\lstset{
+    language=Java,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{gray}\itshape,
+    stringstyle=\color{red!70!black},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    numbersep=5pt,
+    frame=single,
+    breaklines=true,
+    showstringspaces=false,
+    tabsize=4,
+    captionpos=b
+}
+
+% ===== HYPHENATION RULES =====
+% Add custom hyphenation rules for Catalan technical terms as needed
+\hyphenation{a-sin-to-tic a-sin-to-tics al-go-ris-me al-go-ris-més con-tro-la-dor mul-ti-pli-ca-ti-va}
+
+% ===== DOCUMENT BEGINS =====
+\begin{document}
+
+% ===== TITLE AND AUTHOR =====
+\title{[Títol de la Pràctica] \\ Pràctica X}
+
+\author{\IEEEauthorblockN{[Nom de l'Estudiant]}
+\IEEEauthorblockA{Universitat de les Illes Balears (UIB)\\
+Grau en Enginyeria Informàtica\\
+Algorismes Avançats, Curs 2025--2026}}
+
+\maketitle
+
+% ===== ABSTRACT AND KEYWORDS =====
+% Using strip environment for full-width abstract in conference format
+\begin{strip}
+\begin{abstract}
+[Escriu aquí el resum de la pràctica. Ha de ser un paràgraf concís que
+descrigui els objectius, la metodologia i els resultats principals.]
+\end{abstract}
+
+\begin{IEEEkeywords}
+[paraula clau 1], [paraula clau 2], [paraula clau 3], [paraula clau 4]
+\end{IEEEkeywords}
+\end{strip}
+
+\IEEEpeerreviewmaketitle
+
+% ===== INTRODUCTION =====
+\section{Introducció}
+[Introdueix el context de la pràctica, els objectius i l'estructura
+de la memòria.]
+
+% ===== THEORETICAL FOUNDATIONS =====
+\section{Fonaments Teòrics}
+
+\subsection{[Subtítol 1]}
+[Contingut teòric relacionat amb la pràctica.]
+
+\subsection{[Subtítol 2]}
+[Més contingut teòric.]
+
+% Example of equation
+\begin{equation}
+\label{eq:example}
+T(n) = c \cdot f(n)
+\end{equation}
+
+% Example of table
+\begin{table}[!h]
+      \caption{Exemple de taula.\label{tab:example}}
+      \centering
+      \begin{tabular}{r|rrr}
+            \toprule
+            $n$ & $f_1(n)$ & $f_2(n)$ & $f_3(n)$ \\
+            \midrule
+            10     & 10       & 100         & 1\,000 \\
+            100    & 100      & 10\,000     & $10^6$ \\
+            1\,000  & 1\,000  & $10^6$      & $10^9$ \\
+            \bottomrule
+      \end{tabular}
+\end{table}
+
+% ===== DESIGN AND IMPLEMENTATION =====
+\section{Disseny i Implementació}
+
+\subsection{[Component 1]}
+[Descripció del component.]
+
+% Example of code listing
+\begin{lstlisting}[caption={Exemple de codi.}]
+public class Example {
+    public static void main(String[] args) {
+        System.out.println("Hello, World!");
+    }
+}
+\end{lstlisting}
+
+\subsection{[Component 2]}
+[Més descripció.]
+
+% Example of figure
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=\columnwidth]{example-figure.png}
+    \caption{Exemple de figura.\label{fig:example}}
+\end{figure}
+
+% For full-width figure in conference format, use figure* environment
+% \begin{figure*}[!h]
+%     \centering
+%     \includegraphics[width=\textwidth]{wide-figure.png}
+%     \caption{Exemple de figura ampla.\label{fig:wide}}
+% \end{figure*}
+
+% ===== RESULTS AND DISCUSSION =====
+\section{Resultats i Discussió}
+
+[Presenta els resultats experimentals i discuteix-los. Referencia les
+figures i taules adequadament, per exemple: la Fig.~\ref{fig:example}
+mostra que... o segons la Taula~\ref{tab:example}...]
+
+% Example of fixed-position figure
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{results-figure.png}
+    \caption{Resultats experimentals.\label{fig:results}}
+\end{figure}
+
+% ===== CONCLUSIONS =====
+\section{Conclusions}
+
+[Resume els resultats principals, avalua l'assoliment dels objectius
+i proposa treball futur.]
+
+% ===== BIBLIOGRAPHY =====
+\begin{thebibliography}{9}
+\bibliographystyle{IEEEtran}
+
+\bibitem{ref_example1}
+A. Author, B. Coauthor, and C. Thirdauthor, \textit{Title of the Book}.
+City, State, Country: Publisher, Year.
+
+\bibitem{ref_example2}
+D. Researcher, ``Title of the Article,'' \textit{Journal Name}, vol.~X,
+no.~Y, pp.~123--456, Month Year.
+
+\bibitem{ref_example3}
+E. WebAuthor, ``Title of Web Resource,'' Organization, Year. [Online].
+Available: \url{https://example.com/resource}
+
+% Common references for Advanced Algorithms course:
+\bibitem{ref_cormen}
+T. H. Cormen, C. E. Leiserson, R. L. Rivest, and C. Stein,
+\textit{Introduction to Algorithms}, 4th~ed. Cambridge, MA, USA:
+MIT Press, 2022.
+
+\bibitem{ref_sedgewick}
+R. Sedgewick and K. Wayne, \textit{Algorithms}, 4th~ed. Upper Saddle
+River, NJ, USA: Addison-Wesley, 2011.
+
+\bibitem{ref_knuth}
+D. E. Knuth, \textit{The Art of Computer Programming, Vol. 1:
+Fundamental Algorithms}, 3rd~ed. Reading, MA, USA: Addison-Wesley, 1997.
+
+\bibitem{ref_mvc}
+E. Gamma, R. Helm, R. Johnson, and J. Vlissides, \textit{Design Patterns:
+Elements of Reusable Object-Oriented Software}. Reading, MA, USA:
+Addison-Wesley, 1994.
+
+\bibitem{ref_observer}
+F. Buschmann, R. Meunier, H. Rohnert, P. Sommerlad, and M. Stal,
+\textit{Pattern-Oriented Software Architecture: A System of Patterns}.
+Chichester, U.K.: Wiley, 1996.
+
+\bibitem{ref_swing}
+J. Elliott, R. Eckstein, M. Loy, D. Wood, and B. Cole, \textit{Java
+Swing}, 2nd~ed. Sebastopol, CA, USA: O'Reilly Media, 2002.
+
+\bibitem{ref_java}
+Oracle Corporation, ``The Java Tutorials --- Concurrency,''
+[Online]. Available:
+\url{https://docs.oracle.com/javase/tutorial/essential/concurrency/}
+
+\end{thebibliography}
+
+\end{document}

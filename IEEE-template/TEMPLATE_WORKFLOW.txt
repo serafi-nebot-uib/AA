@@ -1,0 +1,96 @@
+================================================================================
+IEEE TEMPLATE WORKFLOW FOR NEW ASSIGNMENTS
+================================================================================
+
+STEP 1: COPY TEMPLATE FILES
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│   ieee-template/                         PX/memoria/                    │
+│   ├── IEEEtran.cls          ──────────>  ├── IEEEtran.cls              │
+│   └── uib-aa-template.tex   ──────────>  └── memoria.tex               │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Commands:
+  cp ieee-template/IEEEtran.cls PX/memoria/
+  cp ieee-template/uib-aa-template.tex PX/memoria/memoria.tex
+
+
+STEP 2: CUSTOMIZE memoria.tex
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  Find and replace in PX/memoria/memoria.tex:                            │
+│                                                                         │
+│  ✏️  [Títol de la Pràctica]    →  Your Project Title                   │
+│  ✏️  Pràctica X                 →  Pràctica 2 (or P3, P4, etc.)        │
+│  ✏️  [Nom de l'Estudiant]      →  Your Name                            │
+│  ✏️  Abstract placeholder       →  Your abstract text                  │
+│  ✏️  Keywords placeholder       →  Your keywords                       │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+STEP 3: ADD CONTENT
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  Fill in the sections:                                                  │
+│                                                                         │
+│  📝 Introducció          - Project goals and context                   │
+│  📝 Fonaments Teòrics    - Theoretical background                      │
+│  📝 Disseny              - Architecture and design                     │
+│  📝 Resultats            - Experimental results                        │
+│  📝 Conclusions          - Summary and future work                     │
+│                                                                         │
+│  Add figures:            \includegraphics[width=\columnwidth]{img.png} │
+│  Add tables:             Use \begin{table} ... \end{table}             │
+│  Add code:               Use \begin{lstlisting} ... \end{lstlisting}   │
+│  Add equations:          Use \begin{equation} ... \end{equation}       │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+STEP 4: COMPILE
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  cd PX/memoria/                                                         │
+│  pdflatex memoria.tex                                                   │
+│  pdflatex memoria.tex    ← Run TWICE for cross-references              │
+│                                                                         │
+│  Output: memoria.pdf                                                    │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+TEMPLATE FEATURES (from P1)
+================================================================================
+
+✓ Conference format (2 columns)           ✓ Catalan language support
+✓ Computer Society style                  ✓ Bold italic abstract/keywords labels
+✓ Full-width abstract (strip environment) ✓ Java code syntax highlighting
+✓ Professional table formatting (booktabs) ✓ Precise figure positioning
+✓ Pre-included bibliography entries       ✓ UTF-8 encoding for Catalan chars
+
+================================================================================
+COMMON MISTAKES TO AVOID
+================================================================================
+
+❌ DON'T use bare_jrnl_new_sample4.tex    ✅ DO use uib-aa-template.tex
+❌ DON'T forget to compile twice          ✅ DO run pdflatex twice
+❌ DON'T use [journal] document class     ✅ DO use [conference,compsoc]
+❌ DON'T place images elsewhere           ✅ DO put images in memoria/ folder
+❌ DON'T forget IEEEtran.cls              ✅ DO copy IEEEtran.cls to memoria/
+
+================================================================================
+HELP & DOCUMENTATION
+================================================================================
+
+📖 Detailed examples:       ieee-template/README.md
+📖 IEEE original docs:      ieee-template/New_IEEEtran_how-to.pdf
+📖 Repository overview:     CODEBASE_SUMMARY.md
+📖 Template source:         ieee-template/uib-aa-template.tex
+
+For LaTeX help: https://tex.stackexchange.com/
+For IEEE formatting: Check New_IEEEtran_how-to.pdf
+
+================================================================================
