@@ -33,8 +33,8 @@ public enum PieceType {
     OWL("Mussol", "M", MovementType.STATIC, new int[][] {
         {-2, 0}, {2, 0}, {0, -2}, {0, 2}
     }),
-    
-    DRAGON("Drac", "D", MovementType.STATIC, new int[][] {
+
+    SNAKE("Serp", "S", MovementType.STATIC, new int[][] {
         // Extended L (8 positions)
         {-3, -1}, {-3, 1}, {-1, -3}, {-1, 3},
         {1, -3}, {1, 3}, {3, -1}, {3, 1},
@@ -96,14 +96,17 @@ public enum PieceType {
     
     /**
      * Get image path for this piece.
-     * @param isWhite true for white piece, false for black
-     * @return resource path (e.g., "/resources/knight-white.png")
+     * OWL and SNAKE use "white"/"dark" naming; all others use "white"/"black".
+     *
+     * @param isWhite true for the white/light variant, false for the dark variant
+     * @return classpath resource path (e.g., "/resources/knight-white.png")
      */
     public String getImagePath(boolean isWhite) {
-        String color = isWhite ? "white" : "black";
-        // Use enum constant name in lowercase (KNIGHT -> knight)
-        return String.format("/resources/%s-%s.png", 
-                           name().toLowerCase(), color);
+        boolean usesDarkNaming = (this == OWL || this == SNAKE);
+        String darkLabel = usesDarkNaming ? "dark" : "black";
+        String color = isWhite ? "white" : darkLabel;
+        return String.format("/resources/%s-%s.png",
+                             name().toLowerCase(), color);
     }
     
     /**
@@ -118,7 +121,7 @@ public enum PieceType {
             case BISHOP -> 0.8;   // Similar to Rook
             case QUEEN -> 1.5;    // Many options, more backtracking
             case OWL -> 1.2;      // Limited range
-            case DRAGON -> 1.4;   // Powerful but controlled
+            case SNAKE -> 1.4;    // Powerful but controlled
         };
     }
     
