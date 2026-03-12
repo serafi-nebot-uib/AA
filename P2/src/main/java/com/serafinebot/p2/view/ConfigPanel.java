@@ -42,10 +42,6 @@ public class ConfigPanel extends JPanel implements Scrollable {
     private final JToggleButton place2Button;
     private final ButtonGroup placementGroup;
 
-    // ---- Prediction labels ----
-    private final JLabel predictionTimeLabel;
-    private final JLabel difficultyLabel;
-
     // ---- Listener for external recalculation ----
     private Runnable onConfigChanged;
 
@@ -123,19 +119,6 @@ public class ConfigPanel extends JPanel implements Scrollable {
         placementGroup = new ButtonGroup();
         placementGroup.add(place1Button);
         placementGroup.add(place2Button);
-
-        // =====================================================================
-        // Prediction section
-        // =====================================================================
-        row = addSectionHeader(gbc, row, "Predicció de temps");
-
-        predictionTimeLabel = new JLabel("--");
-        predictionTimeLabel.setFont(predictionTimeLabel.getFont().deriveFont(Font.BOLD));
-        row = addLabelledComponent(gbc, row, "Temps estimat:", predictionTimeLabel);
-
-        difficultyLabel = new JLabel("--");
-        difficultyLabel.setFont(difficultyLabel.getFont().deriveFont(Font.BOLD));
-        row = addLabelledComponent(gbc, row, "Dificultat:", difficultyLabel);
 
         // Vertical glue to push everything to the top
         gbc.gridy = row;
@@ -224,21 +207,6 @@ public class ConfigPanel extends JPanel implements Scrollable {
      *
      * @param text e.g. "< 1 segon", "5.3 segons"
      */
-    public void setPredictionTime(String text) {
-        predictionTimeLabel.setText(text);
-    }
-
-    /**
-     * Set the difficulty text and colour.
-     *
-     * @param text  e.g. "Molt fàcil", "Difícil"
-     * @param color Colour to indicate difficulty
-     */
-    public void setDifficulty(String text, Color color) {
-        difficultyLabel.setText(text);
-        difficultyLabel.setForeground(color);
-    }
-
     /**
      * Register a callback invoked whenever any configuration value changes.
      *

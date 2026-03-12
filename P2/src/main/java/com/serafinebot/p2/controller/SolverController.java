@@ -8,8 +8,6 @@ import com.serafinebot.p2.model.SolverMetrics;
 import com.serafinebot.p2.view.ConfigPanel;
 import com.serafinebot.p2.view.MainFrame;
 
-import java.awt.Color;
-
 /**
  * Main controller that orchestrates the solving process.
  * <p>
@@ -34,7 +32,6 @@ public class SolverController {
     public SolverController(MainFrame view) {
         this.view = view;
         wireListeners();
-        updatePrediction();
     }
 
     // =====================================================================
@@ -51,7 +48,7 @@ public class SolverController {
         view.getControlPanel().addStopListener(e -> stopSolving());
         view.getControlPanel().addResetListener(e -> resetAll());
 
-        // Config change: resize board + refresh prediction + piece preview.
+        // Config change: resize board + refresh piece preview.
         // This intentionally replaces the callback set by MainFrame's
         // constructor, because the controller is the authoritative owner
         // of the config-change flow once it is created.
@@ -60,7 +57,6 @@ public class SolverController {
                 view.getConfigPanel().getBoardRows(),
                 view.getConfigPanel().getBoardCols()
             );
-            updatePrediction();
             view.refreshPiecePreview();
         });
     }
@@ -160,27 +156,4 @@ public class SolverController {
         currentTask = null;
     }
 
-    // =====================================================================
-    //  Prediction
-    // =====================================================================
-
-    /**
-     * Recalculate and display the time prediction and difficulty level
-     * based on the current configuration.
-     */
-    private void updatePrediction() {
-        ConfigPanel config = view.getConfigPanel();
-        int rows   = config.getBoardRows();
-        int cols   = config.getBoardCols();
-        PieceType p1 = config.getPiece1Type();
-        PieceType p2 = config.getPiece2Type();
-
-        config.setPredictionTime(
-            TimePredictor.predictTimeFormatted(rows, cols, p1, p2)
-        );
-        config.setDifficulty(
-            TimePredictor.getDifficultyLevel(rows, cols, p1, p2),
-            TimePredictor.getDifficultyColor(rows, cols, p1, p2)
-        );
-    }
 }

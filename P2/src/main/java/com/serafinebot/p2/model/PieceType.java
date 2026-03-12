@@ -96,33 +96,14 @@ public enum PieceType {
     
     /**
      * Get image path for this piece.
-     * OWL and SNAKE use "white"/"dark" naming; all others use "white"/"black".
      *
-     * @param isWhite true for the white/light variant, false for the dark variant
+     * @param isWhite true for white variant, false for black
      * @return classpath resource path (e.g., "/resources/knight-white.png")
      */
     public String getImagePath(boolean isWhite) {
-        boolean usesDarkNaming = (this == OWL || this == SNAKE);
-        String darkLabel = usesDarkNaming ? "dark" : "black";
-        String color = isWhite ? "white" : darkLabel;
+        String color = isWhite ? "white" : "black";
         return String.format("/resources/%s-%s.png",
                              name().toLowerCase(), color);
-    }
-    
-    /**
-     * Get complexity factor for time prediction.
-     * Higher values indicate more backtracking expected.
-     * @return complexity multiplier (0.7 to 1.5)
-     */
-    public double getComplexity() {
-        return switch (this) {
-            case KNIGHT -> 1.0;   // Baseline
-            case ROOK -> 0.7;     // Fewer dead ends
-            case BISHOP -> 0.8;   // Similar to Rook
-            case QUEEN -> 1.5;    // Many options, more backtracking
-            case OWL -> 1.2;      // Limited range
-            case SNAKE -> 1.4;    // Powerful but controlled
-        };
     }
     
     /**
