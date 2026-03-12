@@ -1,5 +1,6 @@
 package com.serafinebot.p2.model;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -15,7 +16,7 @@ public class BacktrackingSolver {
     private final Position piece1Start;
     private final Position piece2Start;
     
-    private final HamiltonianPath solution;
+    private final List<Position> solution;
     private final SolverMetrics metrics;
     
     private volatile boolean stopped;
@@ -45,7 +46,7 @@ public class BacktrackingSolver {
         this.piece1Start = piece1Start;
         this.piece2Start = piece2Start;
         
-        this.solution = new HamiltonianPath();
+        this.solution = new ArrayList<>();
         this.metrics = new SolverMetrics();
         this.stopped = false;
     }
@@ -67,6 +68,7 @@ public class BacktrackingSolver {
         board.reset();
         solution.clear();
         metrics.reset();
+
         stopped = false;
         
         // Start timer
@@ -75,8 +77,8 @@ public class BacktrackingSolver {
         // Mark initial positions as visited
         board.setVisited(piece1Start);
         board.setVisited(piece2Start);
-        solution.addMove(piece1Start, 0);
-        solution.addMove(piece2Start, 1);
+        solution.add(piece1Start);
+        solution.add(piece2Start);
         
         // Check if pieces can capture each other at start
         if (board.canCapture(piece1Start, piece1Type, piece2Start, piece2Type) ||
@@ -87,8 +89,8 @@ public class BacktrackingSolver {
         }
         
         // Start backtracking from piece 1's turn (since piece 2 just moved)
-        boolean found = backtrack(piece1Start, piece1Type, 0, 
-                                 piece2Start, piece2Type, 1, 
+        boolean found = backtrack(piece1Start, piece1Type,
+                                 piece2Start, piece2Type,
                                  2);  // depth = 2 (both pieces placed)
         
         // Stop timer
@@ -100,18 +102,17 @@ public class BacktrackingSolver {
     
     /**
      * Recursive backtracking algorithm.
-     * 
-     * @param currentPos Current piece's position
+     * Pieces alternate turns: currentPiece moves, then otherPiece, then currentPiece, etc.
+     *
+     * @param currentPos   Current piece's position
      * @param currentPiece Current piece's type
-     * @param currentIndex Current piece's index (0 or 1)
-     * @param otherPos Other piece's position
-     * @param otherPiece Other piece's type
-     * @param otherIndex Other piece's index (1 or 0)
-     * @param depth Current recursion depth
+     * @param otherPos     Other piece's position
+     * @param otherPiece   Other piece's type
+     * @param depth        Current recursion depth
      * @return true if solution found, false otherwise
      */
-    private boolean backtrack(Position currentPos, PieceType currentPiece, int currentIndex,
-                             Position otherPos, PieceType otherPiece, int otherIndex,
+    private boolean backtrack(Position currentPos, PieceType currentPiece,
+                             Position otherPos, PieceType otherPiece,
                              int depth) {
         // Base case: All cells visited
         if (board.getVisitedCount() == board.getTotalCells()) {
@@ -149,11 +150,11 @@ public class BacktrackingSolver {
             
             // Apply move
             board.setVisited(nextPos);
-            solution.addMove(nextPos, currentIndex);
+            solution.add(nextPos);
             
             // Recurse with swapped pieces (alternate turn)
-            boolean success = backtrack(otherPos, otherPiece, otherIndex,
-                                       nextPos, currentPiece, currentIndex,
+            boolean success = backtrack(otherPos, otherPiece,
+                                       nextPos, currentPiece,
                                        depth + 1);
             
             if (success) {
@@ -163,7 +164,7 @@ public class BacktrackingSolver {
             // Backtrack
             metrics.incrementBacktracks();
             board.unsetVisited(nextPos);
-            solution.removeLastMove();
+            solution.remove(solution.size() - 1);
         }
         
         // No valid moves found
@@ -187,7 +188,7 @@ public class BacktrackingSolver {
     
     // Getters
     
-    public HamiltonianPath getSolution() {
+    public List<Position> getSolution() {
         return solution;
     }
     

@@ -214,20 +214,7 @@ public class Board {
         }
         visitedCount = 0;
     }
-    
-    /**
-     * Create a deep copy of this board.
-     * @return A new Board with the same state
-     */
-    public Board clone() {
-        Board copy = new Board(this.rows, this.cols);
-        for (int r = 0; r < rows; r++) {
-            System.arraycopy(this.visited[r], 0, copy.visited[r], 0, cols);
-        }
-        copy.visitedCount = this.visitedCount;
-        return copy;
-    }
-    
+
     // Getters
     
     public int getRows() {

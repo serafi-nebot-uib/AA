@@ -1,8 +1,9 @@
 package com.serafinebot.p2.view;
 
-import com.serafinebot.p2.model.HamiltonianPath;
 import com.serafinebot.p2.model.PieceType;
 import com.serafinebot.p2.model.Position;
+
+import java.util.List;
 
 import javax.swing.*;
 import java.awt.*;
@@ -118,32 +119,35 @@ public class BoardPanel extends JPanel {
      * Update the board to show the solution up to a given step.
      * Cells 0..currentStep are marked as visited with sequence numbers.
      * The cell at currentStep is highlighted.
+     * <p>
+     * Piece ownership is determined by step parity: even steps belong to piece 1,
+     * odd steps belong to piece 2 (they strictly alternate from the start).
      *
-     * @param path        The Hamiltonian path solution
+     * @param path        The solution as an ordered list of positions
      * @param currentStep The step to display up to (0-based, inclusive)
      * @param piece1Type  Type of piece 1 (for icon rendering)
      * @param piece2Type  Type of piece 2 (for icon rendering)
      */
-    public void updateBoard(HamiltonianPath path, int currentStep,
+    public void updateBoard(List<Position> path, int currentStep,
                             PieceType piece1Type, PieceType piece2Type) {
         clearCells();
 
         if (path == null || path.isEmpty()) return;
 
-        int limit = Math.min(currentStep, path.getLength() - 1);
+        int limit = Math.min(currentStep, path.size() - 1);
 
         // Track latest position of each piece
         Position piece1Pos = null;
         Position piece2Pos = null;
 
         for (int i = 0; i <= limit; i++) {
-            Position pos = path.getPosition(i);
-            int pieceIdx = path.getPieceAtStep(i);
+            Position pos = path.get(i);
             CellPanel cell = cells[pos.row()][pos.col()];
             cell.setVisited(true);
             cell.setSequenceNumber(i + 1);  // 1-based display
 
-            if (pieceIdx == 0) {
+            // Even steps = piece 1 (index 0), odd steps = piece 2 (index 1)
+            if (i % 2 == 0) {
                 piece1Pos = pos;
             } else {
                 piece2Pos = pos;
@@ -151,7 +155,7 @@ public class BoardPanel extends JPanel {
         }
 
         // Highlight current step cell
-        Position highlightPos = path.getPosition(limit);
+        Position highlightPos = path.get(limit);
         cells[highlightPos.row()][highlightPos.col()].setHighlighted(true);
 
         // Place piece icons at their latest positions
@@ -168,14 +172,14 @@ public class BoardPanel extends JPanel {
     /**
      * Show the complete solution with all cells visited.
      *
-     * @param path       The complete Hamiltonian path
+     * @param path       The complete solution as an ordered list of positions
      * @param piece1Type Type of piece 1
      * @param piece2Type Type of piece 2
      */
-    public void showFullSolution(HamiltonianPath path,
+    public void showFullSolution(List<Position> path,
                                  PieceType piece1Type, PieceType piece2Type) {
         if (path == null || path.isEmpty()) return;
-        updateBoard(path, path.getLength() - 1, piece1Type, piece2Type);
+        updateBoard(path, path.size() - 1, piece1Type, piece2Type);
         // Remove highlight for full solution view
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {

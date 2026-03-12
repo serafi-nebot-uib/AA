@@ -1,8 +1,10 @@
 package com.serafinebot.p2.view;
 
-import com.serafinebot.p2.model.HamiltonianPath;
 import com.serafinebot.p2.model.PieceType;
+import com.serafinebot.p2.model.Position;
 import com.serafinebot.p2.model.SolverMetrics;
+
+import java.util.List;
 
 import javax.swing.*;
 import java.awt.*;
@@ -23,7 +25,7 @@ public class MainFrame extends JFrame {
     private final StatsPanel statsPanel;
 
     // Step-by-step navigation state
-    private HamiltonianPath currentSolution;
+    private List<Position> currentSolution;
     private PieceType piece1Type;
     private PieceType piece2Type;
     private int currentStep = 0;
@@ -123,12 +125,12 @@ public class MainFrame extends JFrame {
      * @param piece1Type Piece 1 type
      * @param piece2Type Piece 2 type
      */
-    public void showSolution(HamiltonianPath path,
+    public void showSolution(List<Position> path,
                              PieceType piece1Type, PieceType piece2Type) {
         this.currentSolution = path;
         this.piece1Type = piece1Type;
         this.piece2Type = piece2Type;
-        this.currentStep = (path != null) ? path.getLength() - 1 : 0;
+        this.currentStep = (path != null) ? path.size() - 1 : 0;
 
         if (path != null && !path.isEmpty()) {
             boardPanel.showFullSolution(path, piece1Type, piece2Type);
@@ -266,7 +268,7 @@ public class MainFrame extends JFrame {
 
     private void navigateNext() {
         if (currentSolution == null || currentSolution.isEmpty()) return;
-        if (currentStep < currentSolution.getLength() - 1) {
+        if (currentStep < currentSolution.size() - 1) {
             currentStep++;
             boardPanel.updateBoard(currentSolution, currentStep, piece1Type, piece2Type);
         }
@@ -284,14 +286,14 @@ public class MainFrame extends JFrame {
         if (currentSolution == null || currentSolution.isEmpty()) return;
 
         // Reset to beginning if at the end
-        if (currentStep >= currentSolution.getLength() - 1) {
+        if (currentStep >= currentSolution.size() - 1) {
             currentStep = 0;
         }
 
         controlPanel.setPlayLabel(true);
 
         animationTimer = new Timer(controlPanel.getAnimationDelay(), e -> {
-            if (currentStep < currentSolution.getLength() - 1) {
+            if (currentStep < currentSolution.size() - 1) {
                 currentStep++;
                 boardPanel.updateBoard(currentSolution, currentStep, piece1Type, piece2Type);
             } else {
