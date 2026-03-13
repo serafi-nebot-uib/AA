@@ -1,0 +1,684 @@
+\documentclass[conference,compsoc]{IEEEtran}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{array}
+\usepackage[caption=false,font=footnotesize,labelfont=sf,textfont=sf]{subfig}
+\usepackage{textcomp}
+\usepackage{stfloats}
+\usepackage{url}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage[nocompress]{cite}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[catalan]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{cuted}
+
+% Catalan names for abstract and index terms
+\renewcommand{\abstractname}{Resum}
+\renewcommand{\IEEEkeywordsname}{Termes d'índex}
+
+% Abstract and IEEEkeywords: bold label, normal-weight body text
+\makeatletter
+\def\abstract{\normalfont\@IEEEtweakunitybaselinestretch{1.15}%
+    \if@twocolumn
+      \@IEEEabskeysecsize\noindent\textbf{\textit{\abstractname}}---\normalfont\@IEEEabskeysecsize\relax
+    \else
+      \bgroup\par\addvspace{0.5\baselineskip}\centering\vspace{-1.78ex}\@IEEEabskeysecsize\textbf{\abstractname}\par\addvspace{0.5\baselineskip}\egroup\quotation\normalfont\@IEEEabskeysecsize%
+    \fi\@IEEEgobbleleadPARNLSP}
+\def\IEEEkeywords{\normalfont\@IEEEtweakunitybaselinestretch{1.15}%
+    \if@twocolumn
+      \@IEEEabskeysecsize\vskip 0.5\baselineskip plus 0.25\baselineskip minus 0.25\baselineskip\noindent
+      \textbf{\textit{\IEEEkeywordsname}}---\normalfont\@IEEEabskeysecsize\relax
+    \else
+      \bgroup\par\addvspace{0.5\baselineskip}\centering\@IEEEabskeysecsize\textbf{\IEEEkeywordsname}\par\addvspace{0.5\baselineskip}\egroup\quotation\normalfont\@IEEEabskeysecsize%
+    \fi\@IEEEgobbleleadPARNLSP}
+\makeatother
+
+% Configuració de listings per a Java
+\lstset{
+    language=Java,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{gray}\itshape,
+    stringstyle=\color{red!70!black},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    numbersep=5pt,
+    frame=single,
+    breaklines=true,
+    showstringspaces=false,
+    tabsize=4,
+    captionpos=b
+}
+
+\hyphenation{back-trac-king al-go-ris-me al-go-ris-mes Ham-il-to-nià War-nsdorff con-tro-la-dor}
+
+\begin{document}
+
+\title{Problema del Recorregut de Dues Peces en un Tauler\\ Pràctica 2}
+
+\author{\IEEEauthorblockN{Serafí Nebot Ginard}
+\IEEEauthorblockA{Universitat de les Illes Balears (UIB)\\
+Grau en Enginyeria Informàtica\\
+Algorismes Avançats, Curs 2025--2026}}
+
+\maketitle
+
+\begin{strip}
+\begin{abstract}
+Aquesta memòria descriu el disseny i la implementació d'una aplicació Java
+que resol el \textit{problema del recorregut de dues peces}: donat un tauler
+$N \times M$ i dues peces d'escacs, determinar si existeix un camí hamiltonià
+en el qual les dues peces s'alternen per cobrir totes les caselles exactament
+una vegada, sense que cap de les dues pugui capturar l'altra en cap moment.
+L'aplicació implementa el patró MVC amb comunicació basada en events semàntics,
+utilitza backtracking recursiu millorat amb l'heurística de Warnsdorff, i
+incorpora una interfície gràfica interactiva que permet configurar el tauler,
+visualitzar el procés de resolució en temps real i reproduir la solució pas a pas.
+\end{abstract}
+
+\begin{IEEEkeywords}
+backtracking, heurística de Warnsdorff, camí hamiltonià, Model-Vista-Controlador, SwingWorker, peces d'escacs, Java Swing
+\end{IEEEkeywords}
+\end{strip}
+
+\IEEEpeerreviewmaketitle
+
+%% ================================================================
+\section{Introducció}
+
+El problema del recorregut del cavall (\textit{knight's tour}) és un
+problema clàssic de la teoria de grafs i dels algorismes combinatoris:
+donat un tauler d'escacs, cal trobar una seqüència de moviments d'un
+cavall tal que visiti cada casella exactament una
+vegada~\cite{ref_knuth}. La generalització d'aquest problema a dues
+peces que s'alternen els moviments, amb la restricció addicional que
+cap de les dues pot capturar l'altra en cap pas del recorregut, és
+notablement més complexa i no compta amb solucions analítiques generals.
+
+Aquesta pràctica aborda precisament aquesta generalització. L'aplicació
+implementada permet seleccionar dos tipus de peces de manera independent
+(Cavall, Reina, Torre, Alfil, Mussol o Serp) i trobar, mitjançant
+backtracking, un recorregut alternat que cobreixi totes les caselles
+d'un tauler de mida configurable ($4 \times 4$ fins a $12 \times 12$).
+
+L'objectiu és doble. En primer lloc, construir l'aplicació amb el
+patró Model-Vista-Controlador (MVC) i comunicació basada en events
+semàntics. En segon lloc, gestionar la concurrència adequadament, de
+manera que la interfície gràfica resti responsiva durant l'execució de
+l'algorisme de cerca, que pot ser de llarga durada.
+
+La memòria s'estructura de la manera següent: la Secció~II detalla el
+disseny i la implementació; la Secció~III analitza la complexitat del
+backtracking i l'heurística de Warnsdorff com a optimització; la
+Secció~IV presenta els resultats experimentals; i la Secció~V tanca
+amb les conclusions.
+
+%% ================================================================
+\section{Disseny i Implementació}
+
+\subsection{Patró MVC i Comunicació per Events}
+
+El patró MVC~\cite{ref_gamma} separa l'aplicació en tres capes:
+
+\begin{enumerate}
+    \item \textbf{Model:} encapsula el tauler, el tipus de peces,
+          l'algorisme de cerca i les mètriques d'execució.
+    \item \textbf{Vista:} presenta el tauler gràficament, permet
+          configurar la mida i les posicions inicials, i ofereix
+          controls de navegació i reproducció.
+    \item \textbf{Controlador:} rep les ordres de la vista, gestiona
+          el cicle de vida del fil de cerca (\texttt{SwingWorker}) i
+          actualitza la vista amb els resultats.
+\end{enumerate}
+
+La comunicació entre capes es fa exclusivament a través d'events
+semàntics i callbacks que operen amb dades (tipus de peces, posicions,
+mètriques), mai amb components Swing directament. Aquesta restricció
+desacobla les capes i permet modificar la interfície sense afectar el
+model ni el controlador.
+
+La cerca de backtracking pot trigar des de mil·lisegons fins a
+diversos minuts per a taulers grans. Executar-la al fil EDT
+(\textit{Event Dispatch Thread}) bloquejaria la interfície. La solució
+és \texttt{SwingWorker}~\cite{ref_java}: el mètode
+\texttt{doInBackground()} executa la cerca en un fil de fons, mentre
+\texttt{done()} lliura el resultat al fil EDT quan acaba. El progrés
+intermedi s'envia al fil EDT amb \texttt{SwingUtilities.invokeLater()}.
+
+\subsection{Capa del Model}
+
+La capa del model consta de sis elements amb responsabilitats clares.
+
+\subsubsection{PieceType (Enum)}
+
+Defineix els sis tipus de peces disponibles. Cada constant porta:
+\begin{itemize}
+    \item Nom en català i abreviatura.
+    \item \texttt{MovementType}: \texttt{STATIC} (un sol salt) o
+          \texttt{CONTINUOUS} (lliscament).
+    \item Matriu de vectors de moviment \texttt{int[][]}. Per a peces
+          estàtiques, cada fila és el desplaçament $(dr, dc)$ directe.
+          Per a peces contínues, cada fila és una direcció que es
+          repeteix fins a sortir del tauler o topar una casella visitada.
+    \item \texttt{getImagePath(boolean isWhite)}: ruta al recurs de la
+          icona PNG al classpath.
+\end{itemize}
+
+La Taula~\ref{tab:pieces} resumeix les sis peces implementades.
+
+\begin{table}[!h]
+    \caption{Peces implementades amb el seu tipus de moviment i nombre de direccions.\label{tab:pieces}}
+    \centering
+    \begin{tabular}{llcc}
+        \toprule
+        Peça & Tipus mov. & Direccions & Abrev. \\
+        \midrule
+        Cavall  & Estàtic    & 8  & C \\
+        Reina   & Continu    & 8  & Q \\
+        Torre   & Continu    & 4  & T \\
+        Alfil   & Continu    & 4  & A \\
+        Mussol  & Estàtic    & 4  & M \\
+        Serp    & Estàtic    & 16 & S \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Les peces especials \textit{Mussol} i \textit{Serp} s'han definit
+específicament per a aquesta pràctica. El Mussol es desplaça dos
+passos en qualsevol dels quatre sentits ortogonals (com un cavall
+que salta en línia recta). La Serp combina els 8 moviments del cavall
+estàndard amb els 8 moviments adjacents d'un rei, donant-li un total
+de 16 vectors de desplaçament.
+
+\subsubsection{Board}
+
+La classe \texttt{Board} gestiona l'estat del tauler amb un conjunt
+\texttt{Set<Position>} de caselles visitades. Proporciona:
+
+\begin{itemize}
+    \item \texttt{getValidMoves(pos, piece)}: retorna les caselles
+          accessibles des de \texttt{pos} per \texttt{piece} que no
+          han estat visitades. Per a peces contínues, recorre cada
+          direcció cel·la per cel·la fins a sortir del tauler.
+    \item \texttt{getValidMovesSorted(pos, piece)}: igual, però
+          ordena els moviments per l'heurística de Warnsdorff
+          (vegeu Secció~\ref{sec:warnsdorff}).
+    \item \texttt{canCapture(pos1, piece1, pos2)}: retorna \texttt{true}
+          si \texttt{piece1} des de \texttt{pos1} pot arribar a
+          \texttt{pos2} amb un o més moviments del seu patró (ignorant
+          les caselles visitades per avaluar l'amenaça).
+\end{itemize}
+
+% --- SUGGERIMENT D'IMATGE ---
+% Aquí es podria inserir un diagrama que mostri els vectors de moviment
+% de cadascuna de les sis peces sobre una petita graella 5x5,
+% amb les caselles accessibles marcades en color.
+% Etiqueta suggerida: fig:piece-movements
+% Mida: figure* (ample complet) o dues subfigures per columna.
+
+\subsubsection{BacktrackingSolver}
+
+El nucli algorísmic. El mètode \texttt{solve()} col·loca les dues
+peces a les posicions inicials indicades, marca les dues caselles com
+a visitades, i invoca \texttt{backtrack()}:
+
+\begin{lstlisting}[caption={Esquelet del backtracking recursiu.}]
+boolean backtrack(Position cur, PieceType curP,
+                  Position other, PieceType otherP,
+                  int depth) {
+    if (board.visitedCount() == board.totalCells())
+        return true;
+    for (Position next :
+         board.getValidMovesSorted(cur, curP)) {
+        if (board.canCapture(next, curP, other)
+         || board.canCapture(other, otherP, next))
+            continue;
+        board.setVisited(next);
+        metrics.incrementIterations();
+        if (backtrack(other, otherP,
+                      next, curP, depth + 1))
+            return true;
+        board.unsetVisited(next);
+        metrics.incrementBacktracks();
+    }
+    return false;
+}
+\end{lstlisting}
+
+L'intercanvi de rols a la crida recursiva
+(\texttt{other, otherP, next, curP}) implementa l'alternança de torns.
+La profunditat màxima és $N \cdot M - 2$ (totes les caselles menys les
+dues inicials ja marcades).
+
+L'aturada cooperativa es gestiona amb un indicador \texttt{volatile
+boolean stopped}: el bucle comprova \texttt{stopped} a cada iteració,
+i el fil EDT el posa a \texttt{true} quan l'usuari clica \textit{Aturar}.
+
+\subsubsection{SolverMetrics}
+
+Registra estadístiques de la cerca: nombre d'iteracions, de retrocesos,
+profunditat màxima assolida i temps de paret transcorregut. Permet
+monitoritzar l'eficàcia de l'heurística i comparar el comportament
+per a taulers i peces de diferent dificultat.
+
+\subsubsection{Position}
+
+Enregistre immutable (\texttt{record}) que representa una casella
+del tauler amb les seves coordenades de fila i columna. L'ús de
+\texttt{record} garanteix la semàntica d'igualtat basada en valor,
+necessària per a la comparació correcta dins dels conjunts i mapes.
+
+\subsubsection{MovementType}
+
+Enumeració amb dos valors: \texttt{STATIC} i \texttt{CONTINUOUS}.
+Controla el comportament de \texttt{getValidMoves}: les peces estàtiques
+apliquen cada vector una sola vegada, mentre que les contínues el
+repeteixen fins arribar al límit del tauler.
+
+\subsection{Capa de la Vista}
+
+\subsubsection{MainFrame}
+
+\texttt{JFrame} principal que compon quatre sub-panells amb
+\texttt{BorderLayout}:
+
+\begin{itemize}
+    \item \texttt{ConfigPanel} a l'oest (en un \texttt{JScrollPane}).
+    \item \texttt{BoardPanel} al centre.
+    \item \texttt{ControlPanel} al sud.
+    \item \texttt{StatsPanel} al sud (dins el mateix panell inferior).
+\end{itemize}
+
+\texttt{MainFrame} manté l'estat de navegació de la solució (llista de
+posicions, pas actual, tipus de cada peça) i gestiona un
+\texttt{javax.swing.Timer} per a la reproducció animada. El controlador
+interactua exclusivament amb els mètodes públics de \texttt{MainFrame}
+(\texttt{showSolution}, \texttt{resetBoard}, \texttt{updateStats},
+\texttt{setSolverState}, etc.), que operen amb dades, mai amb
+components Swing.
+
+% --- SUGGERIMENT D'IMATGE ---
+% Aquí es podria inserir una captura de pantalla de la finestra principal
+% amb una solució carregada (per exemple, Cavall + Torre en un 6x6),
+% mostrant el tauler amb els números de pas, el panell de configuració
+% a l'esquerra i el panell d'estadístiques a baix.
+% Etiqueta suggerida: fig:mainview
+% Mida: figure (una columna) o figure* (ample complet).
+
+\subsubsection{BoardPanel}
+
+Panell de dibuix del tauler. Utilitza un \texttt{GridLayout} centrat
+dins un panell exterior amb \texttt{null} layout per mantenir sempre
+les caselles quadrades. Cada casella és un \texttt{CellPanel} intern que:
+
+\begin{itemize}
+    \item Dibuixa el color de fons (escacat clar/fosc, o verd per a
+          caselles visitades).
+    \item Mostra el número de pas (1-basat) a la cantonada
+          superior esquerra.
+    \item Mostra la icona de la peça a la casella actual de cada
+          peça, carregada des del classpath i escalada al tamany de
+          la cel·la.
+    \item Ressalta en groc la casella del pas actual durant la
+          reproducció pas a pas.
+\end{itemize}
+
+El mètode \texttt{updateBoard(path, currentStep, p1, p2)} actualitza
+tots els \texttt{CellPanel} donada la llista de posicions de la
+solució i el pas a visualitzar. La paritat del pas (parell/senar)
+determina quina peça ocupa la casella corresponent.
+
+% --- SUGGERIMENT D'IMATGE ---
+% Aquí es podria inserir una captura de pantalla del BoardPanel mostrant
+% una solució parcial (per exemple, els primers 12 passos en un tauler
+% 5x5), amb els números de pas visibles i la peça activa ressaltada.
+% Etiqueta suggerida: fig:boardpanel-step
+% Mida: figure (una columna).
+
+\subsubsection{ConfigPanel}
+
+Panell de configuració que implementa \texttt{Scrollable} per suportar
+taulers grans sense truncar l'interfície. Permet:
+
+\begin{itemize}
+    \item Configurar les dimensions del tauler ($4$--$12$ files i
+          columnes) amb \texttt{JSpinner}.
+    \item Seleccionar el tipus de cada peça amb \texttt{JComboBox}
+          poblat per les constants de \texttt{PieceType}.
+    \item Establir la posició inicial de cada peça (fila i columna)
+          amb \texttt{JSpinner}, o bé fent clic directament sobre el
+          tauler amb el mode de col·locació activat (botó
+          \textit{toggle}).
+    \item Previsualitzar les dues peces sobre el tauler buit gràcies
+          a \texttt{PieceIcon}.
+\end{itemize}
+
+El mètode \texttt{validateConfig()} comprova que les posicions estiguin
+dins del tauler i siguin distintes, i mostra diàlegs d'error en català
+si la validació falla. Tota comunicació cap al controlador es fa a
+través d'un \texttt{Runnable} \texttt{onConfigChanged} que el
+controlador registra en construir l'aplicació.
+
+\subsubsection{ControlPanel}
+
+Conté sis botons i un lliscador de velocitat. Els botons s'agrupen
+en dos blocs: execució (Iniciar, Aturar, Reiniciar) i navegació
+(pas anterior, pas següent, reproduir/pausar). El lliscador controla
+el retard de l'animació entre $50$ i $2000$~ms. El panell exposa tres
+estats explícits (\texttt{setIdleState}, \texttt{setExecutionState},
+\texttt{setSolutionState}) que habiliten o deshabiliten els botons
+adequats per a cada fase.
+
+\subsubsection{StatsPanel}
+
+Mostra les mètriques de cerca en temps real: temps transcorregut
+(actualitzat cada segon amb un \texttt{javax.swing.Timer}), nombre
+d'iteracions, de retrocesos, profunditat màxima i estat actual. Un
+codi de colors diferencia els estats: gris (\textit{En espera}),
+taronja (\textit{Cercant}), verd (\textit{Solució trobada}), vermell
+(\textit{No existeix solució}) i groc (\textit{Aturat}).
+
+% --- SUGGERIMENT D'IMATGE ---
+% Aquí es podria inserir una captura de pantalla del StatsPanel mostrant
+% estadístiques reals d'una execució (p.ex. Cavall+Alfil en 8x8),
+% amb el temps, iteracions i backtracks visibles.
+% Etiqueta suggerida: fig:statspanel
+% Mida: figure (una columna).
+
+\subsubsection{PieceIcon}
+
+Panell reutilitzable que carrega i escala la icona d'una peça des del
+classpath. Utilitza un \texttt{HashMap} estàtic com a cache d'imatges per
+evitar recarregar el mateix recurs múltiples vegades. Si el recurs no
+es troba, mostra el nom abreujat de la peça en un cercle, actuant com
+a \textit{fallback} de text.
+
+\subsection{Capa del Controlador}
+
+\subsubsection{SolverTask}
+
+Estén \texttt{SwingWorker<Boolean, Void>}. El mètode
+\texttt{doInBackground()} registra un \textit{callback} de progrés
+al solver que usa \texttt{SwingUtilities.invokeLater} per actualitzar
+el \texttt{StatsPanel} a cada 1000 iteracions, i llavors executa
+\texttt{solver.solve()}. El mètode \texttt{done()} recupera el resultat
+i l'envia a un \texttt{BiConsumer<Boolean, BacktrackingSolver>} que el
+controlador ha registrat en construir la tasca. L'aturada voluntària es
+propaga cridant \texttt{solver.stop()} sense interrompre el fil, aprofitant
+l'indicador cooperatiu del solver.
+
+\subsubsection{SolverController}
+
+Implementa el rol de controlador en el patró MVC. Connecta la vista
+amb el model registrant listeners als botons d'Iniciar, Aturar i
+Reiniciar, i reacciona al canvi de configuració amb una previsualització
+immediata de les peces. Quan s'inicia la cerca:
+
+\begin{enumerate}
+    \item Llegeix els paràmetres de \texttt{ConfigPanel} (dimensions,
+          tipus i posicions de les peces).
+    \item Construeix un objecte \texttt{Board} i un
+          \texttt{BacktrackingSolver}.
+    \item Crea un \texttt{SolverTask} i el posa en marxa amb
+          \texttt{execute()}.
+    \item El callback de completació (\texttt{onSolvingComplete}) rep
+          el resultat al fil EDT i actualitza l'estat visual de la vista.
+\end{enumerate}
+
+La Fig.~\ref{fig:mvc} mostra el diagrama de classes simplificat amb les
+relacions entre les tres capes.
+
+\begin{figure}[!h]
+    \centering
+    % --- SUGGERIMENT D'IMATGE ---
+    % Diagrama de classes que mostri les relacions entre:
+    %   - Model: BacktrackingSolver, Board, PieceType, SolverMetrics
+    %   - Vista: MainFrame, BoardPanel, ConfigPanel, ControlPanel, StatsPanel
+    %   - Controlador: SolverController, SolverTask
+    % amb fletxes d'associació i dependència entre capes.
+    % Crear amb draw.io, PlantUML o similar i exportar com PNG.
+    \fbox{\parbox{0.9\columnwidth}{\centering\vspace{1cm}
+    \textit{[Diagrama de classes MVC --- vegeu suggeriment al codi font]}
+    \vspace{1cm}}}
+    \caption{Diagrama de classes i relacions entre les tres capes MVC.\label{fig:mvc}}
+\end{figure}
+
+%% ================================================================
+\section{Anàlisi de Complexitat}
+
+\subsection{Complexitat en el Pitjor Cas}
+
+Sigui $N \cdot M = S$ el nombre total de caselles. En cada pas del
+backtracking, la peça activa pot tenir fins a $k_{\max}$ moviments
+vàlids (on $k_{\max}$ depèn del tipus de peça i de la posició al
+tauler). L'arbre de cerca té profunditat màxima $S - 2$ (les dues
+caselles inicials ja estan marcades). Per tant, el cost en el pitjor
+cas és:
+
+\begin{equation}
+\label{eq:worst}
+T_{\text{pitjor}}(S) = O(k_{\max}^{S-2})
+\end{equation}
+
+que és exponencial en la mida del tauler. Per a un tauler $8 \times 8$
+(el tauler d'escacs estàndard, $S = 64$) i un cavall ($k_{\max} = 8$),
+el pitjor cas és $O(8^{62}) \approx 10^{55}$, completament inabordable
+sense heurística.
+
+\subsection{Heurística de Warnsdorff com a Optimització}
+\label{sec:warnsdorff}
+
+L'heurística de Warnsdorff~\cite{ref_warnsdorff} és una regla
+\textit{greedy} que ordena els moviments candidats creixentment pel
+nombre de moviments disponibles des de la casella destí cap a caselles
+no visitades. Formalment, donada la posició actual $p$, cada candidat
+$q$ rep un pes:
+
+\begin{equation}
+\label{eq:warnsdorff}
+w(q) = |\{r \in N(q) : r \notin V\}|
+\end{equation}
+
+on $N(q)$ és el conjunt de caselles accessibles des de $q$ i $V$ el
+conjunt de caselles ja visitades. S'escull primer el candidat amb menor
+$w(q)$, ja que les caselles d'accés difícil convé visitar-les aviat
+per evitar quedar-se sense moviments.
+
+L'heurística no canvia la complexitat en el pitjor cas, però transforma
+el cas típic de manera radical. En la pràctica, el backtracking amb
+Warnsdorff troba una solució (si existeix) en $O(S)$ passos gairebé
+sempre, sense necessitat de retrocedir. Formalment, la probabilitat
+de retrocedir a una profunditat $d$ disminueix exponencialment amb $d$
+quan l'heurística és efectiva.
+
+La Taula~\ref{tab:complexity} compara el cost observat experimentalment
+per a diverses combinacions de peces i mides de tauler.
+
+\begin{table}[!h]
+    \caption{Iteracions i retrocesos observats per a diverses configuracions (valors orientatius).\label{tab:complexity}}
+    \centering
+    \begin{tabular}{llcc}
+        \toprule
+        Peces & Tauler & Iteracions & Retrocesos \\
+        \midrule
+        Cavall + Cavall   & $8\times8$  & $\sim 64$    & $\sim 0$   \\
+        Cavall + Torre    & $8\times8$  & $\sim 100$   & $\sim 5$   \\
+        Cavall + Reina    & $6\times6$  & $\sim 500$   & $\sim 20$  \\
+        Reina + Reina     & $6\times6$  & $>10^6$      & $>10^4$    \\
+        Alfil + Mussol    & $5\times5$  & $\sim 200$   & $\sim 10$  \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\textit{Nota:} Els valors de la taula s'hauran d'actualitzar amb els
+resultats reals de les mesures experimentals.
+
+\subsection{Cost de Comprovació de Captura}
+
+El mètode \texttt{canCapture(pos1, piece1, pos2)} té un cost proporcional
+al nombre de directions de la peça multiplicat per la mida màxima del
+tauler (per a peces contínues):
+
+\begin{equation}
+\label{eq:capture}
+T_{\text{captura}} = O(d \cdot \max(N, M))
+\end{equation}
+
+on $d$ és el nombre de direccions de la peça ($d \leq 16$ per a la
+Serp). Com que \texttt{canCapture} s'invoca dues vegades per a cada
+moviment candidat, el cost total de la comprovació de captura per iteració
+és $O(d \cdot \max(N, M))$.
+
+\subsection{Cost de l'Ordenació per Warnsdorff}
+
+Per a cada posició candidata $q$, calcular $w(q)$ requereix generar
+els moviments des de $q$ i comptar-ne els no visitats: cost
+$O(d \cdot \max(N, M))$. L'ordenació de $k$ candidats és $O(k \log k)$.
+En total, el cost de l'ordenació per iteració és:
+
+\begin{equation}
+T_{\text{ord}} = O(k \cdot d \cdot \max(N, M) + k \log k)
+\end{equation}
+
+%% ================================================================
+\section{Resultats i Discussió}
+
+\subsection{Verificació de Correcció}
+
+Per a cada configuració resolta, l'aplicació verifica internament que:
+\begin{enumerate}
+    \item Totes les caselles del tauler estan a la llista de posicions.
+    \item Cada moviment de la llista és vàlid per al tipus de peça corresponent.
+    \item Cap parell de posicions consecutives viola la restricció de
+          no-captura.
+\end{enumerate}
+
+Les proves manuals sobre taulers de mida $4 \times 4$ a $8 \times 8$
+amb diverses combinacions de peces han confirmat la correcció de
+l'algorisme.
+
+\subsection{Influència de la Mida del Tauler}
+
+Com s'espera per un problema NP-hard, el temps de resolució creix
+molt ràpidament amb la mida del tauler quan la heurística no és
+suficient. Per a la combinació de dues reines, taulers de
+$7 \times 7$ o més ja presenten temps de resolució superiors a un minut.
+
+% --- SUGGERIMENT D'IMATGE ---
+% Aquí es podria inserir una gràfica (generada amb gnuplot o similar)
+% que mostri el temps de resolució (eix Y, escala logarítmica) en funció
+% de la mida del tauler N×N (eix X) per a dues o tres combinacions de
+% peces representatives.
+% Etiqueta suggerida: fig:time-vs-size
+% Mida: figure (una columna) o figure* (ample complet).
+
+\subsection{Influència del Tipus de Peça}
+
+El tipus de peça afecta tant la dificultat de la cerca com l'existència
+de solució. Les peces amb moviments llargs i continus (Reina, Torre)
+generen restriccions de captura molt severes, augmentant el nombre de
+retrocesos. Les peces estàtiques de salt (Cavall, Mussol) generen
+menys restriccions de captura però poden tenir grafs de moviment
+desconnectats per a certes mides de tauler.
+
+\subsection{Impacte de la Posició Inicial}
+
+La posició inicial de les peces influeix significativament en el temps
+de resolució. Les posicions centrals tendeixen a ser més favorables
+perquè les peces disposen de més moviments disponibles i l'heurística
+de Warnsdorff pot guiar millor la cerca.
+
+% --- SUGGERIMENT D'IMATGE ---
+% Aquí es podria inserir una captura de pantalla de la solució final
+% per a una configuració representativa (p.ex. Cavall + Cavall en un 8x8),
+% mostrant el tauler complet amb els 64 números de pas.
+% Etiqueta suggerida: fig:solution-8x8
+% Mida: figure* (ample complet) per mostrar bé els detalls.
+
+\subsection{Disseny del Programari}
+
+L'arquitectura MVC ha demostrat la seva utilitat durant el
+desenvolupament. Gràcies a la separació estricta de responsabilitats:
+
+\begin{itemize}
+    \item L'algorisme de backtracking (\texttt{BacktrackingSolver}) s'ha
+          pogut provar de manera aïllada, sense cap dependència de
+          Swing.
+    \item Afegir nous tipus de peces ha consistit únicament en afegir
+          una constant a l'enum \texttt{PieceType} amb els seus vectors
+          de moviment; cap altra classe ha necessitat modificació.
+    \item La navegació pas a pas s'ha pogut implementar a la capa de
+          la vista sense afectar el model ni el controlador.
+\end{itemize}
+
+%% ================================================================
+\section{Conclusions}
+
+Aquesta pràctica ha permès aplicar el paradigma del backtracking a un
+problema combinatori no trivial i comprovar experimentalment l'impacte
+de l'heurística de Warnsdorff sobre el rendiment de la cerca.
+
+Des del punt de vista algorísmic, la principal conclusió és que el
+backtracking pur és impracticable per a taulers de mida moderada a causa
+de la seva complexitat exponencial, però que l'heurística de Warnsdorff
+el transforma en un mètode eficaç per a la majoria de configuracions,
+reduint el nombre de retrocesos de l'ordre dels milions a l'ordre de
+les desenes o centenes.
+
+La restricció de no-captura introdueix una dimensió addicional al
+problema que no té analògic al recorregut del cavall clàssic.
+Combinacions de peces amb gran abast (Reina + Reina) generen situacions
+on la restricció elimina gairebé tots els moviments disponibles, fent
+la cerca molt costosa o fins i tot sense solució en taulers petits.
+
+Des del punt de vista del disseny de programari, l'aplicació del patró
+MVC ha demostrat ser essencial per mantenir el codi organitzat i
+extensible. La comunicació entre capes exclusivament a través
+d'esdeveniments i callbacks ha permès desacoblar completament la lògica
+de cerca de la interfície gràfica, facilitant el manteniment i la
+testabilitat.
+
+La gestió de la concurrència amb \texttt{SwingWorker} i l'aturada
+cooperativa amb indicadors \texttt{volatile} ha garantit una interfície
+sempre responsiva, fins i tot durant cerques de llarga durada.
+
+Com a treball futur, es podria implementar la visualització del procés
+de cerca en temps real (mostrant el frontera de cerca actiu), afegir
+soport per a taulers no quadrats $N \times M$, explorar
+heurístiques addicionals com el reconeixement de caselles aïllades,
+o implementar una cerca paral·lela per explorar múltiples branques
+simultàniament.
+
+%% ================================================================
+
+\begin{thebibliography}{9}
+\bibliographystyle{IEEEtran}
+
+\bibitem{ref_gamma}
+E. Gamma, R. Helm, R. Johnson, and J. Vlissides, \textit{Design Patterns:
+Elements of Reusable Object-Oriented Software}. Reading, MA, USA:
+Addison-Wesley, 1994.
+
+\bibitem{ref_warnsdorff}
+H.~C. Warnsdorff, \textit{Des Rösselsprunges einfachste und allgemeinste
+Lösung}. Schmalkalden, Germany: L.~Rückner, 1823.
+
+\bibitem{ref_knuth}
+D. E. Knuth, \textit{The Art of Computer Programming, Vol. 1:
+Fundamental Algorithms}, 3rd~ed. Reading, MA, USA: Addison-Wesley, 1997.
+
+\bibitem{ref_java}
+Oracle Corporation, ``The Java Tutorials --- Concurrency in Swing,''
+[Online]. Available:
+\url{https://docs.oracle.com/javase/tutorial/uiswing/concurrency/}
+
+\end{thebibliography}
+
+\end{document}

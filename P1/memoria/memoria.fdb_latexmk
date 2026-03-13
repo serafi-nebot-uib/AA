@@ -1,6 +1,6 @@
 # Fdb version 4
-["pdflatex"] 1772893898.19891 "/Users/serafi/Documents/uib/CS/Y3/AA/P1/memoria/memoria.tex" "memoria.pdf" "memoria" 1772893899.1696 0
-  "/Users/serafi/Documents/uib/CS/Y3/AA/P1/memoria/memoria.tex" 1772893896.9451 37191 e16212d9f7f52b6d84f795f591497e42 ""
+["pdflatex"] 1773420064.00903 "/Users/serafi/Documents/uib/CS/Y3/AA/P1/memoria/memoria.tex" "memoria.pdf" "memoria" 1773420065.03569 0
+  "/Users/serafi/Documents/uib/CS/Y3/AA/P1/memoria/memoria.tex" 1773420063.74054 35641 c6f50f40ce4a9d24496bf0f612993f44 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/base/8r.enc" 1165713224 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/local/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/courier/pcrb8r.tfm" 1136768653 1292 3059476c50a24578715759f22652f3d0 ""
@@ -134,8 +134,8 @@
   "algorithm-controls.png" 1772893370.23924 37204 53807b75691f49d3eac21382f825222a ""
   "graph-linear-scale.png" 1772892885.2221 275466 9e56c9050f58d57903006f5856f8c4ab ""
   "graph-log-scale.png" 1772892897.06365 291532 967f14a38736e2602b1b54403aac52f0 ""
-  "memoria.aux" 1772893899.11308 6472 3e92a474f05a3a537e331a5af2f84647 "pdflatex"
-  "memoria.tex" 1772893896.9451 37191 e16212d9f7f52b6d84f795f591497e42 ""
+  "memoria.aux" 1773420064.97784 6197 b792f1abc16ded01fca512b8ddb417e5 "pdflatex"
+  "memoria.tex" 1773420063.74054 35641 c6f50f40ce4a9d24496bf0f612993f44 ""
   "mvc.png" 1772891522.87967 147134 613b1f8c5e21426f147299c7a1f83804 ""
   "results-panel.png" 1772893825.30648 201306 6fbaf72ffe5014571a778dbfda484913 ""
   (generated)

@@ -61,7 +61,7 @@
 
 \begin{document}
 
-\title{Anàlisi de Costos Computacionals Asimptòtics \\ Pràctica 1}
+\title{Pràctica 1 \\ Anàlisi de Costos Computacionals Asimptòtics}
 
 \author{\IEEEauthorblockN{Serafí Nebot Ginard}
 \IEEEauthorblockA{Universitat de les Illes Balears (UIB)\\
@@ -125,13 +125,6 @@ real (amb escala lineal o logarítmica), consultar les constants
 multiplicatives mitjanes i fer previsions de temps per a mides d'entrada
 no mesurades.
 
-La memòria s'estructura de la següent manera: la Secció~II descriu
-l'entorn de programació; la Secció~III exposa els fonaments teòrics; la
-Secció~IV detalla el disseny i la implementació de la pràctica; la
-Secció~V analitza el càlcul del cost asimptòtic per la instrucció crítica;
-la Secció~VI presenta els resultats; i la Secció~VII tanca amb les
-conclusions.
-
 %% ================================================================
 \section{Fonaments Teòrics}
 
@@ -139,7 +132,7 @@ conclusions.
 
 L'anàlisi asimptòtic permet classificar algorismes segons el seu
 comportament a llarg termini, és a dir, com creix el seu temps d'execució
-en funció de la mida de l'entrada~\cite{ref_cormen}. Es defineixen les
+en funció de la mida de l'entrada. Es defineixen les
 notacións següents:
 
 \begin{itemize}
@@ -194,7 +187,7 @@ mentre que el cúbic necessitaria aproximadament 17~minuts.
 
 La \textit{instrucció crítica} és aquella operació dins l'algorisme que
 s'executa el major nombre de vegades i que, per tant, domina el cost
-total~\cite{ref_knuth}. Identificar-la és clau per determinar la
+total. Identificar-la és clau per determinar la
 complexitat asimptòtica. En algorismes iteratius, la instrucció crítica
 és habitualment l'operació dins el bucle més intern. El nombre total
 d'execucions d'aquesta instrucció depèn del nombre d'iteracions de tots
@@ -206,7 +199,7 @@ i per tant el cost asimptòtic és $O(n^2)$.
 
 \subsection{Patró Model-Vista-Controlador (MVC)}
 
-El patró MVC~\cite{ref_mvc} divideix una aplicació en tres components
+El patró MVC divideix una aplicació en tres components
 amb responsabilitats ben definides:
 
 \begin{enumerate}
@@ -219,15 +212,15 @@ amb responsabilitats ben definides:
           però no coneix la lògica de negoci. En el nostre cas, dibuixa la
           gràfica, mostra la taula de resultats i ofereix els controls.
     \item \textbf{Controlador:} actua com a intermediari. Reb events
-          semàntics de la vista, invoca operacions sobre el model i
+          de la vista, invoca operacions sobre el model i
           actualitza la vista amb resultats. En el nostre cas, gestiona
           els fils d'execució dels algorismes.
 \end{enumerate}
 
-Un principi fonamental del MVC ben implementat es que \textbf{la vista mai
-no ha d'exposar els seus components visuals} (botons, camps de text, etc.)
-al Controlador ni a cap altra capa. Tota comunicació ha de ser a traves
-d'events semantics i mètodes que operen amb dades. Aquesta restricció és
+Un principi fonamental del MVC ben implementat es que la vista mai
+no ha d'exposar els seus components visuals (botons, camps de text, etc.)
+al Controlador ni a cap altra capa. Tota comunicació ha de ser a través
+d'events i mètodes que operen amb dades. Aquesta restricció és
 crucial perquè, si el controlador accedís directament als botons o camps
 de text de la vista, qualsevol canvi a la interfície gràfica obligaria a
 modificar també el controlador, trencant el principi de separació de
@@ -242,7 +235,7 @@ aquest anti-patró.
 
 \subsection{Patró per Esdeveniments (Observer)}
 
-El patró Observer~\cite{ref_observer} estableix una relació
+El patró Observer estableix una relació
 un-a-molts entre objectes, de manera que quan un objecte (el
 \textit{subjecte}) canvia d'estat, tots els seus observadors són
 notificats automàticament. En el context d'aquesta pràctica, s'utilitza
@@ -255,7 +248,7 @@ en dues direccions:
           dades, el model invoca aquest mètode, i la vista actualitza la
           taula i la gràfica.
     \item \textbf{Vista $\rightarrow$ Controlador:} La vista defineix
-          una interfície \texttt{ViewListener} amb set mètodes semàntics
+          una interfície \texttt{ViewListener} amb set mètodes 
           (\texttt{onStartAlgorithm}, \texttt{onStopAlgorithm},
           \texttt{onStartAll}, \texttt{onStopAll}, \texttt{onPredict},
           \texttt{onClear}, \texttt{onLogScaleChanged}). El controlador
@@ -273,11 +266,11 @@ o del controlador.
 
 En Java Swing, totes les operacions sobre components visuals s'han de
 realitzar des del fil de despatx d'events (\textit{Event Dispatch Thread},
-EDT)~\cite{ref_java}. Si un algorisme que consumeix molt de recursos s'executa
+EDT)~\cite{ref_edt_so}. Si un algorisme que consumeix molt de recursos s'executa
 directament al fil EDT, la interfície es bloquejaria fins que acabes,
 impedint qualsevol interacció amb l'usuari.
 
-La solució estàndard es \texttt{SwingWorker}, una classe que permet
+La solució estàndard es \texttt{SwingWorker}~\cite{ref_swing_worker}, una classe que permet
 executar tasques llargues en un fil de fons i publicar resultats parcials
 al fil EDT de forma segura. El cicle de vida d'un \texttt{SwingWorker} és:
 
@@ -380,7 +373,7 @@ mesures, invocant \texttt{modelChanged()} sobre cadascun.
 \subsubsection{ViewListener (Interfície)}
 
 Defineix les operacions permeses que possibiliten la comunicació
-entre la vista i el controlador. Els set mètodes semàntics que exposa són:
+entre la vista i el controlador. Els set mètodes que exposa són:
 
 \begin{itemize}
     \item \texttt{onStartAlgorithm(AlgorithmType, long[])}: inicia l'execució d'un algorisme concret per als valors de $n$ indicats.
@@ -391,10 +384,6 @@ entre la vista i el controlador. Els set mètodes semàntics que exposa són:
     \item \texttt{onClear()}: esborra totes les mesures del model.
     \item \texttt{onLogScaleChanged(boolean)}: commuta l'escala de l'eix Y entre lineal i logarítmica.
 \end{itemize}
-
-Tots els paràmetres són dades primitives o enums. No hi ha cap referència
-a \texttt{JButton}, \texttt{JTextField} ni cap altre component visual.
-Aquesta és la clau de la separació MVC.
 
 \subsubsection{ControlPanel}
 
@@ -450,7 +439,7 @@ característiques principals són:
           amb marques numèriques i línies de graella de color gris clar.
     \item \textbf{Escala dual:} suporta escala lineal i logarítmica a
           l'eix Y, commutable en temps real. En escala logarítmica, la
-          posició vertical es calcula com:
+          posició vertical es calcula com~\cite{ref_minmax_so}:
           \begin{equation}
           y = h - h \cdot \frac{\log_{10}(t) - \log_{\min}}{\log_{\max} - \log_{\min}}
           \end{equation}
@@ -464,7 +453,7 @@ característiques principals són:
     \item \textbf{Llegenda:} rectangle semitransparent amb fons blanc i a la cantonada superior esquerra.
 \end{itemize}
 
-L'escala logarítmica és especialment util quan es comparen algorismes
+L'escala logarítmica és especialment útil quan es comparen algorismes
 amb ordres de magnitud molt diferents (per exemple, $O(n)$ vs. $O(n^3)$),
 ja que en escala logarítmica les funcions potencials $n^k$ es visualitzen
 com rectes amb pendent $k$.
@@ -718,8 +707,7 @@ verificació visual de la complexitat.
     \centering
     \includegraphics[width=\columnwidth]{graph-log-scale.png}
     \caption{Gràfica en escala logarítmica: les quatre sèries se separen
-    clarament i les pendents reflecteixen els ordres de creixement
-    $1$, $\approx\!1$, $2$ i $3$ respectivament.\label{fig:log}}
+    clarament.}
 \end{figure}
 
 L'ús de l'escala logarítmica a l'eix Y permet comparar totes quatre sèries
@@ -784,7 +772,7 @@ Des del punt de vista del disseny de programari, s'ha aconseguit una
 implementació estricta del patró MVC on:
 
 \begin{enumerate}
-    \item La vista \textbf{no exposa cap component visual} al controlador;
+    \item La vista no exposa cap component visual al controlador;
           tota interacció és a traves d'events semantics.
     \item La interfície \texttt{ViewListener} defineix set events amb
           paràmetres de dades (enums, arrays de \texttt{long}, booleans),
@@ -802,51 +790,27 @@ desacoblament entre capes, permetent que cada component evolucioni de
 forma independent. Aquesta separació no és una mera formalitat acadèmica:
 facilita el manteniment, la testabilitat i l'extensibilitat del
 programari. Per exemple, es podria substituir la vista Swing per una
-interfície JavaFX o web sense modificar ni una línia del model o del
+interfície web sense modificar ni una línia del model o del
 controlador.
-
-Com a treball futur, es podrien afegir més algorismes (per exemple,
-$O(2^n)$ o $O(n!)$), implementar l'exportació de dades a CSV, permetre
-a l'usuari definir algorismes personalitzats, o afegir més estratègies
-de mesura com la repetició multiple amb mitjana per reduir la variància
-experimental.
 
 %% ================================================================
 
 \begin{thebibliography}{9}
-\bibliographystyle{IEEEtran}
 
-\bibitem{ref_mvc}
-E. Gamma, R. Helm, R. Johnson, and J. Vlissides, \textit{Design Patterns:
-Elements of Reusable Object-Oriented Software}. Reading, MA, USA:
-Addison-Wesley, 1994.
+\bibitem{ref_edt_so}
+luke, ``Java Event-Dispatching Thread explanation,''
+Stack Overflow, Aug.\ 2011. [Online]. Available:
+\url{https://stackoverflow.com/questions/7217013/java-event-dispatching-thread-explanation}
 
-\bibitem{ref_observer}
-F. Buschmann, R. Meunier, H. Rohnert, P. Sommerlad, and M. Stal,
-\textit{Pattern-Oriented Software Architecture: A System of Patterns}.
-Chichester, U.K.: Wiley, 1996.
+\bibitem{ref_swing_worker}
+coobird, ``How do I use SwingWorker in Java?,''
+Stack Overflow, Apr.\ 2009. [Online]. Available:
+\url{https://stackoverflow.com/questions/782265/how-do-i-use-swingworker-in-java}
 
-\bibitem{ref_cormen}
-T. H. Cormen, C. E. Leiserson, R. L. Rivest, and C. Stein,
-\textit{Introduction to Algorithms}, 4th~ed. Cambridge, MA, USA:
-MIT Press, 2022.
-
-\bibitem{ref_sedgewick}
-R. Sedgewick and K. Wayne, \textit{Algorithms}, 4th~ed. Upper Saddle
-River, NJ, USA: Addison-Wesley, 2011.
-
-\bibitem{ref_swing}
-J. Elliott, R. Eckstein, M. Loy, D. Wood, and B. Cole, \textit{Java
-Swing}, 2nd~ed. Sebastopol, CA, USA: O'Reilly Media, 2002.
-
-\bibitem{ref_java}
-Oracle Corporation, ``The Java Tutorials --- Concurrency,''
-[Online]. Available:
-\url{https://docs.oracle.com/javase/tutorial/essential/concurrency/}
-
-\bibitem{ref_knuth}
-D. E. Knuth, \textit{The Art of Computer Programming, Vol. 1:
-Fundamental Algorithms}, 3rd~ed. Reading, MA, USA: Addison-Wesley, 1997.
+\bibitem{ref_minmax_so}
+irritate, ``How to scale down a range of numbers with a known min and max value,''
+Stack Overflow, Mar.\ 2011. [Online]. Available:
+\url{https://stackoverflow.com/questions/5294955/how-to-scale-down-a-range-of-numbers-with-a-known-min-and-max-value}
 
 \end{thebibliography}
 
