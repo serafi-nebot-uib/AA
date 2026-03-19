@@ -112,7 +112,7 @@ d'un tauler de mida configurable (mínim $2 \times 2$, sense límit superior pr�
 
 \subsection{Patró MVC i Comunicació per Events}
 
-El patró MVC~\cite{ref_gamma} separa l'aplicació en tres capes:
+El patró MVC separa l'aplicació en tres capes:
 
 \begin{enumerate}
     \item \textbf{Model:} encapsula el tauler, el tipus de peces,
@@ -126,15 +126,12 @@ El patró MVC~\cite{ref_gamma} separa l'aplicació en tres capes:
 \end{enumerate}
 
 La comunicació entre capes es fa exclusivament a través d'events
-semàntics i callbacks que operen amb dades (tipus de peces, posicions,
-mètriques), mai amb components Swing directament. Aquesta restricció
-desacobla les capes i permet modificar la interfície sense afectar el
-model ni el controlador.
+i callbacks.
 
 La cerca de backtracking pot trigar des de mil·lisegons fins a
-diversos minuts per a taulers grans. Executar-la al fil EDT
+hores o inclús dies per a taulers grans. Executar-la al fil EDT
 (\textit{Event Dispatch Thread}) bloquejaria la interfície. La solució
-és \texttt{SwingWorker}~\cite{ref_java}: el mètode
+és \texttt{SwingWorker}: el mètode
 \texttt{doInBackground()} executa la cerca en un fil de fons, mentre
 \texttt{done()} lliura el resultat al fil EDT quan acaba. El progrés
 intermedi s'envia al fil EDT amb \texttt{SwingUtilities.invokeLater()}.
@@ -142,6 +139,13 @@ intermedi s'envia al fil EDT amb \texttt{SwingUtilities.invokeLater()}.
 \subsection{Capa del Model}
 
 La capa del model consta de cinc elements amb responsabilitats clares.
+
+\subsubsection{MovementType}
+
+Enumeració amb dos valors: \texttt{STATIC} i \texttt{CONTINUOUS}.
+Controla el tipus de moviment d'una peça: les peces estàtiques
+apliquen cada moviment una sola vegada, mentre que les contínues el
+repeteixen fins arribar al límit del tauler.
 
 \subsubsection{PieceType (Enum)}
 
@@ -165,7 +169,7 @@ La Taula~\ref{tab:pieces} resumeix les sis peces implementades.
     \centering
     \begin{tabular}{llcc}
         \toprule
-        Peça & Tipus mov. & Vectors & Abrev. \\
+        Peça & Tipus mov. & \# mov. & Abrev. \\
         \midrule
         Cavall  & Estàtic    & 8 & C \\
         Reina   & Continu    & 8 & Q \\
@@ -181,10 +185,10 @@ Les peces especials \textit{Mussol} i \textit{Serp} s'han definit
 específicament per a aquesta pràctica. El Mussol es mou amb una
 variant ampliada del moviment del cavall: salta en forma de L amb
 passos de magnitud 3 i 1 (vectors $(\pm3, \pm1)$ i $(\pm1, \pm3)$),
-en comptes dels passos 2-1 del cavall estàndard. La Serp es desplaça
-un pas en qualsevol de les vuit direccions adjacents (els quatre sentits
-ortogonals i les quatre diagonals), equivalent al moviment d'un rei
-d'escacs.
+en comptes dels passos 2-1 del cavall estàndard. La Serp combina dos tipus de salt: un pas en qualsevol dels quatre
+sentits ortogonals (vectors $(\pm1, 0)$ i $(0, \pm1)$) i dos passos
+en qualsevol de les quatre diagonals (vectors $(\pm2, \pm2)$), donant
+un total de 8 vectors de desplaçament.
 
 \subsubsection{Board}
 
@@ -195,7 +199,7 @@ booleana \texttt{boolean[][]} de caselles visitades i un comptador
 \begin{itemize}
     \item \texttt{getValidMoves(pos, piece)}: retorna les caselles
           accessibles des de \texttt{pos} per \texttt{piece} que no
-          han estat visitades. Per a peces contínues, recorre cada
+          han estat visitades. Per a peces contínues, recorr cada
           direcció cel·la per cel·la fins a sortir del tauler o trobar
           una casella visitada.
     \item \texttt{getValidMovesSorted(pos, piece)}: igual, però
@@ -203,11 +207,11 @@ booleana \texttt{boolean[][]} de caselles visitades i un comptador
           (vegeu Secció~\ref{sec:warnsdorff}).
     \item \texttt{canCapture(attackerPos, attacker, targetPos)}: retorna
           \texttt{true} si \texttt{attacker} des de \texttt{attackerPos}
-          pot arribar a \texttt{targetPos} amb un o més moviments del
-          seu patró. Com que al tauler només hi ha dues peces en tot
-          moment, cap peça no pot bloquejar la línia de lliscament d'una
-          altra, de manera que la comprovació ignora les caselles visitades
-          per avaluar l'amenaça.
+          pot assolir \texttt{targetPos}. Per a peces estàtiques,
+          comprova si \texttt{targetPos} és exactament una aplicació
+          d'algun vector de moviment. Per a peces contínues, recorr
+          cada direcció cel·la per cel·la fins al límit del tauler i
+          comprova si \texttt{targetPos} cau en alguna d'aquestes línies.
 \end{itemize}
 
 % --- SUGGERIMENT D'IMATGE ---
@@ -226,17 +230,13 @@ per a taulers i peces de diferent dificultat.
 
 \subsubsection{Position}
 
-Enregistre immutable (\texttt{record}) que representa una casella
-del tauler amb les seves coordenades de fila i columna. L'ús de
-\texttt{record} garanteix la semàntica d'igualtat basada en valor,
-necessària per a la comparació correcta dins dels conjunts i mapes.
-
-\subsubsection{MovementType}
-
-Enumeració amb dos valors: \texttt{STATIC} i \texttt{CONTINUOUS}.
-Controla el comportament de \texttt{getValidMoves}: les peces estàtiques
-apliquen cada vector una sola vegada, mentre que les contínues el
-repeteixen fins arribar al límit del tauler.
+Registre immutable que representa una casella
+del tauler amb les seves coordenades de fila i columna.
+Es podria substituir un per un simple un array de \textit{int} de dos
+elements però l'ús de \textit{record} (registre) ens permet referenciar
+cada coordenada de forma més fàcil i afegir mètodes per a realitzar càlculs
+sobre la posició. Per exemple: \textit{add(pos)} per a afegir una posició amb
+una altre; útil per a calcular el destí d'un moviment a partir d'una posició inicial.
 
 \subsection{Capa de la Vista}
 

@@ -35,9 +35,10 @@ public enum PieceType {
     }),
 
     SNAKE("Serp", "S", MovementType.STATIC, new int[][] {
-        {-1, -1}, {-1, 0}, {-1, 1},
-        {0, -1},           {0, 1},
-        {1, -1},  {1, 0},  {1, 1}
+        // Orthogonal: 1 step
+        {-1, 0}, {1, 0}, {0, -1}, {0, 1},
+        // Diagonal: 2 steps
+        {-2, -2}, {-2, 2}, {2, -2}, {2, 2}
     });
     
     // Fields
