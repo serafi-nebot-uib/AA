@@ -17,15 +17,12 @@ public class Board {
     
     /**
      * Create a new board with the specified dimensions.
-     * @param rows Number of rows (must be >= 4)
-     * @param cols Number of columns (must be >= 4)
+     * @param rows Number of rows (must be >= 2)
+     * @param cols Number of columns (must be >= 2)
      */
     public Board(int rows, int cols) {
-        if (rows < 4 || cols < 4) {
-            throw new IllegalArgumentException("Board dimensions must be at least 4x4");
-        }
-        if (rows > 12 || cols > 12) {
-            throw new IllegalArgumentException("Board dimensions must be at most 12x12");
+        if (rows < 2 || cols < 2) {
+            throw new IllegalArgumentException("Board dimensions must be at least 2x2");
         }
         
         this.rows = rows;
@@ -142,10 +139,8 @@ public class Board {
      */
     public List<Position> getValidMovesSorted(Position from, PieceType piece) {
         List<Position> moves = getValidMoves(from, piece);
-        
         // Sort by Warnsdorff's heuristic: fewer exits = higher priority
         moves.sort(Comparator.comparingInt(pos -> getValidMoves(pos, piece).size()));
-        
         return moves;
     }
     

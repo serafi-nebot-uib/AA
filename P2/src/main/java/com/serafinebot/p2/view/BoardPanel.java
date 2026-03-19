@@ -15,10 +15,10 @@ import java.util.function.BiConsumer;
  * Panel that displays the chess board with visited cells, sequence numbers,
  * piece positions and step highlighting.
  * <p>
- * The board is always rendered as a perfect square (based on the smaller
- * of the available width and height), centred within the panel's bounds.
+ * Each cell is always rendered as a perfect square. The grid is sized to
+ * the largest integer cell size that fits the available area, then centred.
  * An inner JPanel with GridLayout holds the cells; this outer panel
- * handles the square-constraint layout.
+ * handles the cell-square-constraint layout.
  */
 public class BoardPanel extends JPanel {
 
@@ -45,7 +45,7 @@ public class BoardPanel extends JPanel {
     private int cols;
     private CellPanel[][] cells;
 
-    /** Inner panel that holds the grid; sized to a perfect square. */
+    /** Inner panel that holds the grid cells. */
     private final JPanel gridPanel;
 
     /** Callback invoked when a cell is clicked: (x, y). */
@@ -68,53 +68,71 @@ public class BoardPanel extends JPanel {
     }
 
     /**
-     * Lay out the inner grid panel as a centred square, offset by the gutter.
+     * Lay out the inner grid panel so that every cell is a perfect square.
+     * The border insets of gridPanel are subtracted before dividing, so
+     * GridLayout receives an area that is an exact multiple of cellSize.
      */
     @Override
     public void doLayout() {
         super.doLayout();
-        Insets insets = getInsets();
-        int availW = getWidth()  - insets.left - insets.right  - GUTTER;
-        int availH = getHeight() - insets.top  - insets.bottom - GUTTER;
-        int side = Math.min(availW, availH);
-        int x = insets.left + GUTTER + (availW - side) / 2;
-        int y = insets.top  + GUTTER + (availH - side) / 2;
-        gridPanel.setBounds(x, y, side, side);
+        if (rows == 0 || cols == 0) return;
+        Insets panelInsets = getInsets();
+        Insets borderInsets = gridPanel.getInsets();
+        int borderW = borderInsets.left + borderInsets.right;
+        int borderH = borderInsets.top  + borderInsets.bottom;
+        int availW = getWidth()  - panelInsets.left - panelInsets.right  - GUTTER;
+        int availH = getHeight() - panelInsets.top  - panelInsets.bottom - GUTTER;
+        // Largest cell size such that cells fit inside the border-inset area
+        int cellSize = Math.min((availW - borderW) / cols, (availH - borderH) / rows);
+        if (cellSize < 1) cellSize = 1;
+        int gridW = cellSize * cols + borderW;
+        int gridH = cellSize * rows + borderH;
+        int x = panelInsets.left + GUTTER + (availW - gridW) / 2;
+        int y = panelInsets.top  + GUTTER + (availH - gridH) / 2;
+        gridPanel.setBounds(x, y, gridW, gridH);
     }
 
     /**
      * Paint row and column index labels in the gutter areas.
+     * Cell positions are converted from gridPanel-space to this panel's space
+     * via SwingUtilities so border insets are always accounted for exactly.
      */
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        Rectangle grid = gridPanel.getBounds();
-        if (grid.width <= 0 || rows == 0 || cols == 0) return;
+        if (rows == 0 || cols == 0 || cells == null) return;
 
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        int cellW = grid.width  / cols;
-        int cellH = grid.height / rows;
+        // Use the actual rendered cell size for font sizing.
+        Rectangle cell00 = cells[0][0].getBounds();
+        int cellW = cell00.width;
+        int cellH = cell00.height;
         int fontSize = Math.max(GUTTER_FONT_MIN, Math.min(GUTTER - GUTTER_MARGIN * 2, Math.min(cellW, cellH) / 3));
         g2.setFont(new Font("SansSerif", Font.BOLD, fontSize));
         g2.setColor(new Color(200, 200, 200));
         FontMetrics fm = g2.getFontMetrics();
 
-        // Column numbers across the top gutter (centred vertically within the gutter, with margin from top)
-        int colLabelY = grid.y - GUTTER_MARGIN - fm.getDescent();
+        // Column numbers: centre each label over its cell, above the grid.
         for (int c = 0; c < cols; c++) {
+            Rectangle cb = cells[0][c].getBounds();
+            // Convert top-left of cell from gridPanel coords to this panel's coords.
+            Point p = SwingUtilities.convertPoint(gridPanel, cb.x, cb.y, this);
             String label = String.valueOf(c + 1);
-            int cx = grid.x + c * cellW + (cellW - fm.stringWidth(label)) / 2;
-            g2.drawString(label, cx, colLabelY);
+            int cx = p.x + (cb.width - fm.stringWidth(label)) / 2;
+            int cy = p.y - GUTTER_MARGIN - fm.getDescent();
+            g2.drawString(label, cx, cy);
         }
 
-        // Row numbers down the left gutter (centred in the gutter to the left of the grid)
+        // Row numbers: centre each label beside its cell, left of the grid.
         for (int r = 0; r < rows; r++) {
+            Rectangle rb = cells[r][0].getBounds();
+            Point p = SwingUtilities.convertPoint(gridPanel, rb.x, rb.y, this);
             String label = String.valueOf(r + 1);
-            int lx = grid.x - GUTTER + GUTTER_MARGIN + (GUTTER - GUTTER_MARGIN - fm.stringWidth(label)) / 2;
-            int ly = grid.y + r * cellH + (cellH + fm.getAscent() - fm.getDescent()) / 2;
+            int lx = p.x - GUTTER + GUTTER_MARGIN + (GUTTER - GUTTER_MARGIN - fm.stringWidth(label)) / 2;
+            int ly = p.y + (rb.height + fm.getAscent() - fm.getDescent()) / 2;
             g2.drawString(label, lx, ly);
         }
 
@@ -151,7 +169,7 @@ public class BoardPanel extends JPanel {
                 final int clickCol = c;
                 cell.addMouseListener(new MouseAdapter() {
                     @Override
-                    public void mouseClicked(MouseEvent e) {
+                    public void mousePressed(MouseEvent e) {
                         if (onCellClicked != null) {
                             onCellClicked.accept(clickRow, clickCol);
                         }

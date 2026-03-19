@@ -97,28 +97,15 @@ El problema del recorregut del cavall (\textit{knight's tour}) és un
 problema clàssic de la teoria de grafs i dels algorismes combinatoris:
 donat un tauler d'escacs, cal trobar una seqüència de moviments d'un
 cavall tal que visiti cada casella exactament una
-vegada~\cite{ref_knuth}. La generalització d'aquest problema a dues
+vegada. La generalització d'aquest problema a dues
 peces que s'alternen els moviments, amb la restricció addicional que
 cap de les dues pot capturar l'altra en cap pas del recorregut, és
-notablement més complexa i no compta amb solucions analítiques generals.
+notablement més complexa.
 
-Aquesta pràctica aborda precisament aquesta generalització. L'aplicació
-implementada permet seleccionar dos tipus de peces de manera independent
-(Cavall, Reina, Torre, Alfil, Mussol o Serp) i trobar, mitjançant
+L'aplicació implementada permet seleccionar dos tipus de peces de manera
+independent (Cavall, Reina, Torre, Alfil, Mussol o Serp) i trobar, mitjançant
 backtracking, un recorregut alternat que cobreixi totes les caselles
-d'un tauler de mida configurable ($4 \times 4$ fins a $12 \times 12$).
-
-L'objectiu és doble. En primer lloc, construir l'aplicació amb el
-patró Model-Vista-Controlador (MVC) i comunicació basada en events
-semàntics. En segon lloc, gestionar la concurrència adequadament, de
-manera que la interfície gràfica resti responsiva durant l'execució de
-l'algorisme de cerca, que pot ser de llarga durada.
-
-La memòria s'estructura de la manera següent: la Secció~II detalla el
-disseny i la implementació; la Secció~III analitza la complexitat del
-backtracking i l'heurística de Warnsdorff com a optimització; la
-Secció~IV presenta els resultats experimentals; i la Secció~V tanca
-amb les conclusions.
+d'un tauler de mida configurable (mínim $2 \times 2$, sense límit superior pràctic).
 
 %% ================================================================
 \section{Disseny i Implementació}
@@ -154,7 +141,7 @@ intermedi s'envia al fil EDT amb \texttt{SwingUtilities.invokeLater()}.
 
 \subsection{Capa del Model}
 
-La capa del model consta de sis elements amb responsabilitats clares.
+La capa del model consta de cinc elements amb responsabilitats clares.
 
 \subsubsection{PieceType (Enum)}
 
@@ -174,46 +161,53 @@ Defineix els sis tipus de peces disponibles. Cada constant porta:
 La Taula~\ref{tab:pieces} resumeix les sis peces implementades.
 
 \begin{table}[!h]
-    \caption{Peces implementades amb el seu tipus de moviment i nombre de direccions.\label{tab:pieces}}
+    \caption{Peces implementades amb el seu tipus de moviment i nombre de vectors.\label{tab:pieces}}
     \centering
     \begin{tabular}{llcc}
         \toprule
-        Peça & Tipus mov. & Direccions & Abrev. \\
+        Peça & Tipus mov. & Vectors & Abrev. \\
         \midrule
-        Cavall  & Estàtic    & 8  & C \\
-        Reina   & Continu    & 8  & Q \\
-        Torre   & Continu    & 4  & T \\
-        Alfil   & Continu    & 4  & A \\
-        Mussol  & Estàtic    & 4  & M \\
-        Serp    & Estàtic    & 16 & S \\
+        Cavall  & Estàtic    & 8 & C \\
+        Reina   & Continu    & 8 & Q \\
+        Torre   & Continu    & 4 & T \\
+        Alfil   & Continu    & 4 & A \\
+        Mussol  & Estàtic    & 8 & M \\
+        Serp    & Estàtic    & 8 & S \\
         \bottomrule
     \end{tabular}
 \end{table}
 
 Les peces especials \textit{Mussol} i \textit{Serp} s'han definit
-específicament per a aquesta pràctica. El Mussol es desplaça dos
-passos en qualsevol dels quatre sentits ortogonals (com un cavall
-que salta en línia recta). La Serp combina els 8 moviments del cavall
-estàndard amb els 8 moviments adjacents d'un rei, donant-li un total
-de 16 vectors de desplaçament.
+específicament per a aquesta pràctica. El Mussol es mou amb una
+variant ampliada del moviment del cavall: salta en forma de L amb
+passos de magnitud 3 i 1 (vectors $(\pm3, \pm1)$ i $(\pm1, \pm3)$),
+en comptes dels passos 2-1 del cavall estàndard. La Serp es desplaça
+un pas en qualsevol de les vuit direccions adjacents (els quatre sentits
+ortogonals i les quatre diagonals), equivalent al moviment d'un rei
+d'escacs.
 
 \subsubsection{Board}
 
-La classe \texttt{Board} gestiona l'estat del tauler amb un conjunt
-\texttt{Set<Position>} de caselles visitades. Proporciona:
+La classe \texttt{Board} gestiona l'estat del tauler amb una matriu
+booleana \texttt{boolean[][]} de caselles visitades i un comptador
+\texttt{visitedCount}. Proporciona:
 
 \begin{itemize}
     \item \texttt{getValidMoves(pos, piece)}: retorna les caselles
           accessibles des de \texttt{pos} per \texttt{piece} que no
           han estat visitades. Per a peces contínues, recorre cada
-          direcció cel·la per cel·la fins a sortir del tauler.
+          direcció cel·la per cel·la fins a sortir del tauler o trobar
+          una casella visitada.
     \item \texttt{getValidMovesSorted(pos, piece)}: igual, però
           ordena els moviments per l'heurística de Warnsdorff
           (vegeu Secció~\ref{sec:warnsdorff}).
-    \item \texttt{canCapture(pos1, piece1, pos2)}: retorna \texttt{true}
-          si \texttt{piece1} des de \texttt{pos1} pot arribar a
-          \texttt{pos2} amb un o més moviments del seu patró (ignorant
-          les caselles visitades per avaluar l'amenaça).
+    \item \texttt{canCapture(attackerPos, attacker, targetPos)}: retorna
+          \texttt{true} si \texttt{attacker} des de \texttt{attackerPos}
+          pot arribar a \texttt{targetPos} amb un o més moviments del
+          seu patró. Com que al tauler només hi ha dues peces en tot
+          moment, cap peça no pot bloquejar la línia de lliscament d'una
+          altra, de manera que la comprovació ignora les caselles visitades
+          per avaluar l'amenaça.
 \end{itemize}
 
 % --- SUGGERIMENT D'IMATGE ---
@@ -222,44 +216,6 @@ La classe \texttt{Board} gestiona l'estat del tauler amb un conjunt
 % amb les caselles accessibles marcades en color.
 % Etiqueta suggerida: fig:piece-movements
 % Mida: figure* (ample complet) o dues subfigures per columna.
-
-\subsubsection{BacktrackingSolver}
-
-El nucli algorísmic. El mètode \texttt{solve()} col·loca les dues
-peces a les posicions inicials indicades, marca les dues caselles com
-a visitades, i invoca \texttt{backtrack()}:
-
-\begin{lstlisting}[caption={Esquelet del backtracking recursiu.}]
-boolean backtrack(Position cur, PieceType curP,
-                  Position other, PieceType otherP,
-                  int depth) {
-    if (board.visitedCount() == board.totalCells())
-        return true;
-    for (Position next :
-         board.getValidMovesSorted(cur, curP)) {
-        if (board.canCapture(next, curP, other)
-         || board.canCapture(other, otherP, next))
-            continue;
-        board.setVisited(next);
-        metrics.incrementIterations();
-        if (backtrack(other, otherP,
-                      next, curP, depth + 1))
-            return true;
-        board.unsetVisited(next);
-        metrics.incrementBacktracks();
-    }
-    return false;
-}
-\end{lstlisting}
-
-L'intercanvi de rols a la crida recursiva
-(\texttt{other, otherP, next, curP}) implementa l'alternança de torns.
-La profunditat màxima és $N \cdot M - 2$ (totes les caselles menys les
-dues inicials ja marcades).
-
-L'aturada cooperativa es gestiona amb un indicador \texttt{volatile
-boolean stopped}: el bucle comprova \texttt{stopped} a cada iteració,
-i el fil EDT el posa a \texttt{true} quan l'usuari clica \textit{Aturar}.
 
 \subsubsection{SolverMetrics}
 
@@ -314,9 +270,20 @@ components Swing.
 
 \subsubsection{BoardPanel}
 
-Panell de dibuix del tauler. Utilitza un \texttt{GridLayout} centrat
-dins un panell exterior amb \texttt{null} layout per mantenir sempre
-les caselles quadrades. Cada casella és un \texttt{CellPanel} intern que:
+Panell de dibuix del tauler. Utilitza un \texttt{GridLayout} dins un
+panell exterior amb \texttt{null} layout. El mètode \texttt{doLayout}
+calcula la mida de cel·la màxima entera que cap a l'espai disponible
+($\texttt{cellSize} = \min(\lfloor w/\text{cols} \rfloor, \lfloor h/\text{rows} \rfloor)$,
+descomptant les vores del panell interior) i dimensiona la graella a
+$\texttt{cols} \times \texttt{cellSize}$ per $\texttt{rows} \times \texttt{cellSize}$,
+garantint que cada casella sigui un quadrat perfecte fins i tot per a
+taulers no quadrats ($N \times M$). Les etiquetes de fila i columna
+s'alineen llegint les coordenades reals de cada \texttt{CellPanel} i
+convertint-les al sistema de coordenades del panell exterior amb
+\texttt{SwingUtilities.convertPoint}. Les caselles responen al clic
+via \texttt{mousePressed} (en lloc de \texttt{mouseClicked}) per
+garantir resposta immediata independentment de l'estat del focus.
+Cada casella és un \texttt{CellPanel} intern que:
 
 \begin{itemize}
     \item Dibuixa el color de fons (escacat clar/fosc, o verd per a
@@ -330,10 +297,13 @@ les caselles quadrades. Cada casella és un \texttt{CellPanel} intern que:
           reproducció pas a pas.
 \end{itemize}
 
-El mètode \texttt{updateBoard(path, currentStep, p1, p2)} actualitza
-tots els \texttt{CellPanel} donada la llista de posicions de la
-solució i el pas a visualitzar. La paritat del pas (parell/senar)
-determina quina peça ocupa la casella corresponent.
+El mètode \texttt{updateBoard(path, currentStep, whiteType, blackType)}
+actualitza tots els \texttt{CellPanel} donada la llista de posicions de
+la solució i el pas a visualitzar. La paritat del pas (parell/senar)
+determina quina peça ocupa la casella corresponent (els passos parells
+corresponen a la peça blanca, els senars a la negra). El panell exterior
+reserva una franja (\textit{gutter}) al costat esquerre i a la part
+superior on es pinten els números de fila i columna en base 1.
 
 % --- SUGGERIMENT D'IMATGE ---
 % Aquí es podria inserir una captura de pantalla del BoardPanel mostrant
@@ -348,23 +318,37 @@ Panell de configuració que implementa \texttt{Scrollable} per suportar
 taulers grans sense truncar l'interfície. Permet:
 
 \begin{itemize}
-    \item Configurar les dimensions del tauler ($4$--$12$ files i
-          columnes) amb \texttt{JSpinner}.
+    \item Configurar les dimensions del tauler (mínim 2 files i
+          columnes, sense límit superior) amb \texttt{JSpinner}.
+          Un botó \textit{toggle} (\textit{Quadrat}) situat sobre els
+          dos \textit{spinners} bloqueja files i columnes perquè siguin
+          sempre iguals; quan està actiu, qualsevol canvi en un
+          \textit{spinner} es propaga automàticament a l'altre.
     \item Seleccionar el tipus de cada peça amb \texttt{JComboBox}
           poblat per les constants de \texttt{PieceType}.
-    \item Establir la posició inicial de cada peça (fila i columna)
-          amb \texttt{JSpinner}, o bé fent clic directament sobre el
-          tauler amb el mode de col·locació activat (botó
-          \textit{toggle}).
+    \item Establir la posició inicial de cada peça (fila i columna,
+          en base 1) amb \texttt{JSpinner}, o bé fent clic directament
+          sobre el tauler amb el mode de col·locació activat (botó
+          \textit{toggle}). Els \textit{spinners} mostren valors $1..N$
+          i $1..M$; els mètodes \textit{getter} resten 1 internament
+          per retornar índexs en base 0 al controlador.
     \item Previsualitzar les dues peces sobre el tauler buit gràcies
           a \texttt{PieceIcon}.
 \end{itemize}
 
-El mètode \texttt{validateConfig()} comprova que les posicions estiguin
-dins del tauler i siguin distintes, i mostra diàlegs d'error en català
-si la validació falla. Tota comunicació cap al controlador es fa a
-través d'un \texttt{Runnable} \texttt{onConfigChanged} que el
-controlador registra en construir l'aplicació.
+Els botons \textit{toggle} (bloqueig de mida i col·locació de peces)
+canvien de color de fons quan estan actius (verd per al bloqueig,
+taronja per al mode de col·locació) per fer l'estat visible d'un cop
+d'ull, sense modificar el color del text.
+
+Les dues peces s'identifiquen com a \textit{blanca} i \textit{negra}
+(\texttt{whiteType}/\texttt{blackType}) de manera consistent a tota
+l'aplicació. El mètode \texttt{validateConfig()} comprova que les
+posicions estiguin dins del tauler i siguin distintes, i mostra diàlegs
+d'error en català si la validació falla. Tota comunicació cap al
+controlador es fa a través d'un \texttt{Runnable}
+\texttt{onConfigChanged}, registrat exclusivament per
+\texttt{SolverController} en construir l'aplicació.
 
 \subsubsection{ControlPanel}
 
@@ -402,28 +386,82 @@ a \textit{fallback} de text.
 
 \subsection{Capa del Controlador}
 
+La capa del controlador consta de tres classes: \texttt{BacktrackingSolver},
+\texttt{SolverTask} i \texttt{SolverController}. Tot i que
+\texttt{BacktrackingSolver} implementa l'algorisme de cerca,
+s'ha classificat al controlador perquè orquestra el procés de resolució
+(gestiona els torns, el senyal d'aturada i els callbacks de progrés)
+sense mantenir cap estat de domini propi; l'estat del tauler resideix
+a \texttt{Board}.
+
+\subsubsection{BacktrackingSolver}
+
+El nucli algorísmic. El mètode \texttt{solve()} col·loca les dues
+peces (blanca i negra) a les posicions inicials indicades, marca les
+dues caselles com a visitades, comprova que les peces no es capturen
+mútuament a l'inici, i invoca \texttt{backtrack()}:
+
+\begin{lstlisting}[caption={Esquelet del backtracking recursiu.}]
+boolean backtrack(Position cur, PieceType curP,
+                  Position other, PieceType otherP,
+                  int depth) {
+    if (board.getVisitedCount() == board.getTotalCells())
+        return true;
+    if (stopped) return false;
+    metrics.incrementIterations();
+    for (Position next :
+         board.getValidMovesSorted(cur, curP)) {
+        if (board.canCapture(next, curP, other)
+         || board.canCapture(other, otherP, next))
+            continue;
+        board.setVisited(next);
+        if (backtrack(other, otherP,
+                      next, curP, depth + 1))
+            return true;
+        metrics.incrementBacktracks();
+        board.unsetVisited(next);
+    }
+    return false;
+}
+\end{lstlisting}
+
+L'intercanvi de rols a la crida recursiva
+(\texttt{other, otherP, next, curP}) implementa l'alternança de torns.
+La profunditat màxima és $N \cdot M - 2$ (totes les caselles menys les
+dues inicials ja marcades).
+
+L'aturada cooperativa es gestiona amb un indicador \texttt{volatile
+boolean stopped}: el bucle comprova \texttt{stopped} a cada iteració,
+i el fil EDT el posa a \texttt{true} quan l'usuari clica \textit{Aturar}.
+Quan es captura \texttt{InterruptedException} al mètode \texttt{done()}
+de \texttt{SolverTask}, es restaura l'indicador d'interrupció del fil
+amb \texttt{Thread.currentThread().interrupt()}.
+
 \subsubsection{SolverTask}
 
 Estén \texttt{SwingWorker<Boolean, Void>}. El mètode
 \texttt{doInBackground()} registra un \textit{callback} de progrés
 al solver que usa \texttt{SwingUtilities.invokeLater} per actualitzar
-el \texttt{StatsPanel} a cada 1000 iteracions, i llavors executa
-\texttt{solver.solve()}. El mètode \texttt{done()} recupera el resultat
-i l'envia a un \texttt{BiConsumer<Boolean, BacktrackingSolver>} que el
-controlador ha registrat en construir la tasca. L'aturada voluntària es
-propaga cridant \texttt{solver.stop()} sense interrompre el fil, aprofitant
+el \texttt{StatsPanel} cada \texttt{PROGRESS\_UPDATE\_INTERVAL}
+iteracions (1000 per defecte), i llavors executa \texttt{solver.solve()}.
+El mètode \texttt{done()} recupera el resultat i l'envia a un
+\texttt{BiConsumer<Boolean, SolverMetrics>} que el controlador ha
+registrat en construir la tasca. L'aturada voluntària es propaga
+cridant \texttt{solver.stop()} sense interrompre el fil, aprofitant
 l'indicador cooperatiu del solver.
 
 \subsubsection{SolverController}
 
-Implementa el rol de controlador en el patró MVC. Connecta la vista
-amb el model registrant listeners als botons d'Iniciar, Aturar i
-Reiniciar, i reacciona al canvi de configuració amb una previsualització
-immediata de les peces. Quan s'inicia la cerca:
+Implementa el rol de controlador en el patró MVC. És l'únic propietari
+del callback \texttt{onConfigChanged} de \texttt{ConfigPanel}: el
+registra en construir-se i s'encarrega de redimensionar el tauler i
+refrescar la previsualització de les peces davant qualsevol canvi de
+configuració. Registra també els listeners dels botons d'Iniciar,
+Aturar i Reiniciar. Quan s'inicia la cerca:
 
 \begin{enumerate}
     \item Llegeix els paràmetres de \texttt{ConfigPanel} (dimensions,
-          tipus i posicions de les peces).
+          tipus i posicions de les peces blanca i negra).
     \item Construeix un objecte \texttt{Board} i un
           \texttt{BacktrackingSolver}.
     \item Crea un \texttt{SolverTask} i el posa en marxa amb
@@ -522,7 +560,7 @@ resultats reals de les mesures experimentals.
 
 \subsection{Cost de Comprovació de Captura}
 
-El mètode \texttt{canCapture(pos1, piece1, pos2)} té un cost proporcional
+El mètode \texttt{canCapture(attackerPos, attacker, targetPos)} té un cost proporcional
 al nombre de directions de la peça multiplicat per la mida màxima del
 tauler (per a peces contínues):
 
@@ -531,8 +569,8 @@ tauler (per a peces contínues):
 T_{\text{captura}} = O(d \cdot \max(N, M))
 \end{equation}
 
-on $d$ és el nombre de direccions de la peça ($d \leq 16$ per a la
-Serp). Com que \texttt{canCapture} s'invoca dues vegades per a cada
+on $d$ és el nombre de vectors de la peça ($d \leq 8$ per a la
+Serp i el Mussol). Com que \texttt{canCapture} s'invoca dues vegades per a cada
 moviment candidat, el cost total de la comprovació de captura per iteració
 és $O(d \cdot \max(N, M))$.
 
@@ -650,8 +688,7 @@ cooperativa amb indicadors \texttt{volatile} ha garantit una interfície
 sempre responsiva, fins i tot durant cerques de llarga durada.
 
 Com a treball futur, es podria implementar la visualització del procés
-de cerca en temps real (mostrant el frontera de cerca actiu), afegir
-soport per a taulers no quadrats $N \times M$, explorar
+de cerca en temps real (mostrant la frontera de cerca activa), explorar
 heurístiques addicionals com el reconeixement de caselles aïllades,
 o implementar una cerca paral·lela per explorar múltiples branques
 simultàniament.

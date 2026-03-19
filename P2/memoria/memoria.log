@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.29)  12 MAR 2026 10:55
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.29)  19 MAR 2026 11:54
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -534,32 +534,38 @@ CUTED [output]: 0.0pt
 CUTED [leftcolumn badness]: 0
 CUTED [rightcolumn badness]: 0
 LaTeX Font Info:    Calculating math sizes for size <10.03749> on input line 10
-9.
+8.
+LaTeX Font Info:    Trying to load font information for T1+pcr on input line 12
+4.
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-
-
-LaTeX Font Info:    Trying to load font information for T1+pcr on input line 13
-7.
 (/usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/t1pcr.fd
 File: t1pcr.fd 2001/06/04 font definitions for T1/pcr.
 )
-LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 1
-47.
 
+LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 1
+34.
 (/usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/ts1ptm.fd
 File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
 )
-Underfull \hbox (badness 1466) in paragraph at lines 147--154
+Underfull \hbox (badness 1466) in paragraph at lines 134--141
 \T1/ptm/m/n/10.03749 fins a di-ver-sos mi-nuts per a tau-lers grans. Executar-
  []
 
 
-Underfull \hbox (badness 1648) in paragraph at lines 147--154
+Underfull \hbox (badness 1648) in paragraph at lines 134--141
 \T1/ptm/m/n/10.03749 de \T1/pcr/m/n/10.03749 doInBackground() \T1/ptm/m/n/10.03
 749 exe-cu-ta la cer-ca en un fil
  []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 151--153
+[]\T1/pcr/m/n/10.03749 MovementType\T1/ptm/m/n/10.03749 : \T1/pcr/m/n/10.03749 
+STATIC \T1/ptm/m/n/10.03749 (un sol salt) o
+ []
+
+LaTeX Font Info:    Calculating math sizes for size <8.03> on input line 166.
+
+LaTeX Warning: `!h' float specifier changed to `!ht'.
 
 
 
@@ -568,133 +574,177 @@ ocal/texlive/2025/texmf-dist/fonts/enc/dvips/base/8r.enc}
 
 
 ]
-Underfull \hbox (badness 10000) in paragraph at lines 164--166
-[]\T1/pcr/m/n/10.03749 MovementType\T1/ptm/m/n/10.03749 : \T1/pcr/m/n/10.03749 
-STATIC \T1/ptm/m/n/10.03749 (un sol salt) o
- []
-
-LaTeX Font Info:    Calculating math sizes for size <8.03> on input line 179.
-
-Underfull \hbox (badness 10000) in paragraph at lines 210--213
+Underfull \hbox (badness 10000) in paragraph at lines 201--204
 []\T1/pcr/m/n/10.03749 getValidMovesSorted(pos, piece)\T1/ptm/m/n/10.03749 :
  []
 
 
-Underfull \hbox (badness 1412) in paragraph at lines 213--217
-[]\T1/pcr/m/n/10.03749 canCapture(pos1, piece1, pos2)\T1/ptm/m/n/10.03749 : re-
-tor-
+Underfull \hbox (badness 10000) in paragraph at lines 204--211
+[]\T1/pcr/m/n/10.03749 canCapture(attackerPos, attacker,
  []
 
 
-
-
-Underfull \hbox (badness 5681) in paragraph at lines 255--259
-\T1/pcr/m/n/10.03749 otherP, next, curP\T1/ptm/m/n/10.03749 ) im-ple-men-ta l'a
-l-ter-nan-ça de
- []
-
-
-Underfull \hbox (badness 2478) in paragraph at lines 260--263
-[]\T1/ptm/m/n/10.03749 L'aturada co-o-pe-ra-ti-va es ges-ti-o-na amb un in-di-c
-a-
- []
-
-
-Underfull \hbox (badness 7256) in paragraph at lines 280--284
- \T1/ptm/b/n/10.03749 2.2.6. Mo-ve-mentTy-pe. [][] \T1/ptm/m/n/10.03749 Enu-me-
+Underfull \hbox (badness 7256) in paragraph at lines 236--240
+ \T1/ptm/b/n/10.03749 2.2.5. Mo-ve-mentTy-pe. [][] \T1/ptm/m/n/10.03749 Enu-me-
 ra-ció amb dos va-lors:
  []
 
 
 
+
+Underfull \hbox (badness 10000) in paragraph at lines 300--307
+\T1/pcr/m/n/10.03749 whiteType, blackType) \T1/ptm/m/n/10.03749 ac-tu-a-lit-za 
+tots els
+ []
+
+
+
 [2]
+Underfull \hbox (badness 10000) in paragraph at lines 389--396
+[]\T1/ptm/m/n/10.03749 La capa del con-tro-la-dor cons-ta de
+ []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 407--416
- \T1/ptm/b/n/10.03749 2.4.1. Sol-ver-Task. [][] \T1/ptm/m/n/10.03749 Es-tén \T1
+Underfull \hbox (badness 10000) in paragraph at lines 389--396
+\T1/ptm/m/n/10.03749 tres clas-ses: \T1/pcr/m/n/10.03749 BacktrackingSolver\T1/
+ptm/m/n/10.03749 ,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 389--396
+\T1/pcr/m/n/10.03749 SolverTask \T1/ptm/m/n/10.03749 i \T1/pcr/m/n/10.03749 Sol
+verController\T1/ptm/m/n/10.03749 . Tot i que
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 389--396
+\T1/pcr/m/n/10.03749 BacktrackingSolver \T1/ptm/m/n/10.03749 im-ple-men-ta l'al
+-go-ris-me de
+ []
+
+
+
+
+Underfull \hbox (badness 5681) in paragraph at lines 428--432
+\T1/pcr/m/n/10.03749 otherP, next, curP\T1/ptm/m/n/10.03749 ) im-ple-men-ta l'a
+l-ter-nan-ça de
+ []
+
+
+Underfull \hbox (badness 2478) in paragraph at lines 433--439
+[]\T1/ptm/m/n/10.03749 L'aturada co-o-pe-ra-ti-va es ges-ti-o-na amb un in-di-c
+a-
+ []
+
+
+Underfull \hbox (badness 2393) in paragraph at lines 433--439
+\T1/ptm/m/n/10.03749 va \T1/pcr/m/n/10.03749 stopped \T1/ptm/m/n/10.03749 a ca-
+da ite-ra-ció, i el fil EDT el po-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 442--452
+ \T1/ptm/b/n/10.03749 2.4.2. Sol-ver-Task. [][] \T1/ptm/m/n/10.03749 Es-tén \T1
 /pcr/m/n/10.03749 SwingWorker<Boolean,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 407--416
+Underfull \hbox (badness 10000) in paragraph at lines 442--452
 \T1/pcr/m/n/10.03749 Void>\T1/ptm/m/n/10.03749 . El mè-to-de \T1/pcr/m/n/10.037
 49 doInBackground() \T1/ptm/m/n/10.03749 re-
  []
 
 
-Underfull \hbox (badness 7326) in paragraph at lines 407--416
+Underfull \hbox (badness 7326) in paragraph at lines 442--452
 \T1/ptm/m/n/10.03749 gis-tra un \T1/ptm/m/it/10.03749 call-back \T1/ptm/m/n/10.
 03749 de pro-grés al sol-ver que usa
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 407--416
+Underfull \hbox (badness 10000) in paragraph at lines 442--452
 \T1/pcr/m/n/10.03749 SwingUtilities.invokeLater \T1/ptm/m/n/10.03749 per ac-tu-
 a-lit-zar
  []
 
 
-Underfull \hbox (badness 4556) in paragraph at lines 407--416
-\T1/ptm/m/n/10.03749 el \T1/pcr/m/n/10.03749 StatsPanel \T1/ptm/m/n/10.03749 a 
-ca-da 1000 ite-ra-ci-ons, i lla-vors
+Underfull \hbox (badness 10000) in paragraph at lines 442--452
+\T1/ptm/m/n/10.03749 ite-ra-ci-ons (1000 per de-fec-te), i lla-vors exe-cu-ta
  []
 
 
-Underfull \hbox (badness 2617) in paragraph at lines 407--416
+Underfull \hbox (badness 10000) in paragraph at lines 442--452
+\T1/pcr/m/n/10.03749 solver.solve()\T1/ptm/m/n/10.03749 . El mè-to-de \T1/pcr/m
+/n/10.03749 done() \T1/ptm/m/n/10.03749 re-cu-pe-ra
+ []
+
+
+Underfull \hbox (badness 2617) in paragraph at lines 442--452
 \T1/ptm/m/n/10.03749 el re-sul-tat i l'en-via a un \T1/pcr/m/n/10.03749 BiConsu
 mer<Boolean,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 407--416
-\T1/ptm/m/n/10.03749 cri-dant \T1/pcr/m/n/10.03749 solver.stop() \T1/ptm/m/n/10
-.03749 sen-se in-ter-rom-pre el fil,
+Underfull \hbox (badness 2600) in paragraph at lines 442--452
+\T1/pcr/m/n/10.03749 solver.stop() \T1/ptm/m/n/10.03749 sen-se in-ter-rom-pre e
+l fil, apro-fi-tant
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 427--429
+
+[3]
+Underfull \hbox (badness 10000) in paragraph at lines 465--467
 []\T1/ptm/m/n/10.03749 Construeix un ob-jec-te \T1/pcr/m/n/10.03749 Board \T1/p
 tm/m/n/10.03749 i un
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 431--433
+Underfull \hbox (badness 10000) in paragraph at lines 469--471
 []\T1/ptm/m/n/10.03749 El call-back de com-ple-ta-ció
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 431--433
+Underfull \hbox (badness 10000) in paragraph at lines 469--471
 \T1/ptm/m/n/10.03749 (\T1/pcr/m/n/10.03749 onSolvingComplete\T1/ptm/m/n/10.0374
 9 ) rep el re-sul-tat al
  []
 
 
 
-[3]
+
+Underfull \hbox (badness 10000) in paragraph at lines 563--566
+[]\T1/ptm/m/n/10.03749 El mè-to-de \T1/pcr/m/n/10.03749 canCapture(attackerPos,
+
+ []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 611--614
+Underfull \hbox (badness 6859) in paragraph at lines 563--566
+\T1/pcr/m/n/10.03749 attacker, targetPos) \T1/ptm/m/n/10.03749 té un cost pro-p
+or-ci-o-nal
+ []
+
+
+
+[4]
+Underfull \hbox (badness 10000) in paragraph at lines 649--652
 []\T1/ptm/m/n/10.03749 L'algorisme de back-trac-king
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 611--614
+Underfull \hbox (badness 10000) in paragraph at lines 649--652
 \T1/ptm/m/n/10.03749 (\T1/pcr/m/n/10.03749 BacktrackingSolver\T1/ptm/m/n/10.037
 49 ) s'-ha po-gut pro-var
  []
 
 
 
-[4]
 
-
-Underfull \hbox (badness 6220) in paragraph at lines 678--681
+Underfull \hbox (badness 6220) in paragraph at lines 715--718
 []\T1/ptm/m/n/8.03 Oracle Cor-po-ra-ti-on, ``The Ja-va Tu-to-ri-als --- Con-cur
 -rency in
  []
 
 
-Underfull \hbox (badness 1867) in paragraph at lines 678--681
+Underfull \hbox (badness 1867) in paragraph at lines 715--718
 \T1/ptm/m/n/8.03 Swing,'' [On-li-ne]. Avai-la-ble: $https : / / docs . oracle .
  com / javase / tutorial /
  []
@@ -719,13 +769,13 @@ L3 programming layer <2025-01-18>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 9021 strings out of 473190
- 143631 string characters out of 5715800
- 849245 words of memory out of 5000000
- 32131 multiletter control sequences out of 15000+600000
- 684026 words of font info for 179 fonts, out of 8000000 for 9000
+ 9024 strings out of 473190
+ 143684 string characters out of 5715800
+ 854245 words of memory out of 5000000
+ 32134 multiletter control sequences out of 15000+600000
+ 684670 words of font info for 181 fonts, out of 8000000 for 9000
  1147 hyphenation exceptions out of 8191
- 57i,9n,65p,239b,1601s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 57i,9n,65p,239b,1202s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb
 ></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb><
 /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></u
@@ -744,7 +794,7 @@ ts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/u
 rw/times/utmbi8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/
 utmr8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmri8a.pf
 b>
-Output written on memoria.pdf (5 pages, 216794 bytes).
+Output written on memoria.pdf (5 pages, 219937 bytes).
 PDF statistics:
  111 PDF objects out of 1000 (max. 8388607)
  67 compressed objects within 1 object stream

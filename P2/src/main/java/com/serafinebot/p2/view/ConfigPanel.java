@@ -23,6 +23,8 @@ public class ConfigPanel extends JPanel implements Scrollable {
     // ---- Board size controls ----
     private final JSpinner rowsSpinner;
     private final JSpinner colsSpinner;
+    private final JToggleButton lockButton;
+    private boolean syncingSize = false; // re-entrancy guard for lock sync
 
     // ---- White piece controls ----
     private final JComboBox<PieceType> whiteCombo;
@@ -63,9 +65,16 @@ public class ConfigPanel extends JPanel implements Scrollable {
         // =====================================================================
         row = addSectionHeader(gbc, row, "Mida del tauler");
 
-        rowsSpinner = createBoundedSpinner(4, 12, 8);
-        colsSpinner = createBoundedSpinner(4, 12, 8);
+        rowsSpinner = createBoundedSpinner(2, 999, 8);
+        colsSpinner = createBoundedSpinner(2, 999, 8);
+        lockButton  = new JToggleButton("\uD83D\uDD12 Quadrat", true);
+        lockButton.setToolTipText("Bloqueja files i columnes perquè siguin iguals");
+        lockButton.setFocusPainted(false);
+        lockButton.setMargin(new Insets(1, 6, 1, 6));
+        lockButton.setFont(lockButton.getFont().deriveFont(10f));
+        styleToggleButton(lockButton, new Color(60, 179, 60));
 
+        row = addCentredComponent(gbc, row, lockButton);
         row = addLabelledSpinner(gbc, row, "Files:", rowsSpinner);
         row = addLabelledSpinner(gbc, row, "Columnes:", colsSpinner);
         row = addSeparator(gbc, row);
@@ -89,6 +98,7 @@ public class ConfigPanel extends JPanel implements Scrollable {
         place1Button = new JToggleButton("\u2295 Col\u00b7locar al tauler");
         place1Button.setToolTipText("Fes clic a una casella del tauler per situar la peça blanca");
         place1Button.setFocusPainted(false);
+        styleToggleButton(place1Button, new Color(220, 140, 20));
         row = addCentredComponent(gbc, row, place1Button);
         row = addSeparator(gbc, row);
 
@@ -111,6 +121,7 @@ public class ConfigPanel extends JPanel implements Scrollable {
         place2Button = new JToggleButton("\u2295 Col\u00b7locar al tauler");
         place2Button.setToolTipText("Fes clic a una casella del tauler per situar la peça negra");
         place2Button.setFocusPainted(false);
+        styleToggleButton(place2Button, new Color(220, 140, 20));
         row = addCentredComponent(gbc, row, place2Button);
         row = addSeparator(gbc, row);
 
@@ -130,9 +141,22 @@ public class ConfigPanel extends JPanel implements Scrollable {
         // =====================================================================
         // Listeners
         // =====================================================================
-        ChangeListener sizeChanged = e -> onBoardSizeChanged();
-        rowsSpinner.addChangeListener(sizeChanged);
-        colsSpinner.addChangeListener(sizeChanged);
+        rowsSpinner.addChangeListener(e -> {
+            if (!syncingSize && lockButton.isSelected()) {
+                syncingSize = true;
+                colsSpinner.setValue(rowsSpinner.getValue());
+                syncingSize = false;
+            }
+            onBoardSizeChanged();
+        });
+        colsSpinner.addChangeListener(e -> {
+            if (!syncingSize && lockButton.isSelected()) {
+                syncingSize = true;
+                rowsSpinner.setValue(colsSpinner.getValue());
+                syncingSize = false;
+            }
+            onBoardSizeChanged();
+        });
 
         whiteCombo.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
@@ -247,6 +271,7 @@ public class ConfigPanel extends JPanel implements Scrollable {
     public void setConfigEnabled(boolean enabled) {
         rowsSpinner.setEnabled(enabled);
         colsSpinner.setEnabled(enabled);
+        lockButton.setEnabled(enabled);
         whiteCombo.setEnabled(enabled);
         blackCombo.setEnabled(enabled);
         whiteRow.setEnabled(enabled);
@@ -330,6 +355,27 @@ public class ConfigPanel extends JPanel implements Scrollable {
         model.setMaximum(max);
         if ((int) spinner.getValue() > max) {
             spinner.setValue(max);
+        }
+    }
+
+    /**
+     * Wire a JToggleButton so its background reflects its selected state.
+     * Active: green tint. Inactive: default button colour.
+     */
+    /**
+     * Wire a JToggleButton so its background reflects its selected state.
+     * Active: coloured background. Inactive: default button colour.
+     * Text colour is never changed.
+     */
+    private static void styleToggleButton(JToggleButton btn, Color activeBackground) {
+        btn.setOpaque(true);
+        btn.setContentAreaFilled(true);
+        Color defaultBg = btn.getBackground();
+        btn.getModel().addChangeListener(e ->
+            btn.setBackground(btn.isSelected() ? activeBackground : defaultBg));
+        // Apply initial state
+        if (btn.isSelected()) {
+            btn.setBackground(activeBackground);
         }
     }
 
