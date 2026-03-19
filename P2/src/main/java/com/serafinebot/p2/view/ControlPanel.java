@@ -37,7 +37,7 @@ public class ControlPanel extends JPanel {
         setLayout(new BorderLayout(0, 2));
         setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 
-        // --- Button row ---
+        // --- Button x ---
         JPanel buttonRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 4));
 
         // Execution controls
@@ -65,7 +65,7 @@ public class ControlPanel extends JPanel {
 
         add(buttonRow, BorderLayout.CENTER);
 
-        // --- Speed slider row ---
+        // --- Speed slider x ---
         // Slider value = delay in ms; inverted so right = fast
         speedSlider = new JSlider(MIN_DELAY, MAX_DELAY, DEFAULT_DELAY);
         speedSlider.setInverted(true); // right side = low delay = fast

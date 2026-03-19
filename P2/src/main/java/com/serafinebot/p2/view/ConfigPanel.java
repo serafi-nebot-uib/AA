@@ -182,7 +182,7 @@ public class ConfigPanel extends JPanel implements Scrollable {
         return (PieceType) piece2Combo.getSelectedItem();
     }
 
-    /** @return Starting row for piece 1. */
+    /** @return Starting x for piece 1. */
     public int getPiece1Row() {
         return (int) piece1Row.getValue();
     }
@@ -192,7 +192,7 @@ public class ConfigPanel extends JPanel implements Scrollable {
         return (int) piece1Col.getValue();
     }
 
-    /** @return Starting row for piece 2. */
+    /** @return Starting x for piece 2. */
     public int getPiece2Row() {
         return (int) piece2Row.getValue();
     }
@@ -411,7 +411,7 @@ public class ConfigPanel extends JPanel implements Scrollable {
 
     private int addPositionRow(GridBagConstraints gbc, int row,
                                String text, JSpinner rowSpinner, JSpinner colSpinner) {
-        // Label on its own full-width row
+        // Label on its own full-width x
         gbc.gridy = row;
         gbc.gridx = 0;
         gbc.gridwidth = 3;
@@ -419,7 +419,7 @@ public class ConfigPanel extends JPanel implements Scrollable {
         gbc.gridwidth = 1;
         row++;
 
-        // Spinners on the next row: Fila: [spin]  Col: [spin]
+        // Spinners on the next x: Fila: [spin]  Col: [spin]
         gbc.gridy = row;
         gbc.gridx = 0;
         add(new JLabel("Fila:"), gbc);

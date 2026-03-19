@@ -40,8 +40,8 @@ public class Board {
      * @return true if position is valid
      */
     public boolean isValidPosition(Position pos) {
-        return pos.row() >= 0 && pos.row() < rows && 
-               pos.col() >= 0 && pos.col() < cols;
+        return pos.x() >= 0 && pos.x() < rows &&
+               pos.y() >= 0 && pos.y() < cols;
     }
     
     /**
@@ -51,7 +51,7 @@ public class Board {
      */
     public boolean isVisited(Position pos) {
         if (!isValidPosition(pos)) return false;
-        return visited[pos.row()][pos.col()];
+        return visited[pos.x()][pos.y()];
     }
     
     /**
@@ -62,8 +62,8 @@ public class Board {
         if (!isValidPosition(pos)) {
             throw new IllegalArgumentException("Invalid position: " + pos);
         }
-        if (!visited[pos.row()][pos.col()]) {
-            visited[pos.row()][pos.col()] = true;
+        if (!visited[pos.x()][pos.y()]) {
+            visited[pos.x()][pos.y()] = true;
             visitedCount++;
         }
     }
@@ -76,8 +76,8 @@ public class Board {
         if (!isValidPosition(pos)) {
             throw new IllegalArgumentException("Invalid position: " + pos);
         }
-        if (visited[pos.row()][pos.col()]) {
-            visited[pos.row()][pos.col()] = false;
+        if (visited[pos.x()][pos.y()]) {
+            visited[pos.x()][pos.y()] = false;
             visitedCount--;
         }
     }
@@ -97,8 +97,8 @@ public class Board {
         if (piece.getMovementType() == MovementType.STATIC) {
             for (int[] move : movements) {
                 try {
-                    Position newPos = new Position(from.row() + move[0], 
-                                                   from.col() + move[1]);
+                    Position newPos = new Position(from.x() + move[0],
+                                                   from.y() + move[1]);
                     if (isValidPosition(newPos) && !isVisited(newPos)) {
                         validMoves.add(newPos);
                     }
@@ -112,8 +112,8 @@ public class Board {
                 while (true) {
                     try {
                         Position newPos = new Position(
-                            from.row() + direction[0] * steps,
-                            from.col() + direction[1] * steps
+                            from.x() + direction[0] * steps,
+                            from.y() + direction[1] * steps
                         );
                         
                         if (!isValidPosition(newPos)) break;
@@ -170,8 +170,8 @@ public class Board {
             // Check if pos2 is reachable in one move
             for (int[] move : movements) {
                 try {
-                    Position target = new Position(pos1.row() + move[0], 
-                                                  pos1.col() + move[1]);
+                    Position target = new Position(pos1.x() + move[0],
+                                                  pos1.y() + move[1]);
                     if (target.equals(pos2)) return true;
                 } catch (IllegalArgumentException e) {
                     // Position with negative coordinates, skip
@@ -184,8 +184,8 @@ public class Board {
                 while (true) {
                     try {
                         Position target = new Position(
-                            pos1.row() + direction[0] * steps,
-                            pos1.col() + direction[1] * steps
+                            pos1.x() + direction[0] * steps,
+                            pos1.y() + direction[1] * steps
                         );
                         
                         if (!isValidPosition(target)) break;

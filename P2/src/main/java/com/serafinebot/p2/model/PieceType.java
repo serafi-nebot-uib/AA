@@ -31,17 +31,12 @@ public enum PieceType {
     }),
     
     OWL("Mussol", "M", MovementType.STATIC, new int[][] {
-        {-2, 0}, {2, 0}, {0, -2}, {0, 2}
+        {-3, -1}, {-3, 1}, {-1, -3}, {-1, 3},
+        {1, -3}, {1, 3}, {3, -1}, {3, 1}
     }),
 
     SNAKE("Serp", "S", MovementType.STATIC, new int[][] {
-        // Extended L (8 positions)
-        {-3, -1}, {-3, 1}, {-1, -3}, {-1, 3},
-        {1, -3}, {1, 3}, {3, -1}, {3, 1},
-        // King movements (8 positions)
-        {-1, -1}, {-1, 0}, {-1, 1},
-        {0, -1},           {0, 1},
-        {1, -1},  {1, 0},  {1, 1}
+        {-1, 0}, {1, 0}, {0, -1}, {0, 1}
     });
     
     // Fields

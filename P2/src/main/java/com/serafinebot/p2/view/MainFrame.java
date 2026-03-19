@@ -159,7 +159,7 @@ public class MainFrame extends JFrame {
      * Handle a cell click on the board: if a placement mode is active,
      * set the corresponding piece's position and refresh the preview.
      *
-     * @param row Clicked row (0-based)
+     * @param row Clicked x (0-based)
      * @param col Clicked column (0-based)
      */
     private void handleCellClick(int row, int col) {

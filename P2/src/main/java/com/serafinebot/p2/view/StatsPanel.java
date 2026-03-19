@@ -176,7 +176,7 @@ public class StatsPanel extends JPanel {
     }
 
     /**
-     * Add a label-value row and return the value label.
+     * Add a label-value x and return the value label.
      */
     private JLabel addRow(GridBagConstraints gbc, int row, String labelText) {
         gbc.gridy = row;

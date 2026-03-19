@@ -38,7 +38,7 @@ public class BoardPanel extends JPanel {
     /** Inner panel that holds the grid; sized to a perfect square. */
     private final JPanel gridPanel;
 
-    /** Callback invoked when a cell is clicked: (row, col). */
+    /** Callback invoked when a cell is clicked: (x, y). */
     private BiConsumer<Integer, Integer> onCellClicked;
 
     /**
@@ -142,7 +142,7 @@ public class BoardPanel extends JPanel {
 
         for (int i = 0; i <= limit; i++) {
             Position pos = path.get(i);
-            CellPanel cell = cells[pos.row()][pos.col()];
+            CellPanel cell = cells[pos.x()][pos.y()];
             cell.setVisited(true);
             cell.setSequenceNumber(i + 1);  // 1-based display
 
@@ -156,14 +156,14 @@ public class BoardPanel extends JPanel {
 
         // Highlight current step cell
         Position highlightPos = path.get(limit);
-        cells[highlightPos.row()][highlightPos.col()].setHighlighted(true);
+        cells[highlightPos.x()][highlightPos.y()].setHighlighted(true);
 
         // Place piece icons at their latest positions
         if (piece1Pos != null) {
-            cells[piece1Pos.row()][piece1Pos.col()].setPiece(piece1Type, true);
+            cells[piece1Pos.x()][piece1Pos.y()].setPiece(piece1Type, true);
         }
         if (piece2Pos != null) {
-            cells[piece2Pos.row()][piece2Pos.col()].setPiece(piece2Type, false);
+            cells[piece2Pos.x()][piece2Pos.y()].setPiece(piece2Type, false);
         }
 
         repaint();
@@ -202,10 +202,10 @@ public class BoardPanel extends JPanel {
      * on an otherwise empty board.
      *
      * @param piece1Type Type of piece 1
-     * @param piece1Row  Starting row of piece 1
+     * @param piece1Row  Starting x of piece 1
      * @param piece1Col  Starting column of piece 1
      * @param piece2Type Type of piece 2
-     * @param piece2Row  Starting row of piece 2
+     * @param piece2Row  Starting x of piece 2
      * @param piece2Col  Starting column of piece 2
      */
     public void showPiecePreview(PieceType piece1Type, int piece1Row, int piece1Col,
@@ -225,7 +225,7 @@ public class BoardPanel extends JPanel {
     /**
      * Register a callback invoked when a board cell is clicked.
      *
-     * @param listener Receives (row, col) of the clicked cell
+     * @param listener Receives (x, y) of the clicked cell
      */
     public void setOnCellClicked(BiConsumer<Integer, Integer> listener) {
         this.onCellClicked = listener;
