@@ -1,4 +1,9 @@
-package com.serafinebot.p2.model;
+package com.serafinebot.p2.controller;
+
+import com.serafinebot.p2.model.Board;
+import com.serafinebot.p2.model.PieceType;
+import com.serafinebot.p2.model.Position;
+import com.serafinebot.p2.model.SolverMetrics;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,10 +16,10 @@ import java.util.function.Consumer;
 public class BacktrackingSolver {
     
     private final Board board;
-    private final PieceType piece1Type;
-    private final PieceType piece2Type;
-    private final Position piece1Start;
-    private final Position piece2Start;
+    private final PieceType whiteType;
+    private final PieceType blackType;
+    private final Position whiteStart;
+    private final Position blackStart;
     
     private final List<Position> solution;
     private final SolverMetrics metrics;
@@ -22,29 +27,29 @@ public class BacktrackingSolver {
     private volatile boolean stopped;
     private Consumer<Integer> progressCallback;
     
-    private static final int PROGRESS_UPDATE_INTERVAL = 1000;  // Update every 1000 iterations
+    static final int PROGRESS_UPDATE_INTERVAL = 1000;  // Update every 1000 iterations
     
     /**
      * Create a new solver instance.
      * 
      * @param board The board to solve on
-     * @param piece1Type Type of first piece
-     * @param piece1Start Starting position of first piece
-     * @param piece2Type Type of second piece
-     * @param piece2Start Starting position of second piece
+     * @param whiteType  Type of the white piece
+     * @param whiteStart Starting position of the white piece
+     * @param blackType  Type of the black piece
+     * @param blackStart Starting position of the black piece
      */
-    public BacktrackingSolver(Board board, 
-                             PieceType piece1Type, Position piece1Start,
-                             PieceType piece2Type, Position piece2Start) {
-        if (piece1Start.equals(piece2Start)) {
+    public BacktrackingSolver(Board board,
+                             PieceType whiteType, Position whiteStart,
+                             PieceType blackType, Position blackStart) {
+        if (whiteStart.equals(blackStart)) {
             throw new IllegalArgumentException("Pieces cannot start at the same position");
         }
-        
+
         this.board = board;
-        this.piece1Type = piece1Type;
-        this.piece2Type = piece2Type;
-        this.piece1Start = piece1Start;
-        this.piece2Start = piece2Start;
+        this.whiteType  = whiteType;
+        this.blackType  = blackType;
+        this.whiteStart = whiteStart;
+        this.blackStart = blackStart;
         
         this.solution = new ArrayList<>();
         this.metrics = new SolverMetrics();
@@ -75,22 +80,22 @@ public class BacktrackingSolver {
         metrics.startTimer();
         
         // Mark initial positions as visited
-        board.setVisited(piece1Start);
-        board.setVisited(piece2Start);
-        solution.add(piece1Start);
-        solution.add(piece2Start);
-        
+        board.setVisited(whiteStart);
+        board.setVisited(blackStart);
+        solution.add(whiteStart);
+        solution.add(blackStart);
+
         // Check if pieces can capture each other at start
-        if (board.canCapture(piece1Start, piece1Type, piece2Start, piece2Type) ||
-            board.canCapture(piece2Start, piece2Type, piece1Start, piece1Type)) {
+        if (board.canCapture(whiteStart, whiteType, blackStart) ||
+            board.canCapture(blackStart, blackType, whiteStart)) {
             metrics.stopTimer();
             metrics.setSolutionFound(false);
             return false;
         }
-        
-        // Start backtracking from piece 1's turn (since piece 2 just moved)
-        boolean found = backtrack(piece1Start, piece1Type,
-                                 piece2Start, piece2Type,
+
+        // Start backtracking from white's turn (since black was just placed)
+        boolean found = backtrack(whiteStart, whiteType,
+                                 blackStart, blackType,
                                  2);  // depth = 2 (both pieces placed)
         
         // Stop timer
@@ -139,12 +144,12 @@ public class BacktrackingSolver {
         // Try each valid move
         for (Position nextPos : validMoves) {
             // Validation 1: Check if moving to nextPos would allow current piece to capture other piece
-            if (board.canCapture(nextPos, currentPiece, otherPos, otherPiece)) {
+            if (board.canCapture(nextPos, currentPiece, otherPos)) {
                 continue;  // Skip this move
             }
-            
+
             // Validation 2: Check if other piece can capture current piece at nextPos
-            if (board.canCapture(otherPos, otherPiece, nextPos, currentPiece)) {
+            if (board.canCapture(otherPos, otherPiece, nextPos)) {
                 continue;  // Skip this move
             }
             
@@ -200,19 +205,19 @@ public class BacktrackingSolver {
         return board;
     }
     
-    public PieceType getPiece1Type() {
-        return piece1Type;
+    public PieceType getWhiteType() {
+        return whiteType;
     }
-    
-    public PieceType getPiece2Type() {
-        return piece2Type;
+
+    public PieceType getBlackType() {
+        return blackType;
     }
-    
-    public Position getPiece1Start() {
-        return piece1Start;
+
+    public Position getWhiteStart() {
+        return whiteStart;
     }
-    
-    public Position getPiece2Start() {
-        return piece2Start;
+
+    public Position getBlackStart() {
+        return blackStart;
     }
 }

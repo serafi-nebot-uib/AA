@@ -19,6 +19,13 @@ import java.awt.*;
  */
 public class MainFrame extends JFrame {
 
+    private static final int WINDOW_WIDTH        = 1100;
+    private static final int WINDOW_HEIGHT       = 800;
+    private static final int WINDOW_MIN_WIDTH    = 800;
+    private static final int WINDOW_MIN_HEIGHT   = 600;
+    private static final int CONFIG_PANEL_WIDTH  = 300;
+    private static final int CONFIG_PANEL_MIN_H  = 200;
+
     private final ConfigPanel configPanel;
     private final BoardPanel boardPanel;
     private final ControlPanel controlPanel;
@@ -26,8 +33,8 @@ public class MainFrame extends JFrame {
 
     // Step-by-step navigation state
     private List<Position> currentSolution;
-    private PieceType piece1Type;
-    private PieceType piece2Type;
+    private PieceType whiteType;
+    private PieceType blackType;
     private int currentStep = 0;
 
     // Animation timer
@@ -39,8 +46,8 @@ public class MainFrame extends JFrame {
     public MainFrame() {
         super("P2 - Recorregut Hamiltonià amb Backtracking");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1100, 800);
-        setMinimumSize(new Dimension(800, 600));
+        setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+        setMinimumSize(new Dimension(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT));
         setLocationRelativeTo(null);
 
         // Create components
@@ -54,8 +61,8 @@ public class MainFrame extends JFrame {
 
         // WEST: config in a scroll pane (can be tall)
         JScrollPane configScroll = new JScrollPane(configPanel);
-        configScroll.setPreferredSize(new Dimension(300, 0));
-        configScroll.setMinimumSize(new Dimension(300, 200));
+        configScroll.setPreferredSize(new Dimension(CONFIG_PANEL_WIDTH, 0));
+        configScroll.setMinimumSize(new Dimension(CONFIG_PANEL_WIDTH, CONFIG_PANEL_MIN_H));
         configScroll.setBorder(BorderFactory.createTitledBorder("Configuració"));
         configScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         configScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
@@ -79,13 +86,8 @@ public class MainFrame extends JFrame {
         // Wire cell click to placement mode
         boardPanel.setOnCellClicked((row, col) -> handleCellClick(row, col));
 
-        // Wire config panel changes to board size updates + piece preview
-        configPanel.setOnConfigChanged(() -> {
-            boardPanel.setBoard(configPanel.getBoardRows(), configPanel.getBoardCols());
-            refreshPiecePreview();
-        });
-
         // Trigger initial board setup + preview
+        // Note: config-change wiring is owned by SolverController, not here.
         boardPanel.setBoard(configPanel.getBoardRows(), configPanel.getBoardCols());
         refreshPiecePreview();
     }
@@ -122,18 +124,18 @@ public class MainFrame extends JFrame {
      * Show the complete solution on the board.
      *
      * @param path       Hamiltonian path solution
-     * @param piece1Type Piece 1 type
-     * @param piece2Type Piece 2 type
+     * @param whiteType White piece type
+     * @param blackType Black piece type
      */
     public void showSolution(List<Position> path,
-                             PieceType piece1Type, PieceType piece2Type) {
+                             PieceType whiteType, PieceType blackType) {
         this.currentSolution = path;
-        this.piece1Type = piece1Type;
-        this.piece2Type = piece2Type;
+        this.whiteType = whiteType;
+        this.blackType = blackType;
         this.currentStep = (path != null) ? path.size() - 1 : 0;
 
         if (path != null && !path.isEmpty()) {
-            boardPanel.showFullSolution(path, piece1Type, piece2Type);
+            boardPanel.showFullSolution(path, whiteType, blackType);
         }
     }
 
@@ -167,9 +169,9 @@ public class MainFrame extends JFrame {
         if (placement == 0) return; // No placement mode active
 
         if (placement == 1) {
-            configPanel.setPiece1Position(row, col);
+            configPanel.setWhitePosition(row, col);
         } else {
-            configPanel.setPiece2Position(row, col);
+            configPanel.setBlackPosition(row, col);
         }
 
         // Deactivate placement mode after placing
@@ -186,8 +188,8 @@ public class MainFrame extends JFrame {
     public void refreshPiecePreview() {
         if (currentSolution != null) return; // Don't overwrite solution display
         boardPanel.showPiecePreview(
-            configPanel.getPiece1Type(), configPanel.getPiece1Row(), configPanel.getPiece1Col(),
-            configPanel.getPiece2Type(), configPanel.getPiece2Row(), configPanel.getPiece2Col()
+            configPanel.getWhiteType(), configPanel.getWhiteRow(), configPanel.getWhiteCol(),
+            configPanel.getBlackType(), configPanel.getBlackRow(), configPanel.getBlackCol()
         );
     }
 
@@ -262,7 +264,7 @@ public class MainFrame extends JFrame {
         if (currentSolution == null || currentSolution.isEmpty()) return;
         if (currentStep > 0) {
             currentStep--;
-            boardPanel.updateBoard(currentSolution, currentStep, piece1Type, piece2Type);
+            boardPanel.updateBoard(currentSolution, currentStep, whiteType, blackType);
         }
     }
 
@@ -270,7 +272,7 @@ public class MainFrame extends JFrame {
         if (currentSolution == null || currentSolution.isEmpty()) return;
         if (currentStep < currentSolution.size() - 1) {
             currentStep++;
-            boardPanel.updateBoard(currentSolution, currentStep, piece1Type, piece2Type);
+            boardPanel.updateBoard(currentSolution, currentStep, whiteType, blackType);
         }
     }
 
@@ -295,7 +297,7 @@ public class MainFrame extends JFrame {
         animationTimer = new Timer(controlPanel.getAnimationDelay(), e -> {
             if (currentStep < currentSolution.size() - 1) {
                 currentStep++;
-                boardPanel.updateBoard(currentSolution, currentStep, piece1Type, piece2Type);
+                boardPanel.updateBoard(currentSolution, currentStep, whiteType, blackType);
             } else {
                 // Reached the end
                 stopAnimation();

@@ -7,7 +7,6 @@ package com.serafinebot.p2.model;
  * - Short name (abbreviation)
  * - Movement type (STATIC or CONTINUOUS)
  * - Movement vectors
- * - Complexity factor for time prediction
  */
 public enum PieceType {
     
@@ -36,12 +35,14 @@ public enum PieceType {
     }),
 
     SNAKE("Serp", "S", MovementType.STATIC, new int[][] {
-        {-1, 0}, {1, 0}, {0, -1}, {0, 1}
+        {-1, -1}, {-1, 0}, {-1, 1},
+        {0, -1},           {0, 1},
+        {1, -1},  {1, 0},  {1, 1}
     });
     
     // Fields
     private final String name;           // Catalan name for GUI
-    private final String shortName;      // Abbreviation (C, Q, T, A, M, D)
+    private final String shortName;      // Abbreviation (C, Q, T, A, M, S)
     private final MovementType movementType;
     private final int[][] movements;
     

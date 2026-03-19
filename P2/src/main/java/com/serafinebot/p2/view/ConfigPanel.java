@@ -10,8 +10,7 @@ import java.awt.event.ItemEvent;
 
 /**
  * Configuration panel for the Hamiltonian path solver.
- * Allows the user to set board dimensions, piece types, initial positions
- * and displays time prediction / difficulty estimates.
+ * Allows the user to set board dimensions, piece types and initial positions.
  * <p>
  * Implements {@link Scrollable} so that the enclosing JScrollPane uses the
  * viewport width (preventing horizontal overflow) while allowing vertical
@@ -25,17 +24,17 @@ public class ConfigPanel extends JPanel implements Scrollable {
     private final JSpinner rowsSpinner;
     private final JSpinner colsSpinner;
 
-    // ---- Piece 1 controls ----
-    private final JComboBox<PieceType> piece1Combo;
-    private final PieceIcon piece1Icon;
-    private final JSpinner piece1Row;
-    private final JSpinner piece1Col;
+    // ---- White piece controls ----
+    private final JComboBox<PieceType> whiteCombo;
+    private final PieceIcon whiteIcon;
+    private final JSpinner whiteRow;
+    private final JSpinner whiteCol;
 
-    // ---- Piece 2 controls ----
-    private final JComboBox<PieceType> piece2Combo;
-    private final PieceIcon piece2Icon;
-    private final JSpinner piece2Row;
-    private final JSpinner piece2Col;
+    // ---- Black piece controls ----
+    private final JComboBox<PieceType> blackCombo;
+    private final PieceIcon blackIcon;
+    private final JSpinner blackRow;
+    private final JSpinner blackCol;
 
     // ---- Placement mode buttons ----
     private final JToggleButton place1Button;
@@ -76,19 +75,19 @@ public class ConfigPanel extends JPanel implements Scrollable {
         // =====================================================================
         row = addSectionHeader(gbc, row, "Peça 1 (blanca)");
 
-        piece1Combo = new JComboBox<>(PieceType.values());
-        piece1Combo.setToolTipText("Selecciona el tipus de peça 1");
-        piece1Icon = new PieceIcon(PieceType.KNIGHT, true);
+        whiteCombo = new JComboBox<>(PieceType.values());
+        whiteCombo.setToolTipText("Selecciona el tipus de peça blanca");
+        whiteIcon = new PieceIcon(PieceType.KNIGHT, true);
 
-        row = addLabelledComponent(gbc, row, "Tipus:", piece1Combo);
-        row = addCentredComponent(gbc, row, piece1Icon);
+        row = addLabelledComponent(gbc, row, "Tipus:", whiteCombo);
+        row = addCentredComponent(gbc, row, whiteIcon);
 
-        piece1Row = createBoundedSpinner(0, 11, 0);
-        piece1Col = createBoundedSpinner(0, 11, 0);
-        row = addPositionRow(gbc, row, "Posició inicial:", piece1Row, piece1Col);
+        whiteRow = createBoundedSpinner(1, 12, 1);
+        whiteCol = createBoundedSpinner(1, 12, 1);
+        row = addPositionRow(gbc, row, "Posició inicial:", whiteRow, whiteCol);
 
         place1Button = new JToggleButton("\u2295 Col\u00b7locar al tauler");
-        place1Button.setToolTipText("Fes clic a una casella del tauler per situar la peça 1");
+        place1Button.setToolTipText("Fes clic a una casella del tauler per situar la peça blanca");
         place1Button.setFocusPainted(false);
         row = addCentredComponent(gbc, row, place1Button);
         row = addSeparator(gbc, row);
@@ -98,19 +97,19 @@ public class ConfigPanel extends JPanel implements Scrollable {
         // =====================================================================
         row = addSectionHeader(gbc, row, "Peça 2 (negra)");
 
-        piece2Combo = new JComboBox<>(PieceType.values());
-        piece2Combo.setToolTipText("Selecciona el tipus de peça 2");
-        piece2Icon = new PieceIcon(PieceType.KNIGHT, false);
+        blackCombo = new JComboBox<>(PieceType.values());
+        blackCombo.setToolTipText("Selecciona el tipus de peça negra");
+        blackIcon = new PieceIcon(PieceType.KNIGHT, false);
 
-        row = addLabelledComponent(gbc, row, "Tipus:", piece2Combo);
-        row = addCentredComponent(gbc, row, piece2Icon);
+        row = addLabelledComponent(gbc, row, "Tipus:", blackCombo);
+        row = addCentredComponent(gbc, row, blackIcon);
 
-        piece2Row = createBoundedSpinner(0, 11, 0);
-        piece2Col = createBoundedSpinner(0, 11, 1);
-        row = addPositionRow(gbc, row, "Posició inicial:", piece2Row, piece2Col);
+        blackRow = createBoundedSpinner(1, 12, 1);
+        blackCol = createBoundedSpinner(1, 12, 2);
+        row = addPositionRow(gbc, row, "Posició inicial:", blackRow, blackCol);
 
         place2Button = new JToggleButton("\u2295 Col\u00b7locar al tauler");
-        place2Button.setToolTipText("Fes clic a una casella del tauler per situar la peça 2");
+        place2Button.setToolTipText("Fes clic a una casella del tauler per situar la peça negra");
         place2Button.setFocusPainted(false);
         row = addCentredComponent(gbc, row, place2Button);
         row = addSeparator(gbc, row);
@@ -135,24 +134,24 @@ public class ConfigPanel extends JPanel implements Scrollable {
         rowsSpinner.addChangeListener(sizeChanged);
         colsSpinner.addChangeListener(sizeChanged);
 
-        piece1Combo.addItemListener(e -> {
+        whiteCombo.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
-                piece1Icon.setPiece((PieceType) piece1Combo.getSelectedItem(), true);
+                whiteIcon.setPiece((PieceType) whiteCombo.getSelectedItem(), true);
                 fireConfigChanged();
             }
         });
-        piece2Combo.addItemListener(e -> {
+        blackCombo.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
-                piece2Icon.setPiece((PieceType) piece2Combo.getSelectedItem(), false);
+                blackIcon.setPiece((PieceType) blackCombo.getSelectedItem(), false);
                 fireConfigChanged();
             }
         });
 
         ChangeListener posChanged = e -> fireConfigChanged();
-        piece1Row.addChangeListener(posChanged);
-        piece1Col.addChangeListener(posChanged);
-        piece2Row.addChangeListener(posChanged);
-        piece2Col.addChangeListener(posChanged);
+        whiteRow.addChangeListener(posChanged);
+        whiteCol.addChangeListener(posChanged);
+        blackRow.addChangeListener(posChanged);
+        blackCol.addChangeListener(posChanged);
 
         // Initialise position spinner limits
         onBoardSizeChanged();
@@ -172,41 +171,36 @@ public class ConfigPanel extends JPanel implements Scrollable {
         return (int) colsSpinner.getValue();
     }
 
-    /** @return Selected type for piece 1. */
-    public PieceType getPiece1Type() {
-        return (PieceType) piece1Combo.getSelectedItem();
+    /** @return Selected type for the white piece. */
+    public PieceType getWhiteType() {
+        return (PieceType) whiteCombo.getSelectedItem();
     }
 
-    /** @return Selected type for piece 2. */
-    public PieceType getPiece2Type() {
-        return (PieceType) piece2Combo.getSelectedItem();
+    /** @return Selected type for the black piece. */
+    public PieceType getBlackType() {
+        return (PieceType) blackCombo.getSelectedItem();
     }
 
-    /** @return Starting x for piece 1. */
-    public int getPiece1Row() {
-        return (int) piece1Row.getValue();
+    /** @return Starting row for the white piece (0-based, for the model). */
+    public int getWhiteRow() {
+        return (int) whiteRow.getValue() - 1;
     }
 
-    /** @return Starting column for piece 1. */
-    public int getPiece1Col() {
-        return (int) piece1Col.getValue();
+    /** @return Starting column for the white piece (0-based, for the model). */
+    public int getWhiteCol() {
+        return (int) whiteCol.getValue() - 1;
     }
 
-    /** @return Starting x for piece 2. */
-    public int getPiece2Row() {
-        return (int) piece2Row.getValue();
+    /** @return Starting row for the black piece (0-based, for the model). */
+    public int getBlackRow() {
+        return (int) blackRow.getValue() - 1;
     }
 
-    /** @return Starting column for piece 2. */
-    public int getPiece2Col() {
-        return (int) piece2Col.getValue();
+    /** @return Starting column for the black piece (0-based, for the model). */
+    public int getBlackCol() {
+        return (int) blackCol.getValue() - 1;
     }
 
-    /**
-     * Set the prediction text (Catalan formatted time string).
-     *
-     * @param text e.g. "< 1 segon", "5.3 segons"
-     */
     /**
      * Register a callback invoked whenever any configuration value changes.
      *
@@ -225,20 +219,20 @@ public class ConfigPanel extends JPanel implements Scrollable {
     public boolean validateConfig() {
         int rows = getBoardRows();
         int cols = getBoardCols();
-        int r1 = getPiece1Row(), c1 = getPiece1Col();
-        int r2 = getPiece2Row(), c2 = getPiece2Col();
+        int wr = getWhiteRow(), wc = getWhiteCol();
+        int br = getBlackRow(), bc = getBlackCol();
 
-        if (r1 >= rows || c1 >= cols) {
-            showError("La posició de la Peça 1 (" + r1 + "," + c1 +
+        if (wr >= rows || wc >= cols) {
+            showError("La posició de la peça blanca (" + (wr + 1) + "," + (wc + 1) +
                       ") està fora del tauler " + rows + "x" + cols + ".");
             return false;
         }
-        if (r2 >= rows || c2 >= cols) {
-            showError("La posició de la Peça 2 (" + r2 + "," + c2 +
+        if (br >= rows || bc >= cols) {
+            showError("La posició de la peça negra (" + (br + 1) + "," + (bc + 1) +
                       ") està fora del tauler " + rows + "x" + cols + ".");
             return false;
         }
-        if (r1 == r2 && c1 == c2) {
+        if (wr == br && wc == bc) {
             showError("Les dues peces no poden començar a la mateixa posició.");
             return false;
         }
@@ -253,12 +247,12 @@ public class ConfigPanel extends JPanel implements Scrollable {
     public void setConfigEnabled(boolean enabled) {
         rowsSpinner.setEnabled(enabled);
         colsSpinner.setEnabled(enabled);
-        piece1Combo.setEnabled(enabled);
-        piece2Combo.setEnabled(enabled);
-        piece1Row.setEnabled(enabled);
-        piece1Col.setEnabled(enabled);
-        piece2Row.setEnabled(enabled);
-        piece2Col.setEnabled(enabled);
+        whiteCombo.setEnabled(enabled);
+        blackCombo.setEnabled(enabled);
+        whiteRow.setEnabled(enabled);
+        whiteCol.setEnabled(enabled);
+        blackRow.setEnabled(enabled);
+        blackCol.setEnabled(enabled);
         place1Button.setEnabled(enabled);
         place2Button.setEnabled(enabled);
         if (!enabled) {
@@ -289,28 +283,28 @@ public class ConfigPanel extends JPanel implements Scrollable {
     }
 
     /**
-     * Programmatically set piece 1's starting position.
+     * Programmatically set the white piece's starting position.
      * Updates the spinners and fires the config-changed callback.
      *
-     * @param row Row index (0-based)
-     * @param col Column index (0-based)
+     * @param row Row index (0-based, from the model/board click)
+     * @param col Column index (0-based, from the model/board click)
      */
-    public void setPiece1Position(int row, int col) {
-        piece1Row.setValue(row);
-        piece1Col.setValue(col);
+    public void setWhitePosition(int row, int col) {
+        whiteRow.setValue(row + 1);
+        whiteCol.setValue(col + 1);
         // fireConfigChanged() will be triggered by spinner change listeners
     }
 
     /**
-     * Programmatically set piece 2's starting position.
+     * Programmatically set the black piece's starting position.
      * Updates the spinners and fires the config-changed callback.
      *
-     * @param row Row index (0-based)
-     * @param col Column index (0-based)
+     * @param row Row index (0-based, from the model/board click)
+     * @param col Column index (0-based, from the model/board click)
      */
-    public void setPiece2Position(int row, int col) {
-        piece2Row.setValue(row);
-        piece2Col.setValue(col);
+    public void setBlackPosition(int row, int col) {
+        blackRow.setValue(row + 1);
+        blackCol.setValue(col + 1);
         // fireConfigChanged() will be triggered by spinner change listeners
     }
 
@@ -320,13 +314,13 @@ public class ConfigPanel extends JPanel implements Scrollable {
 
     /** Called when board rows/cols change: clamp position spinners. */
     private void onBoardSizeChanged() {
-        int maxRow = getBoardRows() - 1;
-        int maxCol = getBoardCols() - 1;
+        int maxRow = getBoardRows();
+        int maxCol = getBoardCols();
 
-        updateSpinnerMax(piece1Row, maxRow);
-        updateSpinnerMax(piece1Col, maxCol);
-        updateSpinnerMax(piece2Row, maxRow);
-        updateSpinnerMax(piece2Col, maxCol);
+        updateSpinnerMax(whiteRow, maxRow);
+        updateSpinnerMax(whiteCol, maxCol);
+        updateSpinnerMax(blackRow, maxRow);
+        updateSpinnerMax(blackCol, maxCol);
 
         fireConfigChanged();
     }

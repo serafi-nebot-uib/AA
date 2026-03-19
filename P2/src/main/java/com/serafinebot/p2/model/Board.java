@@ -150,47 +150,46 @@ public class Board {
     }
     
     /**
-     * Check if piece1 at pos1 can capture piece2 at pos2.
-     * Returns true if pos2 is in the attack range of piece1.
-     * 
-     * @param pos1 Position of first piece
-     * @param piece1 Type of first piece
-     * @param pos2 Position of second piece
-     * @param piece2 Type of second piece (not used, but kept for extensibility)
-     * @return true if piece1 can capture piece2
+     * Check if the attacker at attackerPos can capture the target at targetPos.
+     * Returns true if targetPos is in the attack range of the attacker.
+     *
+     * @param attackerPos Position of the attacking piece
+     * @param attacker    Type of the attacking piece
+     * @param targetPos   Position of the target square
+     * @return true if attacker can reach targetPos in one move (or slide)
      */
-    public boolean canCapture(Position pos1, PieceType piece1, 
-                              Position pos2, PieceType piece2) {
-        if (!isValidPosition(pos1) || !isValidPosition(pos2)) return false;
-        if (pos1.equals(pos2)) return true;  // Same position
-        
-        int[][] movements = piece1.getMovements();
-        
-        if (piece1.getMovementType() == MovementType.STATIC) {
-            // Check if pos2 is reachable in one move
+    public boolean canCapture(Position attackerPos, PieceType attacker,
+                              Position targetPos) {
+        if (!isValidPosition(attackerPos) || !isValidPosition(targetPos)) return false;
+        if (attackerPos.equals(targetPos)) return true;  // Same position
+
+        int[][] movements = attacker.getMovements();
+
+        if (attacker.getMovementType() == MovementType.STATIC) {
+            // Check if targetPos is reachable in one move
             for (int[] move : movements) {
                 try {
-                    Position target = new Position(pos1.x() + move[0],
-                                                  pos1.y() + move[1]);
-                    if (target.equals(pos2)) return true;
+                    Position candidate = new Position(attackerPos.x() + move[0],
+                                                      attackerPos.y() + move[1]);
+                    if (candidate.equals(targetPos)) return true;
                 } catch (IllegalArgumentException e) {
                     // Position with negative coordinates, skip
                 }
             }
         } else {
-            // Check if pos2 is in any continuous line (ignoring obstacles)
+            // Only two pieces ever exist on the board, so no piece can block a sliding line.
             for (int[] direction : movements) {
                 int steps = 1;
                 while (true) {
                     try {
-                        Position target = new Position(
-                            pos1.x() + direction[0] * steps,
-                            pos1.y() + direction[1] * steps
+                        Position candidate = new Position(
+                            attackerPos.x() + direction[0] * steps,
+                            attackerPos.y() + direction[1] * steps
                         );
-                        
-                        if (!isValidPosition(target)) break;
-                        if (target.equals(pos2)) return true;
-                        
+
+                        if (!isValidPosition(candidate)) break;
+                        if (candidate.equals(targetPos)) return true;
+
                         steps++;
                     } catch (IllegalArgumentException e) {
                         // Position with negative coordinates, stop this direction

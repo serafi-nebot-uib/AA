@@ -1,6 +1,5 @@
 package com.serafinebot.p2.controller;
 
-import com.serafinebot.p2.model.BacktrackingSolver;
 import com.serafinebot.p2.model.SolverMetrics;
 
 import javax.swing.SwingUtilities;
@@ -26,7 +25,7 @@ public class SolverTask extends SwingWorker<Boolean, Void> {
      *
      * @param solver     The fully configured solver to run
      * @param onProgress Called on the EDT after each progress update
-     *                   (every 1000 iterations, as defined in BacktrackingSolver)
+     *                   (every {@link BacktrackingSolver#PROGRESS_UPDATE_INTERVAL} iterations)
      * @param onComplete Called on the EDT when solving finishes;
      *                   receives (solutionFound, finalMetrics)
      */
@@ -65,8 +64,10 @@ public class SolverTask extends SwingWorker<Boolean, Void> {
         } catch (CancellationException e) {
             // Task was cancelled via stop button
             onComplete.accept(false, solver.getMetrics());
-        } catch (InterruptedException | ExecutionException e) {
-            // Unexpected error during execution
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();  // Restore interrupted status
+            onComplete.accept(false, solver.getMetrics());
+        } catch (ExecutionException e) {
             onComplete.accept(false, solver.getMetrics());
         }
     }

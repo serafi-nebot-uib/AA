@@ -22,6 +22,16 @@ import java.util.function.BiConsumer;
  */
 public class BoardPanel extends JPanel {
 
+    private static final int PREFERRED_SIZE = 500;
+    private static final int MINIMUM_SIZE   = 200;
+
+    /** Width of the row-number gutter on the left, and height of the column-number gutter on top. */
+    private static final int GUTTER        = 28;
+    /** Padding between the gutter labels and the outer edge of the panel. */
+    private static final int GUTTER_MARGIN = 4;
+    /** Minimum font size for gutter labels. */
+    private static final int GUTTER_FONT_MIN = 11;
+
     // Board colours
     private static final Color LIGHT_CELL = Color.WHITE;
     private static final Color DARK_CELL = new Color(139, 69, 19);           // Brown
@@ -46,8 +56,8 @@ public class BoardPanel extends JPanel {
      */
     public BoardPanel() {
         setLayout(null); // We manually position the inner grid panel
-        setPreferredSize(new Dimension(500, 500));
-        setMinimumSize(new Dimension(200, 200));
+        setPreferredSize(new Dimension(PREFERRED_SIZE, PREFERRED_SIZE));
+        setMinimumSize(new Dimension(MINIMUM_SIZE, MINIMUM_SIZE));
         setBackground(new Color(60, 60, 60)); // subtle background behind grid
 
         gridPanel = new JPanel();
@@ -58,18 +68,57 @@ public class BoardPanel extends JPanel {
     }
 
     /**
-     * Lay out the inner grid panel as a centred square.
+     * Lay out the inner grid panel as a centred square, offset by the gutter.
      */
     @Override
     public void doLayout() {
         super.doLayout();
         Insets insets = getInsets();
-        int availW = getWidth() - insets.left - insets.right;
-        int availH = getHeight() - insets.top - insets.bottom;
+        int availW = getWidth()  - insets.left - insets.right  - GUTTER;
+        int availH = getHeight() - insets.top  - insets.bottom - GUTTER;
         int side = Math.min(availW, availH);
-        int x = insets.left + (availW - side) / 2;
-        int y = insets.top + (availH - side) / 2;
+        int x = insets.left + GUTTER + (availW - side) / 2;
+        int y = insets.top  + GUTTER + (availH - side) / 2;
         gridPanel.setBounds(x, y, side, side);
+    }
+
+    /**
+     * Paint row and column index labels in the gutter areas.
+     */
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+
+        Rectangle grid = gridPanel.getBounds();
+        if (grid.width <= 0 || rows == 0 || cols == 0) return;
+
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        int cellW = grid.width  / cols;
+        int cellH = grid.height / rows;
+        int fontSize = Math.max(GUTTER_FONT_MIN, Math.min(GUTTER - GUTTER_MARGIN * 2, Math.min(cellW, cellH) / 3));
+        g2.setFont(new Font("SansSerif", Font.BOLD, fontSize));
+        g2.setColor(new Color(200, 200, 200));
+        FontMetrics fm = g2.getFontMetrics();
+
+        // Column numbers across the top gutter (centred vertically within the gutter, with margin from top)
+        int colLabelY = grid.y - GUTTER_MARGIN - fm.getDescent();
+        for (int c = 0; c < cols; c++) {
+            String label = String.valueOf(c + 1);
+            int cx = grid.x + c * cellW + (cellW - fm.stringWidth(label)) / 2;
+            g2.drawString(label, cx, colLabelY);
+        }
+
+        // Row numbers down the left gutter (centred in the gutter to the left of the grid)
+        for (int r = 0; r < rows; r++) {
+            String label = String.valueOf(r + 1);
+            int lx = grid.x - GUTTER + GUTTER_MARGIN + (GUTTER - GUTTER_MARGIN - fm.stringWidth(label)) / 2;
+            int ly = grid.y + r * cellH + (cellH + fm.getAscent() - fm.getDescent()) / 2;
+            g2.drawString(label, lx, ly);
+        }
+
+        g2.dispose();
     }
 
     /**
@@ -125,11 +174,11 @@ public class BoardPanel extends JPanel {
      *
      * @param path        The solution as an ordered list of positions
      * @param currentStep The step to display up to (0-based, inclusive)
-     * @param piece1Type  Type of piece 1 (for icon rendering)
-     * @param piece2Type  Type of piece 2 (for icon rendering)
+     * @param whiteType  Type of the white piece (for icon rendering)
+     * @param blackType  Type of the black piece (for icon rendering)
      */
     public void updateBoard(List<Position> path, int currentStep,
-                            PieceType piece1Type, PieceType piece2Type) {
+                            PieceType whiteType, PieceType blackType) {
         clearCells();
 
         if (path == null || path.isEmpty()) return;
@@ -137,8 +186,8 @@ public class BoardPanel extends JPanel {
         int limit = Math.min(currentStep, path.size() - 1);
 
         // Track latest position of each piece
-        Position piece1Pos = null;
-        Position piece2Pos = null;
+        Position whitePos = null;
+        Position blackPos = null;
 
         for (int i = 0; i <= limit; i++) {
             Position pos = path.get(i);
@@ -146,11 +195,11 @@ public class BoardPanel extends JPanel {
             cell.setVisited(true);
             cell.setSequenceNumber(i + 1);  // 1-based display
 
-            // Even steps = piece 1 (index 0), odd steps = piece 2 (index 1)
+            // Even steps = white (index 0), odd steps = black (index 1)
             if (i % 2 == 0) {
-                piece1Pos = pos;
+                whitePos = pos;
             } else {
-                piece2Pos = pos;
+                blackPos = pos;
             }
         }
 
@@ -159,11 +208,11 @@ public class BoardPanel extends JPanel {
         cells[highlightPos.x()][highlightPos.y()].setHighlighted(true);
 
         // Place piece icons at their latest positions
-        if (piece1Pos != null) {
-            cells[piece1Pos.x()][piece1Pos.y()].setPiece(piece1Type, true);
+        if (whitePos != null) {
+            cells[whitePos.x()][whitePos.y()].setPiece(whiteType, true);
         }
-        if (piece2Pos != null) {
-            cells[piece2Pos.x()][piece2Pos.y()].setPiece(piece2Type, false);
+        if (blackPos != null) {
+            cells[blackPos.x()][blackPos.y()].setPiece(blackType, false);
         }
 
         repaint();
@@ -173,13 +222,13 @@ public class BoardPanel extends JPanel {
      * Show the complete solution with all cells visited.
      *
      * @param path       The complete solution as an ordered list of positions
-     * @param piece1Type Type of piece 1
-     * @param piece2Type Type of piece 2
+     * @param whiteType Type of the white piece
+     * @param blackType Type of the black piece
      */
     public void showFullSolution(List<Position> path,
-                                 PieceType piece1Type, PieceType piece2Type) {
+                                 PieceType whiteType, PieceType blackType) {
         if (path == null || path.isEmpty()) return;
-        updateBoard(path, path.size() - 1, piece1Type, piece2Type);
+        updateBoard(path, path.size() - 1, whiteType, blackType);
         // Remove highlight for full solution view
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
@@ -201,23 +250,23 @@ public class BoardPanel extends JPanel {
      * Show a preview of the two pieces at their starting positions
      * on an otherwise empty board.
      *
-     * @param piece1Type Type of piece 1
-     * @param piece1Row  Starting x of piece 1
-     * @param piece1Col  Starting column of piece 1
-     * @param piece2Type Type of piece 2
-     * @param piece2Row  Starting x of piece 2
-     * @param piece2Col  Starting column of piece 2
+     * @param whiteType Type of the white piece
+     * @param whiteRow  Starting row of the white piece
+     * @param whiteCol  Starting column of the white piece
+     * @param blackType Type of the black piece
+     * @param blackRow  Starting row of the black piece
+     * @param blackCol  Starting column of the black piece
      */
-    public void showPiecePreview(PieceType piece1Type, int piece1Row, int piece1Col,
-                                 PieceType piece2Type, int piece2Row, int piece2Col) {
+    public void showPiecePreview(PieceType whiteType, int whiteRow, int whiteCol,
+                                 PieceType blackType, int blackRow, int blackCol) {
         clearCells();
-        if (piece1Row >= 0 && piece1Row < rows && piece1Col >= 0 && piece1Col < cols) {
-            cells[piece1Row][piece1Col].setPiece(piece1Type, true);
-            cells[piece1Row][piece1Col].setHighlighted(true);
+        if (whiteRow >= 0 && whiteRow < rows && whiteCol >= 0 && whiteCol < cols) {
+            cells[whiteRow][whiteCol].setPiece(whiteType, true);
+            cells[whiteRow][whiteCol].setHighlighted(true);
         }
-        if (piece2Row >= 0 && piece2Row < rows && piece2Col >= 0 && piece2Col < cols) {
-            cells[piece2Row][piece2Col].setPiece(piece2Type, false);
-            cells[piece2Row][piece2Col].setHighlighted(true);
+        if (blackRow >= 0 && blackRow < rows && blackCol >= 0 && blackCol < cols) {
+            cells[blackRow][blackCol].setPiece(blackType, false);
+            cells[blackRow][blackCol].setHighlighted(true);
         }
         repaint();
     }
@@ -358,8 +407,8 @@ public class BoardPanel extends JPanel {
                     img = javax.imageio.ImageIO.read(is);
                     is.close();
                 }
-            } catch (Exception ignored) {
-                // Fall through to text rendering
+            } catch (java.io.IOException ignored) {
+                // Image unreadable — fall through to text rendering
             }
 
             if (img != null) {

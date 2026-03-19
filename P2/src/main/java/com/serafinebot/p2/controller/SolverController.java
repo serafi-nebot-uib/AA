@@ -1,6 +1,5 @@
 package com.serafinebot.p2.controller;
 
-import com.serafinebot.p2.model.BacktrackingSolver;
 import com.serafinebot.p2.model.Board;
 import com.serafinebot.p2.model.PieceType;
 import com.serafinebot.p2.model.Position;
@@ -15,7 +14,7 @@ import com.serafinebot.p2.view.MainFrame;
  * ({@link MainFrame}), wiring user actions (Start/Stop/Reset) to
  * the appropriate model operations and feeding results back to the GUI.
  * <p>
- * Also manages time prediction updates whenever the configuration changes.
+
  */
 public class SolverController {
 
@@ -49,9 +48,6 @@ public class SolverController {
         view.getControlPanel().addResetListener(e -> resetAll());
 
         // Config change: resize board + refresh piece preview.
-        // This intentionally replaces the callback set by MainFrame's
-        // constructor, because the controller is the authoritative owner
-        // of the config-change flow once it is created.
         view.getConfigPanel().setOnConfigChanged(() -> {
             view.resizeBoard(
                 view.getConfigPanel().getBoardRows(),
@@ -80,10 +76,10 @@ public class SolverController {
         // Read parameters
         int rows = config.getBoardRows();
         int cols = config.getBoardCols();
-        PieceType piece1Type = config.getPiece1Type();
-        PieceType piece2Type = config.getPiece2Type();
-        Position piece1Start = new Position(config.getPiece1Row(), config.getPiece1Col());
-        Position piece2Start = new Position(config.getPiece2Row(), config.getPiece2Col());
+        PieceType whiteType  = config.getWhiteType();
+        PieceType blackType  = config.getBlackType();
+        Position whiteStart  = new Position(config.getWhiteRow(), config.getWhiteCol());
+        Position blackStart  = new Position(config.getBlackRow(), config.getBlackCol());
 
         // Prepare the view
         view.resetBoard();
@@ -93,7 +89,7 @@ public class SolverController {
         // Build model objects
         Board board = new Board(rows, cols);
         BacktrackingSolver solver = new BacktrackingSolver(
-            board, piece1Type, piece1Start, piece2Type, piece2Start
+            board, whiteType, whiteStart, blackType, blackStart
         );
 
         // Create and execute background task
@@ -146,7 +142,7 @@ public class SolverController {
         } else if (found) {
             view.setSolverState("found");
             view.showSolution(solver.getSolution(),
-                              solver.getPiece1Type(), solver.getPiece2Type());
+                              solver.getWhiteType(), solver.getBlackType());
             view.setIdleState(true);
         } else {
             view.setSolverState("not_found");

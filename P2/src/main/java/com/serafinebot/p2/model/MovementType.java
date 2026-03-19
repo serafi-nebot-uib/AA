@@ -7,7 +7,7 @@ package com.serafinebot.p2.model;
  */
 public enum MovementType {
     /**
-     * Single-step movement (e.g., Knight, Owl, Dragon).
+     * Single-step movement (e.g., Knight, Owl, Snake).
      * Each movement vector is applied once.
      */
     STATIC,
