@@ -362,9 +362,22 @@ etc.), que operen amb dades, mai amb components Swing directament.
 \subsubsection{BoardPanel}
 
 Panell de dibuix del tauler. Utilitza un \texttt{GridLayout} per a
-distribuir les cel·les del tauler. El mètode \texttt{doLayout}
-calcula la mida de cel·la màxima entera que cap a l'espai disponible
-de la següent forma:
+distribuir les cel·les del tauler. Cada casella és un
+\texttt{CellPanel} intern que:
+
+\begin{itemize}
+    \item Dibuixa el color de fons (clar/fosc, o verd per a
+          caselles visitades).
+    \item Mostra el número de pas a la cantonada
+          superior esquerra.
+    \item Mostra la icona de la peça a la casella actual de cada
+          peça escalada a la mida de la cel·la.
+    \item Ressalta en groc la casella del pas actual durant la
+          reproducció pas a pas.
+\end{itemize}
+
+El mètode \texttt{doLayout} calcula la mida de cel·la màxima entera
+que cap a l'espai disponible de la següent forma:
 \[
       \texttt{cellSize} = \min(\lfloor w/\texttt{cols} \rfloor, \lfloor h/\texttt{rows} \rfloor)
 \]
@@ -375,29 +388,17 @@ taulers no quadrats ($N \times M$). Les etiquetes de fila i columna
 s'alineen llegint les coordenades reals de cada \texttt{CellPanel} i
 convertint-les al sistema de coordenades del panell exterior amb
 \texttt{SwingUtilities.convertPoint}. Les caselles responen al clic
-via \texttt{mousePressed} (en lloc de \texttt{mouseClicked}) per
-garantir resposta immediata independentment de l'estat del focus.
-Cada casella és un \texttt{CellPanel} intern que:
-
-\begin{itemize}
-    \item Dibuixa el color de fons (escacat clar/fosc, o verd per a
-          caselles visitades).
-    \item Mostra el número de pas (1-basat) a la cantonada
-          superior esquerra.
-    \item Mostra la icona de la peça a la casella actual de cada
-          peça, carregada des del classpath i escalada al tamany de
-          la cel·la.
-    \item Ressalta en groc la casella del pas actual durant la
-          reproducció pas a pas.
-\end{itemize}
+a través de \texttt{mousePressed}, en lloc de \texttt{mouseClicked}, per
+garantir resposta immediata i fiable: \texttt{mouseClicked} només
+s'activa si la posició del ratolí és idèntica entre prémer i alliberar
+el botó, cosa que falla si l'usuari mou el cursor fins i tot un sol
+píxel durant el clic~\cite{ref_mouseclicked_platforms}.
 
 El mètode \texttt{updateBoard(path, currentStep, whiteType, blackType)}
 actualitza tots els \texttt{CellPanel} donada la llista de posicions de
 la solució i el pas a visualitzar. La paritat del pas (parell/senar)
 determina quina peça ocupa la casella corresponent (els passos parells
-corresponen a la peça blanca, els senars a la negra). El panell exterior
-reserva una franja (\textit{gutter}) al costat esquerre i a la part
-superior on es pinten els números de fila i columna en base 1.
+corresponen a la peça blanca, els senars a la negra).
 
 % --- SUGGERIMENT D'IMATGE ---
 % Aquí es podria inserir una captura de pantalla del BoardPanel mostrant
@@ -408,41 +409,25 @@ superior on es pinten els números de fila i columna en base 1.
 
 \subsubsection{ConfigPanel}
 
-Panell de configuració que implementa \texttt{Scrollable} per suportar
-taulers grans sense truncar l'interfície. Permet:
+Panell de configuració que implementa \texttt{Scrollable} per garantir
+que els controls siguin accessibles fins i tot quan la finestra es
+redimensioni a una alçada menor que l'espai requerit pels controls.
 
-\begin{itemize}
-    \item Configurar les dimensions del tauler (mínim 2 files i
-          columnes, sense límit superior) amb \texttt{JSpinner}.
-          Un botó \textit{toggle} (\textit{Quadrat}) situat sobre els
-          dos \textit{spinners} bloqueja files i columnes perquè siguin
-          sempre iguals; quan està actiu, qualsevol canvi en un
-          \textit{spinner} es propaga automàticament a l'altre.
-    \item Seleccionar el tipus de cada peça amb \texttt{JComboBox}
-          poblat per les constants de \texttt{PieceType}.
-    \item Establir la posició inicial de cada peça (fila i columna,
-          en base 1) amb \texttt{JSpinner}, o bé fent clic directament
-          sobre el tauler amb el mode de col·locació activat (botó
-          \textit{toggle}). Els \textit{spinners} mostren valors $1..N$
-          i $1..M$; els mètodes \textit{getter} resten 1 internament
-          per retornar índexs en base 0 al controlador.
-    \item Previsualitzar les dues peces sobre el tauler buit gràcies
-          a \texttt{PieceIcon}.
-\end{itemize}
+Des del punt de vista tècnic, els \textit{spinners} de posició mostren
+valors en base 1 ($1 \ldots N$ i $1 \ldots M$) per a l'usuari, però els mètodes
+\textit{getter} resten 1 internament per retornar índexs en base 0
+($0 \ldots N-1$ i $0 \ldots M-1$) al controlador. Els botons \textit{toggle}
+actualitzen el seu color de fons
+(verd per al bloqueig de mida, taronja per al mode de col·locació) mitjançant
+\texttt{setBackground()} per fer l'estat visible sense modificar el text.
 
-Els botons \textit{toggle} (bloqueig de mida i col·locació de peces)
-canvien de color de fons quan estan actius (verd per al bloqueig,
-taronja per al mode de col·locació) per fer l'estat visible d'un cop
-d'ull, sense modificar el color del text.
-
-Les dues peces s'identifiquen com a \textit{blanca} i \textit{negra}
-(\texttt{whiteType}/\texttt{blackType}) de manera consistent a tota
-l'aplicació. El mètode \texttt{validateConfig()} comprova que les
-posicions estiguin dins del tauler i siguin distintes, i mostra diàlegs
-d'error en català si la validació falla. Tota comunicació cap al
-controlador es fa a través d'un \texttt{Runnable}
-\texttt{onConfigChanged}, registrat exclusivament per
-\texttt{SolverController} en construir l'aplicació.
+El mètode \texttt{validateConfig()} comprova que les posicions estiguin
+dins dels límits del tauler i siguin distintes, mostrant diàlegs d'error
+en català si la validació falla. Tota comunicació cap al controlador es
+fa a través d'un \texttt{Runnable} \texttt{onConfigChanged}, registrat
+exclusivament per \texttt{SolverController} en construir l'aplicació.
+Per tant, el panell no coneix el controlador, només invoca el callback
+quan detecta canvis de configuració.
 
 \subsubsection{ControlPanel}
 
@@ -809,6 +794,11 @@ Wikipedia, Jan.\ 2025. [Online]. Available:
 camickr, ``How do I use SwingWorker in Java?,''
 Stack Overflow, Apr.\ 2009. [Online]. Available:
 \url{https://stackoverflow.com/questions/782265/how-do-i-use-swingworker-in-java}
+
+\bibitem{ref_mouseclicked_platforms}
+M.~Dahmus and F.~Kleinschmidt, ``mouseClicked vs. mousePressed on Apple vs. Windows,''
+\textit{comp.lang.java.gui}, 2007. [Online]. Available:
+\url{https://comp.lang.java.gui.narkive.com/bAHvswQ2/mouseclicked-vs-mousepressed-on-apple-vs-windows}
 
 \end{thebibliography}
 
