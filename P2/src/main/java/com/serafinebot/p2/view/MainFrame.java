@@ -1,10 +1,6 @@
 package com.serafinebot.p2.view;
 
-import com.serafinebot.p2.model.PieceType;
-import com.serafinebot.p2.model.Position;
 import com.serafinebot.p2.model.SolverMetrics;
-
-import java.util.List;
 
 import javax.swing.*;
 import java.awt.*;
@@ -14,8 +10,8 @@ import java.awt.*;
  * Assembles ConfigPanel (WEST), BoardPanel (CENTER),
  * ControlPanel + StatsPanel (SOUTH) into a BorderLayout.
  * <p>
- * Provides delegation methods so the controller can interact with the
- * view layer through a single entry point.
+ * Pure layout and delegation class — holds no navigation or domain state.
+ * All such state lives in {@link com.serafinebot.p2.controller.SolverController}.
  */
 public class MainFrame extends JFrame {
 
@@ -30,15 +26,6 @@ public class MainFrame extends JFrame {
     private final BoardPanel boardPanel;
     private final ControlPanel controlPanel;
     private final StatsPanel statsPanel;
-
-    // Step-by-step navigation state
-    private List<Position> currentSolution;
-    private PieceType whiteType;
-    private PieceType blackType;
-    private int currentStep = 0;
-
-    // Animation timer
-    private Timer animationTimer;
 
     /**
      * Create and layout the main window.
@@ -80,9 +67,6 @@ public class MainFrame extends JFrame {
         southPanel.add(statsPanel, BorderLayout.EAST);
         add(southPanel, BorderLayout.SOUTH);
 
-        // Wire internal navigation buttons
-        wireNavigationButtons();
-
         // Wire cell click to placement mode
         boardPanel.setOnCellClicked((row, col) -> handleCellClick(row, col));
 
@@ -121,37 +105,14 @@ public class MainFrame extends JFrame {
     // =====================================================================
 
     /**
-     * Show the complete solution on the board.
-     *
-     * @param path       Hamiltonian path solution
-     * @param whiteType White piece type
-     * @param blackType Black piece type
-     */
-    public void showSolution(List<Position> path,
-                             PieceType whiteType, PieceType blackType) {
-        this.currentSolution = path;
-        this.whiteType = whiteType;
-        this.blackType = blackType;
-        this.currentStep = (path != null) ? path.size() - 1 : 0;
-
-        if (path != null && !path.isEmpty()) {
-            boardPanel.showFullSolution(path, whiteType, blackType);
-        }
-    }
-
-    /**
-     * Reset the board and navigation state.
+     * Reset the board panel to its empty state.
      */
     public void resetBoard() {
-        stopAnimation();
-        currentSolution = null;
-        currentStep = 0;
         boardPanel.reset();
     }
 
     /**
-     * Update the board to show a specific board configuration
-     * (used for resizing from config changes).
+     * Resize the board grid.
      */
     public void resizeBoard(int rows, int cols) {
         boardPanel.setBoard(rows, cols);
@@ -161,12 +122,12 @@ public class MainFrame extends JFrame {
      * Handle a cell click on the board: if a placement mode is active,
      * set the corresponding piece's position and refresh the preview.
      *
-     * @param row Clicked x (0-based)
+     * @param row Clicked row (0-based)
      * @param col Clicked column (0-based)
      */
     private void handleCellClick(int row, int col) {
         int placement = configPanel.getActivePlacement();
-        if (placement == 0) return; // No placement mode active
+        if (placement == 0) return;
 
         if (placement == 1) {
             configPanel.setWhitePosition(row, col);
@@ -174,19 +135,14 @@ public class MainFrame extends JFrame {
             configPanel.setBlackPosition(row, col);
         }
 
-        // Deactivate placement mode after placing
         configPanel.clearPlacementMode();
-
-        // refreshPiecePreview() is called automatically via the spinner
-        // change listener → fireConfigChanged → onConfigChanged callback
+        // refreshPiecePreview() fires automatically via spinner → fireConfigChanged → onConfigChanged
     }
 
     /**
      * Show piece icons on the board at their configured starting positions.
-     * Only shown when no solution is displayed (idle/preview state).
      */
     public void refreshPiecePreview() {
-        if (currentSolution != null) return; // Don't overwrite solution display
         boardPanel.showPiecePreview(
             configPanel.getWhiteType(), configPanel.getWhiteRow(), configPanel.getWhiteCol(),
             configPanel.getBlackType(), configPanel.getBlackRow(), configPanel.getBlackCol()
@@ -240,79 +196,4 @@ public class MainFrame extends JFrame {
         statsPanel.stopLiveTimer();
     }
 
-    // =====================================================================
-    //  Step-by-step navigation (internal wiring)
-    // =====================================================================
-
-    /**
-     * Wire <<, >>, Play buttons to internal navigation logic.
-     */
-    private void wireNavigationButtons() {
-        controlPanel.addPrevListener(e -> navigatePrev());
-        controlPanel.addNextListener(e -> navigateNext());
-        controlPanel.addPlayListener(e -> toggleAnimation());
-
-        // Update running animation speed when slider changes
-        controlPanel.addSpeedChangeListener(e -> {
-            if (animationTimer != null && animationTimer.isRunning()) {
-                animationTimer.setDelay(controlPanel.getAnimationDelay());
-            }
-        });
-    }
-
-    private void navigatePrev() {
-        if (currentSolution == null || currentSolution.isEmpty()) return;
-        if (currentStep > 0) {
-            currentStep--;
-            boardPanel.updateBoard(currentSolution, currentStep, whiteType, blackType);
-        }
-    }
-
-    private void navigateNext() {
-        if (currentSolution == null || currentSolution.isEmpty()) return;
-        if (currentStep < currentSolution.size() - 1) {
-            currentStep++;
-            boardPanel.updateBoard(currentSolution, currentStep, whiteType, blackType);
-        }
-    }
-
-    private void toggleAnimation() {
-        if (controlPanel.isPlaying()) {
-            stopAnimation();
-        } else {
-            startAnimation();
-        }
-    }
-
-    private void startAnimation() {
-        if (currentSolution == null || currentSolution.isEmpty()) return;
-
-        // Reset to beginning if at the end
-        if (currentStep >= currentSolution.size() - 1) {
-            currentStep = 0;
-        }
-
-        controlPanel.setPlayLabel(true);
-
-        animationTimer = new Timer(controlPanel.getAnimationDelay(), e -> {
-            if (currentStep < currentSolution.size() - 1) {
-                currentStep++;
-                boardPanel.updateBoard(currentSolution, currentStep, whiteType, blackType);
-            } else {
-                // Reached the end
-                stopAnimation();
-            }
-        });
-        animationTimer.start();
-    }
-
-    /**
-     * Stop the animation timer if running.
-     */
-    public void stopAnimation() {
-        if (animationTimer != null && animationTimer.isRunning()) {
-            animationTimer.stop();
-        }
-        controlPanel.setPlayLabel(false);
-    }
 }

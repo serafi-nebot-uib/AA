@@ -1,6 +1,6 @@
 # Fdb version 4
-["pdflatex"] 1773919097.33499 "/Users/serafi/Documents/uib/CS/Y3/AA/P2/memoria/memoria.tex" "memoria.pdf" "memoria" 1773919097.72907 0
-  "/Users/serafi/Documents/uib/CS/Y3/AA/P2/memoria/memoria.tex" 1773919097.15586 31403 7f808c4e166d92c50ff96f5a9471a39d ""
+["pdflatex"] 1774005931.89688 "/Users/serafi/Documents/uib/CS/Y3/AA/P2/memoria/memoria.tex" "memoria.pdf" "memoria" 1774005932.30344 0
+  "/Users/serafi/Documents/uib/CS/Y3/AA/P2/memoria/memoria.tex" 1774005931.71186 35556 720a477d61b20965a251ad53f9a52af7 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/base/8r.enc" 1165713224 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/local/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/courier/pcrb8r.tfm" 1136768653 1292 3059476c50a24578715759f22652f3d0 ""
@@ -20,6 +20,7 @@
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmr8t.tfm" 1136768653 6672 e3ab9e37e925f3045c9005e6d1473d56 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmrc8t.tfm" 1136768653 16648 7e91c60ebf91b9c60e16ef52b3070f9c ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmri7t.tfm" 1136768653 2288 f478fc8fed18759effb59f3dad7f3084 ""
+  "/usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmri8c.tfm" 1136768653 1428 3f135d3346fb7bfe71989ef2e19a9f01 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmri8r.tfm" 1136768653 4640 532ca3305aad10cc01d769f3f91f1029 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmri8t.tfm" 1136768653 6944 94c55ad86e6ea2826f78ba2240d50df9 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1246382020 1004 54797486969f23fa377b128694d548df ""
@@ -66,6 +67,7 @@
   "/usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/times/ptmr8c.vf" 1136768653 3556 8a9a6dcbcd146ef985683f677f4758a6 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/times/ptmr8t.vf" 1136768653 2348 91706c542228501c410c266421fbe30c ""
   "/usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/times/ptmrc8t.vf" 1136768653 3608 78e4c999d9e69f03f448158d01821741 ""
+  "/usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/times/ptmri8c.vf" 1136768653 3564 2068501a2226e54ce367edd5b047e424 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/times/ptmri8t.vf" 1136768653 2328 6cd7df782b09b29cfc4d93e55b6b9a59 ""
   "/usr/local/texlive/2025/texmf-dist/tex/context/base/mkii/supp-pdf.mkii" 1461363279 71627 94eb9990bed73c364d7f53f960cc8c5b ""
   "/usr/local/texlive/2025/texmf-dist/tex/generic/babel-catalan/catalan.ldf" 1367878858 10113 2e7f3b4656572a71a9061a5e27e11e94 ""
@@ -125,8 +127,8 @@
   "/usr/local/texlive/2025/texmf-var/web2c/pdftex/pdflatex.fmt" 1743237537 3345739 7da140f55beb7e0878cefe3b9a895bb4 ""
   "/usr/local/texlive/2025/texmf.cnf" 1741450484 577 418a7058ec8e006d8704f60ecd22c938 ""
   "IEEEtran.cls" 1773307592.74595 288451 2ca944e3837f3f55e325ddfd2f1a2479 ""
-  "memoria.aux" 1773919097.67795 5006 0cf76d3e2855d6b0737e9ad54050d688 "pdflatex"
-  "memoria.tex" 1773919097.15586 31403 7f808c4e166d92c50ff96f5a9471a39d ""
+  "memoria.aux" 1774005932.2487 5774 785828f08900e3062d81dd2cfa94ee40 "pdflatex"
+  "memoria.tex" 1774005931.71186 35556 720a477d61b20965a251ad53f9a52af7 ""
   (generated)
   "memoria.aux"
   "memoria.log"

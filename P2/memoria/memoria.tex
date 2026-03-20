@@ -108,6 +108,98 @@ backtracking, un recorregut alternat que cobreixi totes les caselles
 d'un tauler de mida configurable (mínim $2 \times 2$, sense límit superior pràctic).
 
 %% ================================================================
+\section{Descripció de l'Aplicació}
+
+L'aplicació és una eina interactiva d'escriptori (Java Swing) que
+permet plantejar i resoldre el problema del recorregut hamiltonià
+de dues peces, visualitzar la solució pas a pas i inspeccionar les
+mètriques de la cerca. La interfície es divideix en tres zones:
+un panell de configuració a l'esquerra, el tauler al centre i un
+panell de controls i estadístiques a la part inferior.
+
+\subsection{Configuració}
+
+\subsubsection{Mida del tauler}
+
+L'usuari especifica el nombre de files i columnes amb dos
+\textit{spinners} (mínim 2, sense límit superior pràctic). Un botó
+\textit{toggle} etiquetat \textit{Quadrat}, situat sobre els dos
+\textit{spinners} i actiu per defecte, manté les dues dimensions
+iguals: qualsevol canvi en un \textit{spinner} es propaga
+automàticament a l'altre. Quan el botó esta inactiu, files i columnes
+es poden ajustar de manera independent per obtenir taulers no quadrats
+($N \times M$). El botó canvia de color de fons (verd quan actiu) per
+indicar l'estat d'un cop d'ull.
+
+\subsubsection{Selecció de peces}
+
+Cada una de les dues peces (blanca i negra) es configura de manera
+independent mitjançant un \texttt{JComboBox} amb les sis opcions
+disponibles: Cavall, Reina, Torre, Alfil, Mussol i Serp. Una icona
+en miniatura mostra la imatge de la peça seleccionada (o les inicials
+en un cercle si la imatge no està disponible).
+
+\subsubsection{Posició inicial}
+
+La posició inicial de cada peça es pot establir de dues maneres:
+
+\begin{itemize}
+    \item Introduint directament els valors de fila i columna (en
+          base 1) als \textit{spinners} de posició.
+    \item Activant el mode de col·locació amb el botó
+          \textit{Col·locar al tauler} (color de fons taronja quan
+          actiu) i fent clic sobre la casella desitjada al tauler.
+          El mode es desactiva automàticament després de col·locar
+          la peça.
+\end{itemize}
+
+En tot moment, les dues peces es mostren sobre el tauler buit en
+la seva posició configurada com a previsualització.
+
+\subsection{Execució de la cerca}
+
+El panell de controls inferior ofereix tres botons d'execució:
+
+\begin{itemize}
+    \item \textbf{Iniciar:} valida la configuració, construeix el
+          tauler i llança la cerca en un fil de fons.
+    \item \textbf{Aturar:} envia un senyal cooperatiu al solver
+          per a que aturi la cerca en curs.
+    \item \textbf{Reiniciar:} atura la cerca (si n'hi ha una en
+          curs), buida el tauler i restaura l'estat inicial.
+\end{itemize}
+
+Durant la cerca, tots els controls de configuració es deshabiliten
+per evitar inconsistències. El panell d'estadístiques mostra en
+temps real el nombre d'iteracions, de retrocesos, la profunditat
+màxima assolida i el temps transcorregut. Un indicador d'estat
+codificat per colors informa sobre la fase actual:
+gris (\textit{En espera}), taronja (\textit{Cercant}),
+verd (\textit{Solució trobada}), vermell
+(\textit{No existeix solució}) i groc (\textit{Aturat}).
+
+\subsection{Visualització de la solució}
+
+Si la cerca troba una solució, el tauler es mostra complet amb
+totes les caselles visitades. Cada casella visitada indica el número
+de pas a la cantonada superior esquerra, i les icones
+de cada peça es mostren a la seva posició final. El tauler inclou
+etiquetes de fila (a l'esquerra) i columna (a la part superior),
+que s'alineen exactament amb cada casella.
+
+L'usuari pot navegar per la solució pas a pas:
+
+\begin{itemize}
+    \item \textbf{$\langle\langle$ / $\rangle\rangle$:} retrocedeix o
+          avança un pas. La casella del pas actual es ressalta en groc
+          i es pinta la peça corresponent.
+    \item \textbf{Reproduir / Pausar:} inicia o atura una reproducció
+          animada automàtica.
+    \item \textbf{Lliscador de velocitat:} controla el retard entre
+          passos de l'animació ($50$--$2000$~ms).
+\end{itemize}
+
+%% ================================================================
 \section{Disseny i Implementació}
 
 \subsection{Patró MVC i Comunicació per Events}
@@ -131,7 +223,7 @@ i callbacks.
 La cerca de backtracking pot trigar des de mil·lisegons fins a
 hores o inclús dies per a taulers grans. Executar-la al fil EDT
 (\textit{Event Dispatch Thread}) bloquejaria la interfície. La solució
-és \texttt{SwingWorker}: el mètode
+és \texttt{SwingWorker}~\cite{ref_swingworker}: el mètode
 \texttt{doInBackground()} executa la cerca en un fil de fons, mentre
 \texttt{done()} lliura el resultat al fil EDT quan acaba. El progrés
 intermedi s'envia al fil EDT amb \texttt{SwingUtilities.invokeLater()}.
@@ -159,7 +251,7 @@ Defineix els sis tipus de peces disponibles. Cada constant porta:
           Per a peces contínues, cada fila és una direcció que es
           repeteix fins a sortir del tauler o topar una casella visitada.
     \item \texttt{getImagePath(boolean isWhite)}: ruta al recurs de la
-          icona PNG al classpath.
+          icona PNG de la peça blanca si \texttt{isWhite=true} o negra si \textit{isWhite=false}.
 \end{itemize}
 
 La Taula~\ref{tab:pieces} resumeix les sis peces implementades.
@@ -188,7 +280,8 @@ passos de magnitud 3 i 1 (vectors $(\pm3, \pm1)$ i $(\pm1, \pm3)$),
 en comptes dels passos 2-1 del cavall estàndard. La Serp combina dos tipus de salt: un pas en qualsevol dels quatre
 sentits ortogonals (vectors $(\pm1, 0)$ i $(0, \pm1)$) i dos passos
 en qualsevol de les quatre diagonals (vectors $(\pm2, \pm2)$), donant
-un total de 8 vectors de desplaçament.
+un total de 8 vectors de desplaçament. La resta de peces tenen els
+seus moviments clàssics d'un tauler d'escacs.
 
 \subsubsection{Board}
 
@@ -224,7 +317,7 @@ booleana \texttt{boolean[][]} de caselles visitades i un comptador
 \subsubsection{SolverMetrics}
 
 Registra estadístiques de la cerca: nombre d'iteracions, de retrocesos,
-profunditat màxima assolida i temps de paret transcorregut. Permet
+profunditat màxima assolida i temps transcorregut. Permet
 monitoritzar l'eficàcia de l'heurística i comparar el comportament
 per a taulers i peces de diferent dificultat.
 
@@ -232,10 +325,10 @@ per a taulers i peces de diferent dificultat.
 
 Registre immutable que representa una casella
 del tauler amb les seves coordenades de fila i columna.
-Es podria substituir un per un simple un array de \textit{int} de dos
-elements però l'ús de \textit{record} (registre) ens permet referenciar
+Es podria substituir un per un simple un array de \texttt{int} de dos
+elements però l'ús de \texttt{record} (registre) ens permet referenciar
 cada coordenada de forma més fàcil i afegir mètodes per a realitzar càlculs
-sobre la posició. Per exemple: \textit{add(pos)} per a afegir una posició amb
+sobre la posició. Per exemple: \texttt{add(pos)} per a sumar una posició a 
 una altre; útil per a calcular el destí d'un moviment a partir d'una posició inicial.
 
 \subsection{Capa de la Vista}
@@ -249,16 +342,14 @@ una altre; útil per a calcular el destí d'un moviment a partir d'una posició 
     \item \texttt{ConfigPanel} a l'oest (en un \texttt{JScrollPane}).
     \item \texttt{BoardPanel} al centre.
     \item \texttt{ControlPanel} al sud.
-    \item \texttt{StatsPanel} al sud (dins el mateix panell inferior).
+    \item \texttt{StatsPanel} al sud (a la dreta de \texttt{ControlPanel}).
 \end{itemize}
 
-\texttt{MainFrame} manté l'estat de navegació de la solució (llista de
-posicions, pas actual, tipus de cada peça) i gestiona un
-\texttt{javax.swing.Timer} per a la reproducció animada. El controlador
-interactua exclusivament amb els mètodes públics de \texttt{MainFrame}
-(\texttt{showSolution}, \texttt{resetBoard}, \texttt{updateStats},
-\texttt{setSolverState}, etc.), que operen amb dades, mai amb
-components Swing.
+\texttt{MainFrame} és una classe de presentació pura: no manté cap
+estat de domini ni de navegació. El controlador hi interactua
+exclusivament a través dels mètodes públics de delegació
+(\texttt{resetBoard}, \texttt{updateStats}, \texttt{setSolverState},
+etc.), que operen amb dades, mai amb components Swing directament.
 
 % --- SUGGERIMENT D'IMATGE ---
 % Aquí es podria inserir una captura de pantalla de la finestra principal
@@ -270,11 +361,14 @@ components Swing.
 
 \subsubsection{BoardPanel}
 
-Panell de dibuix del tauler. Utilitza un \texttt{GridLayout} dins un
-panell exterior amb \texttt{null} layout. El mètode \texttt{doLayout}
+Panell de dibuix del tauler. Utilitza un \texttt{GridLayout} per a
+distribuir les cel·les del tauler. El mètode \texttt{doLayout}
 calcula la mida de cel·la màxima entera que cap a l'espai disponible
-($\texttt{cellSize} = \min(\lfloor w/\text{cols} \rfloor, \lfloor h/\text{rows} \rfloor)$,
-descomptant les vores del panell interior) i dimensiona la graella a
+de la següent forma:
+\[
+      \texttt{cellSize} = \min(\lfloor w/\texttt{cols} \rfloor, \lfloor h/\texttt{rows} \rfloor)
+\]
+on $w$ és l'amplada del tauler i $h$ l'alçada, i dimensiona la graella a
 $\texttt{cols} \times \texttt{cellSize}$ per $\texttt{rows} \times \texttt{cellSize}$,
 garantint que cada casella sigui un quadrat perfecte fins i tot per a
 taulers no quadrats ($N \times M$). Les etiquetes de fila i columna
@@ -452,12 +546,20 @@ l'indicador cooperatiu del solver.
 
 \subsubsection{SolverController}
 
-Implementa el rol de controlador en el patró MVC. És l'únic propietari
-del callback \texttt{onConfigChanged} de \texttt{ConfigPanel}: el
-registra en construir-se i s'encarrega de redimensionar el tauler i
-refrescar la previsualització de les peces davant qualsevol canvi de
-configuració. Registra també els listeners dels botons d'Iniciar,
-Aturar i Reiniciar. Quan s'inicia la cerca:
+Implementa el rol de controlador en el patró MVC i és l'únic dipositari
+de l'estat de navegació de la solució: la llista de posicions del camí
+hamiltonià, el pas actual i els tipus de les dues peces. Registra tots
+els listeners de la vista (Iniciar, Aturar, Reiniciar, pas anterior,
+pas següent, reproduir/pausar, lliscador de velocitat) i és l'únic
+propietari del callback \texttt{onConfigChanged} de
+\texttt{ConfigPanel}.
+
+Gestiona també el \texttt{javax.swing.Timer} de la reproducció animada:
+cada \textit{tick} crida \texttt{stepForward()}, que incrementa el pas
+i actualitza el tauler, o atura el temporitzador si s'ha assolit el
+final de la solució.
+
+Quan s'inicia la cerca:
 
 \begin{enumerate}
     \item Llegeix els paràmetres de \texttt{ConfigPanel} (dimensions,
@@ -467,7 +569,8 @@ Aturar i Reiniciar. Quan s'inicia la cerca:
     \item Crea un \texttt{SolverTask} i el posa en marxa amb
           \texttt{execute()}.
     \item El callback de completació (\texttt{onSolvingComplete}) rep
-          el resultat al fil EDT i actualitza l'estat visual de la vista.
+          el resultat al fil EDT, carrega la solució amb
+          \texttt{loadSolution()} i actualitza l'estat visual de la vista.
 \end{enumerate}
 
 La Fig.~\ref{fig:mvc} mostra el diagrama de classes simplificat amb les
@@ -696,25 +799,16 @@ simultàniament.
 %% ================================================================
 
 \begin{thebibliography}{9}
-\bibliographystyle{IEEEtran}
-
-\bibitem{ref_gamma}
-E. Gamma, R. Helm, R. Johnson, and J. Vlissides, \textit{Design Patterns:
-Elements of Reusable Object-Oriented Software}. Reading, MA, USA:
-Addison-Wesley, 1994.
 
 \bibitem{ref_warnsdorff}
-H.~C. Warnsdorff, \textit{Des Rösselsprunges einfachste und allgemeinste
-Lösung}. Schmalkalden, Germany: L.~Rückner, 1823.
+Conrad\_Barski, ``Warnsdorff's rule for Knight's tours,''
+Wikipedia, Jan.\ 2025. [Online]. Available:
+\url{https://en.wikipedia.org/wiki/Knight%27s_tour#Warnsdorff's_rule}
 
-\bibitem{ref_knuth}
-D. E. Knuth, \textit{The Art of Computer Programming, Vol. 1:
-Fundamental Algorithms}, 3rd~ed. Reading, MA, USA: Addison-Wesley, 1997.
-
-\bibitem{ref_java}
-Oracle Corporation, ``The Java Tutorials --- Concurrency in Swing,''
-[Online]. Available:
-\url{https://docs.oracle.com/javase/tutorial/uiswing/concurrency/}
+\bibitem{ref_swingworker}
+camickr, ``How do I use SwingWorker in Java?,''
+Stack Overflow, Apr.\ 2009. [Online]. Available:
+\url{https://stackoverflow.com/questions/782265/how-do-i-use-swingworker-in-java}
 
 \end{thebibliography}
 
