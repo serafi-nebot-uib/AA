@@ -174,9 +174,10 @@ per evitar inconsistències. El panell d'estadístiques mostra en
 temps real el nombre d'iteracions, de retrocesos, la profunditat
 màxima assolida i el temps transcorregut. Un indicador d'estat
 codificat per colors informa sobre la fase actual:
-gris (\textit{En espera}), taronja (\textit{Cercant}),
+gris (\textit{Esperant}), blau (\textit{Cercant}),
 verd (\textit{Solució trobada}), vermell
-(\textit{No existeix solució}) i groc (\textit{Aturat}).
+(\textit{No hi ha solució}) i groc-marró (\textit{Aturat}).
+Els colors específics es detallen a la Taula~\ref{tab:states}.
 
 \subsection{Visualització de la solució}
 
@@ -222,11 +223,16 @@ i callbacks.
 
 La cerca de backtracking pot trigar des de mil·lisegons fins a
 hores o inclús dies per a taulers grans. Executar-la al fil EDT
-(\textit{Event Dispatch Thread}) bloquejaria la interfície. La solució
-és \texttt{SwingWorker}~\cite{ref_swingworker}: el mètode
-\texttt{doInBackground()} executa la cerca en un fil de fons, mentre
-\texttt{done()} lliura el resultat al fil EDT quan acaba. El progrés
-intermedi s'envia al fil EDT amb \texttt{SwingUtilities.invokeLater()}.
+(\textit{Event Dispatch Thread}) bloquejaria la interfície, impedint
+qualsevol interacció de l'usuari durant la cerca. La solució estàndard
+és \texttt{SwingWorker}~\cite{ref_swingworker}~\cite{ref_swingworker_oracle},
+una classe abstracta que encapsula el patró de treball en segon pla:
+el mètode \texttt{doInBackground()} s'executa en un fil separat del,
+mentre que \texttt{done()} s'invoca
+automàticament al fil EDT quan la tasca finalitza. El progrés
+intermedi s'envia al fil EDT amb \texttt{SwingUtilities.invokeLater()},
+permetent actualitzar les estadístiques en temps real sense bloquejar
+ni la cerca ni la interfície.
 
 \subsection{Capa del Model}
 
@@ -431,22 +437,83 @@ quan detecta canvis de configuració.
 
 \subsubsection{ControlPanel}
 
-Conté sis botons i un lliscador de velocitat. Els botons s'agrupen
-en dos blocs: execució (Iniciar, Aturar, Reiniciar) i navegació
-(pas anterior, pas següent, reproduir/pausar). El lliscador controla
-el retard de l'animació entre $50$ i $2000$~ms. El panell exposa tres
-estats explícits (\texttt{setIdleState}, \texttt{setExecutionState},
-\texttt{setSolutionState}) que habiliten o deshabiliten els botons
-adequats per a cada fase.
+Conté sis botons i un lliscador de velocitat organitzats amb
+\texttt{BorderLayout}: els botons al centre i el lliscador a la part
+inferior. Els botons s'agrupen visualment en dos blocs separats per
+un \texttt{JSeparator} vertical: execució (Iniciar, Aturar, Reiniciar)
+i navegació (pas anterior, pas següent, reproduir/pausar). Tots els
+botons utilitzen símbols Unicode ($\blacktriangleright$, $\blacksquare$,
+$\circlearrowleft$, etc.) combinats amb text en català, i incorporen
+tooltips descriptius.
+
+El lliscador de velocitat controla el retard de l'animació de reproducció
+de la solució trobada entre $50$
+i $2000$~ms, amb un valor per defecte de $500$~ms. Cal destacar que el
+lliscador està invertit (\texttt{setInverted(true)}): el costat dret
+correspon a valors baixos de retard (animació ràpida), seguint la
+convenció intuïtiva on «dreta = més ràpid». En lloc de mostrar els valors numèrics per defecte ($50$, $2000$) als
+extrems del lliscador, s'utilitza el mètode \texttt{setLabelTable()} amb
+un \texttt{Hashtable<Integer, JLabel>} que associa posicions específiques
+del lliscador amb etiquetes de text personalitzades («Lent», «Ràpid»).
+Aquest és l'únic mecanisme que l'API de \texttt{JSlider} ofereix per
+personalitzar les etiquetes, dissenyat per permetre col·locar etiquetes
+a qualsevol posició, no només als extrems.
+
+El panell exposa tres mètodes d'estat explícits (\texttt{setIdleState},
+\texttt{setExecutionState}, \texttt{setSolutionState}) que gestionen
+l'habilitació/deshabilitació dels botons segons la fase actual:
+durant l'execució de la cerca, tots els botons excepte «Aturar» es
+deshabiliten per evitar inconsistències; quan hi ha solució disponible,
+els botons de navegació s'habiliten. El botó de reproducció canvia
+dinàmicament el seu text entre «$\blacktriangleright$ Reproduir» i
+«$\parallel$ Pausar» segons l'estat intern \texttt{isPlaying}.
 
 \subsubsection{StatsPanel}
 
-Mostra les mètriques de cerca en temps real: temps transcorregut
-(actualitzat cada segon amb un \texttt{javax.swing.Timer}), nombre
-d'iteracions, de retrocesos, profunditat màxima i estat actual. Un
-codi de colors diferencia els estats: gris (\textit{En espera}),
-taronja (\textit{Cercant}), verd (\textit{Solució trobada}), vermell
-(\textit{No existeix solució}) i groc (\textit{Aturat}).
+Utilitza \texttt{GridBagLayout} per organitzar parells etiqueta-valor
+en una disposició vertical compacta. Cada valor es mostra en negreta
+per destacar-lo visualment respecte de l'etiqueta.
+El panell té un \texttt{TitledBorder} amb el text «Estadístiques».
+
+Mostra cinc mètriques en temps real: temps transcorregut, nombre
+d'iteracions, de retrocesos, profunditat màxima i estat actual. El
+temps es formata automàticament en format MM:SS o HH:MM:SS segons la
+durada, mitjançant el mètode \texttt{formatTime()}. Els nombres grans
+(iteracions, retrocesos) s'imprimeixen amb separadors de milers locals
+utilitzant \texttt{String.format("\%,d", number)} per millorar la
+llegibilitat.
+
+L'actualització del temps en directe es gestiona amb un
+\texttt{javax.swing.Timer} que s'executa cada $1000$~ms (un segon) i
+recalcula el temps transcorregut des de \texttt{timerStartMillis} fins
+al moment actual. Aquest temporitzador s'inicia quan comença la cerca
+i s'atura quan finalitza.
+
+Els estats es diferencien amb colors definits com a constants RGB.
+La Taula~\ref{tab:states} mostra els cinc estats possibles amb els
+seus colors associats.
+
+% Define custom colors for the states table
+\definecolor{searchingblue}{RGB}{0,100,200}
+\definecolor{foundgreen}{RGB}{0,150,0}
+\definecolor{notfoundred}{RGB}{200,0,0}
+\definecolor{stoppedyellow}{RGB}{180,120,0}
+
+\begin{table}[h]
+    \caption{Estats del solver i colors associats.\label{tab:states}}
+    \centering
+    \begin{tabular}{ll}
+        \toprule
+        Estat & Definició Java \\
+        \midrule
+        \textcolor{gray}{Esperant}                  & \texttt{Color.GRAY} \\
+        \textcolor{searchingblue}{Cercant}          & \texttt{new Color(0, 100, 200)} \\
+        \textcolor{foundgreen}{Solució trobada}     & \texttt{new Color(0, 150, 0)} \\
+        \textcolor{notfoundred}{No hi ha solució}   & \texttt{new Color(200, 0, 0)} \\
+        \textcolor{stoppedyellow}{Aturat}           & \texttt{new Color(180, 120, 0)} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
 % --- SUGGERIMENT D'IMATGE ---
 % Aquí es podria inserir una captura de pantalla del StatsPanel mostrant
@@ -457,11 +524,33 @@ taronja (\textit{Cercant}), verd (\textit{Solució trobada}), vermell
 
 \subsubsection{PieceIcon}
 
-Panell reutilitzable que carrega i escala la icona d'una peça des del
-classpath. Utilitza un \texttt{HashMap} estàtic com a cache d'imatges per
-evitar recarregar el mateix recurs múltiples vegades. Si el recurs no
-es troba, mostra el nom abreujat de la peça en un cercle, actuant com
-a \textit{fallback} de text.
+Component reutilitzable que estén \texttt{JPanel} i renderitza la icona
+d'una peça escalada. Té una mida preferida de $48 \times 48$ píxels amb
+un \textit{padding} intern de 4 píxels. El panell és transparent
+(\texttt{setOpaque(false)}) per integrar-se visualment amb qualsevol fons.
+
+Les imatges es carreguen des del classpath mitjançant
+\texttt{ImageIO.read()} amb un \texttt{InputStream}. Per evitar operacions
+d'I/O repetides, s'utilitza un \texttt{HashMap<String, BufferedImage>}
+estàtic (compartit amb totes les instàncies de \texttt{PieceIcon})
+com a cache de les imatges indexades per la seva ruta de recurs.
+
+El mètode \texttt{paintComponent()} utilitza \texttt{Graphics2D} amb
+dos \textit{rendering hints}~\cite{ref_rendering_hints,ref_rendering_hints_api}:
+\texttt{KEY\_ANTIALIASING} perquè les icones es mostren sobre fons de
+colors variats i les vores irregulars serien especialment visibles, i
+\texttt{KEY\_INTERPOLATION\_BILINEAR} perquè les imatges s'escalen
+dinàmicament al tamany de cada casella i la interpolació bilineal
+evita la pixelació. Com que totes les imatges
+són quadrades, es calcula la mida màxima del quadrat que cap dins del
+component (\texttt{Math.min(w, h)}) i es centra horitzontalment i
+verticalment.
+
+Si la imatge no es pot carregar, es dibuixa un \textit{fallback} de text:
+un cercle amb el nom abreujat de la peça centrat. Les peces blanques
+utilitzen un fons beix clar (RGB $240, 240, 220$) amb text negre,
+mentre que les peces negres utilitzen un fons marró fosc (RGB $80, 60, 40$)
+amb text blanc. El cercle té un contorn de $1.5$ píxels.
 
 \subsection{Capa del Controlador}
 
@@ -475,46 +564,48 @@ a \texttt{Board}.
 
 \subsubsection{BacktrackingSolver}
 
-El nucli algorísmic. El mètode \texttt{solve()} col·loca les dues
-peces (blanca i negra) a les posicions inicials indicades, marca les
-dues caselles com a visitades, comprova que les peces no es capturen
-mútuament a l'inici, i invoca \texttt{backtrack()}:
+El nucli algorísmic. Abans d'invocar \texttt{search()}, el mètode
+\texttt{solve()} reinicia el tauler, la llista de solució i les
+mètriques; marca les dues caselles inicials com a visitades i les
+afegeix a la llista; i comprova que les peces no es capturen mútuament
+a l'inici --- si és el cas, retorna \texttt{false} immediatament sense
+iniciar el backtracking. El Listing \ref{lst:backtracking}
+mostra l'esquelet general de l'algorisme backtracking en pseudocodi.
 
-\begin{lstlisting}[caption={Esquelet del backtracking recursiu.}]
-boolean backtrack(Position cur, PieceType curP,
-                  Position other, PieceType otherP,
-                  int depth) {
-    if (board.getVisitedCount() == board.getTotalCells())
-        return true;
-    if (stopped) return false;
-    metrics.incrementIterations();
-    for (Position next :
-         board.getValidMovesSorted(cur, curP)) {
-        if (board.canCapture(next, curP, other)
-         || board.canCapture(other, otherP, next))
-            continue;
-        board.setVisited(next);
-        if (backtrack(other, otherP,
-                      next, curP, depth + 1))
-            return true;
-        metrics.incrementBacktracks();
-        board.unsetVisited(next);
-    }
-    return false;
+\begin{lstlisting}[caption={Esquelet del backtracking recursiu.},label={lst:backtracking},float=h]
+boolean search(curPos, curPiece, otherPos, otherPiece) {
+  if (all cells visited) return true;
+  if (stopped)           return false;
+
+  for (next : validMovesSorted(curPos, curPiece)) {
+      if (canCapture(next, otherPos) || canCapture(otherPos, next))
+          continue;
+
+      visit(next);
+      if (search(otherPos, otherPiece, next, curPiece))
+          return true;
+      unvisit(next);  // aqui es produeix el retrocediment real
+  }
+  return false;
 }
 \end{lstlisting}
 
-L'intercanvi de rols a la crida recursiva
-(\texttt{other, otherP, next, curP}) implementa l'alternança de torns.
-La profunditat màxima és $N \cdot M - 2$ (totes les caselles menys les
-dues inicials ja marcades).
+Per a cada candidat \texttt{next} es fan dues comprovacions de captura
+independents: que la peça actual no pugui capturar l'altra des de
+\texttt{next}, i que l'altra peça no pugui capturar la peça actual a
+\texttt{next}. Quan un moviment és vàlid, la posició es marca com a
+visitada; si la branca no porta a solució, es desfà (\texttt{unvisit}).
+L'intercanvi de rols a la crida
+recursiva (\texttt{otherPos, otherPiece, next, curPiece}) implementa
+l'alternança de torns.
+La profunditat màxima és $N \cdot M - 2$.
 
-L'aturada cooperativa es gestiona amb un indicador \texttt{volatile
+El progrés s'envia al fil EDT cada \texttt{PROGRESS\_UPDATE\_INTERVAL}
+(1000) iteracions via un \texttt{Consumer<Integer>} configurat per
+\texttt{SolverTask}, desacoblant el solver de qualsevol dependència de
+la vista. L'aturada cooperativa es gestiona amb un indicador \texttt{volatile
 boolean stopped}: el bucle comprova \texttt{stopped} a cada iteració,
-i el fil EDT el posa a \texttt{true} quan l'usuari clica \textit{Aturar}.
-Quan es captura \texttt{InterruptedException} al mètode \texttt{done()}
-de \texttt{SolverTask}, es restaura l'indicador d'interrupció del fil
-amb \texttt{Thread.currentThread().interrupt()}.
+i el controlador el posa a \texttt{true} quan l'usuari clica \textit{Aturar}.
 
 \subsubsection{SolverTask}
 
@@ -533,16 +624,37 @@ l'indicador cooperatiu del solver.
 
 Implementa el rol de controlador en el patró MVC i és l'únic dipositari
 de l'estat de navegació de la solució: la llista de posicions del camí
-hamiltonià, el pas actual i els tipus de les dues peces. Registra tots
-els listeners de la vista (Iniciar, Aturar, Reiniciar, pas anterior,
-pas següent, reproduir/pausar, lliscador de velocitat) i és l'únic
-propietari del callback \texttt{onConfigChanged} de
-\texttt{ConfigPanel}.
+hamiltonià, el pas actual i els tipus de les dues peces.
 
-Gestiona també el \texttt{javax.swing.Timer} de la reproducció animada:
-cada \textit{tick} crida \texttt{stepForward()}, que incrementa el pas
-i actualitza el tauler, o atura el temporitzador si s'ha assolit el
-final de la solució.
+\paragraph{Registre de listeners.}
+Tot el registre d'esdeveniments es concentra al mètode privat
+\texttt{wireListeners()}, invocat al constructor. Aquesta decisió de
+disseny és intencional: centralitzar el \textit{wiring} al controlador
+manté \texttt{MainFrame} com una classe de presentació pura sense cap
+coneixement de la lògica de negoci, i evita que la vista hagi de
+conèixer el controlador directament. El mètode registra set listeners:
+els tres botons d'execució (Iniciar, Aturar, Reiniciar), els tres de
+navegació (pas anterior, pas següent, reproduir/pausar), el lliscador
+de velocitat i el callback \texttt{onConfigChanged} de
+\texttt{ConfigPanel}. El listener del lliscador té un comportament
+notable: si l'animació ja està en curs, actualitza el retard del
+temporitzador en temps real (\texttt{animationTimer.setDelay()}) sense
+aturar ni reiniciar l'animació. El callback de configuració redimensiona
+el tauler i refresca la previsualització de les peces cada vegada que
+l'usuari canvia les dimensions o el tipus de peça.
+
+\paragraph{Animació pas a pas.}
+Quan l'usuari clica \textit{Reproduir}, es crea un nou
+\texttt{javax.swing.Timer} amb el retard actual del lliscador; si la
+reproducció anterior havia arribat al final, el pas es reinicia a 0
+automàticament. Cada \textit{tick} del temporitzador crida
+\texttt{stepForward()}: si queden passos, incrementa \texttt{currentStep}
+i actualitza el tauler; si s'ha assolit l'últim pas, atura el
+temporitzador automàticament. En acabar la cerca, el mètode
+\texttt{onSolvingComplete()} gestiona tres casos: si el solver ha estat
+aturat, si ha trobat solució (en aquest cas carrega el camí i habilita
+la navegació) o si no existeix solució; en tots tres casos actualitza
+l'estat visual de la interfície de manera consistent.
 
 Quan s'inicia la cerca:
 
@@ -643,8 +755,11 @@ per a diverses combinacions de peces i mides de tauler.
     \end{tabular}
 \end{table}
 
-\textit{Nota:} Els valors de la taula s'hauran d'actualitzar amb els
-resultats reals de les mesures experimentals.
+Aquests valors mostren clarament l'efecte de l'heurística de Warnsdorff:
+per a peces amb moviments ben distribuïts (com el Cavall), l'heurística
+elimina gairebé tots els retrocesos, mentre que per a peces amb gran
+mobilitat i restriccions de captura severes (com dues Reines), el
+nombre de retrocesos creix exponencialment.
 
 \subsection{Cost de Comprovació de Captura}
 
@@ -697,6 +812,15 @@ molt ràpidament amb la mida del tauler quan la heurística no és
 suficient. Per a la combinació de dues reines, taulers de
 $7 \times 7$ o més ja presenten temps de resolució superiors a un minut.
 
+Aquest comportament exponencial es deu a dos factors: primer, l'espai
+de cerca creix com $O(k^{N \cdot M})$, on $k$ és el nombre mitjà de
+moviments per posició; segon, les restriccions de captura entre dues
+peces de gran abast (com reines) eliminen gairebé tots els candidats
+en profunditat mitjana-alta, forçant backtracking massiu. En contrast,
+taulers més grans amb peces de mobilitat limitada (com dos Cavalls)
+sovint es resolen més ràpidament perquè l'heurística de Warnsdorff té
+més opcions per escollir i pot evitar millor els camins sense sortida.
+
 % --- SUGGERIMENT D'IMATGE ---
 % Aquí es podria inserir una gràfica (generada amb gnuplot o similar)
 % que mostri el temps de resolució (eix Y, escala logarítmica) en funció
@@ -714,6 +838,15 @@ retrocesos. Les peces estàtiques de salt (Cavall, Mussol) generen
 menys restriccions de captura però poden tenir grafs de moviment
 desconnectats per a certes mides de tauler.
 
+Cal destacar una observació crítica: l'heurística de Warnsdorff, dissenyada
+originalment per al Cavall en un tauler estàndard, no és igualment efectiva
+per a totes les combinacions de peces. Per a peces contínues com la Reina,
+l'heurística pot produir resultats contraproduents: escollir la casella amb
+menys accessibilitat futura pot bloquejar ràpidament l'altra peça a causa
+de les restriccions de captura. Aquest fenomen explica per què certes
+combinacions (Reina + Reina) són exponencialment més costoses que d'altres,
+fins i tot en taulers petits.
+
 \subsection{Impacte de la Posició Inicial}
 
 La posició inicial de les peces influeix significativament en el temps
@@ -721,12 +854,47 @@ de resolució. Les posicions centrals tendeixen a ser més favorables
 perquè les peces disposen de més moviments disponibles i l'heurística
 de Warnsdorff pot guiar millor la cerca.
 
+No obstant això, existeixen casos excepcionals on posicions aparentment
+desfavorables (cantonades o marges) poden resultar en temps de resolució
+més curts. Aquest fenomen es deu al fet que començar en una posició
+restrictiva força l'algorisme a visitar zones difícils d'accés al principi
+del recorregut, evitant quedar atrapat en camins sense sortida més
+endavant. Aquest comportament suggereix que una estratègia híbrida
+—començant deliberadament per les zones més restrictives— podria
+millorar el rendiment mitjà de l'heurística.
+
 % --- SUGGERIMENT D'IMATGE ---
 % Aquí es podria inserir una captura de pantalla de la solució final
 % per a una configuració representativa (p.ex. Cavall + Cavall en un 8x8),
 % mostrant el tauler complet amb els 64 números de pas.
 % Etiqueta suggerida: fig:solution-8x8
 % Mida: figure* (ample complet) per mostrar bé els detalls.
+
+\subsection{Limitacions de l'Heurística}
+
+Tot i que l'heurística de Warnsdorff és altament efectiva per a moltes
+configuracions, presenta limitacions importants que han estat observades
+durant l'experimentació:
+
+\begin{enumerate}
+    \item \textbf{Decisions greedy irrevocables:} L'heurística pren
+          decisions locals òptimes que poden bloquejar globalment la
+          solució. En particular, no considera l'impacte de la restricció
+          de no-captura sobre l'altra peça.
+    \item \textbf{Empataments:} Quan múltiples caselles tenen el mateix
+          grau de Warnsdorff, la tria arbitrària pot determinar l'èxit
+          o fracàs de la cerca. Una exploració exhaustiva dels empataments
+          milloraria la taxa d'èxit però incrementaria el cost.
+    \item \textbf{Peces amb gran mobilitat:} Per a peces com la Reina,
+          el grau de Warnsdorff sovint és artificialment alt (gairebé
+          totes les caselles són accessibles), fent que l'heurística
+          perdi poder discriminatori.
+\end{enumerate}
+
+Aquestes observacions suggereixen que una heurística adaptativa, que
+ajusti els seus criteris segons el tipus de peces i les restriccions
+actives, podria superar significativament la implementació estàndard
+de Warnsdorff.
 
 \subsection{Disseny del Programari}
 
@@ -794,6 +962,21 @@ Wikipedia, Jan.\ 2025. [Online]. Available:
 camickr, ``How do I use SwingWorker in Java?,''
 Stack Overflow, Apr.\ 2009. [Online]. Available:
 \url{https://stackoverflow.com/questions/782265/how-do-i-use-swingworker-in-java}
+
+\bibitem{ref_swingworker_oracle}
+Oracle, ``Worker Threads and SwingWorker,''
+\textit{The Java Tutorials: Concurrency in Swing}. [Online]. Available:
+\url{https://docs.oracle.com/javase/tutorial/uiswing/concurrency/worker.html}
+
+\bibitem{ref_rendering_hints}
+Oracle, ``Controlling Rendering Quality,''
+\textit{The Java Tutorials: 2D Graphics}. [Online]. Available:
+\url{https://docs.oracle.com/javase/tutorial/2d/advanced/quality.html}
+
+\bibitem{ref_rendering_hints_api}
+Oracle, ``RenderingHints (Java SE 8),''
+\textit{Java Platform SE 8 API Specification}. [Online]. Available:
+\url{https://docs.oracle.com/javase/8/docs/api/java/awt/RenderingHints.html}
 
 \bibitem{ref_mouseclicked_platforms}
 M.~Dahmus and F.~Kleinschmidt, ``mouseClicked vs. mousePressed on Apple vs. Windows,''

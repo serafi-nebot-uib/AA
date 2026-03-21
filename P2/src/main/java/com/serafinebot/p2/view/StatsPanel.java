@@ -100,7 +100,7 @@ public class StatsPanel extends JPanel {
                 stateValue.setForeground(COLOR_WAITING);
             }
             case "searching" -> {
-                stateValue.setText("Buscant...");
+                stateValue.setText("Cercant...");
                 stateValue.setForeground(COLOR_SEARCHING);
             }
             case "found" -> {

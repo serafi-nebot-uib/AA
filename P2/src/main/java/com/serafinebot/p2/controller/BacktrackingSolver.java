@@ -93,8 +93,8 @@ public class BacktrackingSolver {
             return false;
         }
 
-        // Start backtracking from white's turn (since black was just placed)
-        boolean found = backtrack(whiteStart, whiteType,
+        // Start exploring from white's turn (since black was just placed)
+        boolean found = search(whiteStart, whiteType,
                                  blackStart, blackType,
                                  2);  // depth = 2 (both pieces placed)
         
@@ -106,7 +106,7 @@ public class BacktrackingSolver {
     }
     
     /**
-     * Recursive backtracking algorithm.
+     * Explores the search tree recursively (the backtracking occurs when this returns false).
      * Pieces alternate turns: currentPiece moves, then otherPiece, then currentPiece, etc.
      *
      * @param currentPos   Current piece's position
@@ -116,7 +116,7 @@ public class BacktrackingSolver {
      * @param depth        Current recursion depth
      * @return true if solution found, false otherwise
      */
-    private boolean backtrack(Position currentPos, PieceType currentPiece,
+    private boolean search(Position currentPos, PieceType currentPiece,
                              Position otherPos, PieceType otherPiece,
                              int depth) {
         // Base case: All cells visited
@@ -158,7 +158,7 @@ public class BacktrackingSolver {
             solution.add(nextPos);
             
             // Recurse with swapped pieces (alternate turn)
-            boolean success = backtrack(otherPos, otherPiece,
+            boolean success = search(otherPos, otherPiece,
                                        nextPos, currentPiece,
                                        depth + 1);
             
