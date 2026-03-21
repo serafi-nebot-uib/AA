@@ -729,7 +729,7 @@ Quan les dues peces tenen la mateixa quantitat de moviments possibles
 La Taula~\ref{tab:kmax} mostra el producte $k_w  k_b$ per a
 totes les combinacions de peces en un tauler $8 \times 8 = 64$, on els
 valors $k$ son màxims teòrics (suposant que sempre es poden realitzar
-totes les passes possibles). El nombre total de nodes és $V = (k_w k_b)^{(64-2)/2} = (k_w k_b)^{31}$
+totes les passes possibles). El nombre total de nodes és $V = (k_w k_b)^{(64-2)/2} = (k_w k_b)^{31}$.
 
 S'utilitza només l'inicial del nom de cada peça per tal de mantenir
 la taula compacta.
@@ -792,31 +792,28 @@ visitar-la ara, quan encara és accessible. Endarrerint les caselles
 «populars» —les que es poden assolir des de molts llocs—
 s'evita quedar-se aïllat en una zona del tauler sense sortida.
 
-L'heurística afegeix un cost addicional per node: per a cada candidat,
-es crida a \texttt{getValidMovesSorted} per a ordenar els moviments possibles
-segons l'heurística.
+L'heurística afegeix un cost addicional per node: el mètode
+\texttt{getValidMovesSorted} es crida una vegada per node i,
+internament, crida \texttt{getValidMoves} per a cada candidat per
+calcular-ne el grau de Warnsdorff.
 Cada crida recorre les $d$ direccions fins a $\max(N,M)$ passos,
 amb cost $O(d \cdot \max(N,M)) = O(\max(N,M))$. Amb $k$ candidats,
 el càlcul dels valors heurístics costa $O(k \cdot \max(N,M))$.
 L'ordenació posterior (\texttt{List.sort()}) costa $O(k \log k)$, que
 queda dominat per $O(k \cdot \max(N, M))$ ja que $\max(N, M) \geq \log k$
-per a qualsevol tauler. El cost total per node és, per tant:
+per a qualsevol tauler pràctic. El cost total per node és, per tant:
 \[
       O\!\left(k \cdot \max(N, M)\right)
 \]
 
-Combinant amb el nombre de nodes de l'arbre:
-\[
-      T(S) \in O\!\left((k_w k_b)^{(S-2)/2} \cdot k \cdot \max(N, M)\right)
-\]
-Per la mateixa raó que la comprovació de captura entre peces,
-podem eliminar el factor de l'heurística de Warnsdorff per a
-obtenir el cost computacional global $T(S) \in O\!\left((k_w k_b)^{(S-2)/2}\right)$.
-
-Important comentar que l'heurística no millora el pitjor cas però sí millora
+Combinant amb el nombre de nodes de l'arbre, el cost total per node
+és el mateix que sense heurística —$O(k \cdot \max(N,M))$— i queda
+absorbit per l'exponencial. Per tant, l'heurística no millora el
+pitjor cas, que continua sent
+$T(S) \in O\!\left((k_w k_b)^{(S-2)/2}\right)$, però sí millora
 significativament el cas típic. Per tant, en promig és una optimització útil.
 Per exemple, per a un tauler de $22 \times 22$ amb dos cavalls el cost computacional
-sería el següent:
+seria el següent:
 \[
       (8 \cdot 8)^{(22 \cdot 22 - 2) / 2} = (2^{6})^{241} = 2^{6 \cdot 241} = 2^{1446}
 \]

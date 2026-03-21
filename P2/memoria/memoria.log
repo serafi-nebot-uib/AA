@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.29)  21 MAR 2026 14:30
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.29)  21 MAR 2026 14:36
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -737,28 +737,26 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 [6 <./mvc.png>]
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 946--949
+Underfull \hbox (badness 10000) in paragraph at lines 943--946
 []\T1/ptm/m/n/10.03749 L'algorisme de back-trac-king
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 946--949
+Underfull \hbox (badness 10000) in paragraph at lines 943--946
 \T1/ptm/m/n/10.03749 (\T1/pcr/m/n/10.03749 BacktrackingSolver\T1/ptm/m/n/10.03749 ) s'-ha po-gut pro-var
  []
 
 
 
 [7]
-Underfull \hbox (badness 4072) in paragraph at lines 1023--1026
+Underfull \hbox (badness 4072) in paragraph at lines 1020--1023
 []\T1/ptm/m/n/8.03 M. Dah-mus and F. Kleinsch-midt, ``mou-se-Clicked vs. mou-se-
  []
 
 
-Underfull \hbox (badness 2253) in paragraph at lines 1023--1026
+Underfull \hbox (badness 2253) in paragraph at lines 1020--1023
 \T1/ptm/m/n/8.03 li-ne]. Avai-la-ble: $https : / / comp . lang . java . gui . narkive . com / bAHvswQ2 /
  []
-
-
 
 
 ** Conference Paper **
@@ -773,7 +771,11 @@ Before submitting the final camera ready copy, remember to:
 
 
 
-[8] (./memoria.aux)
+
+
+[8
+
+] (./memoria.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
@@ -792,7 +794,7 @@ Here is how much of TeX's memory you used:
  1147 hyphenation exceptions out of 8191
  57i,8n,65p,287b,1290s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrb8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrro8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on memoria.pdf (8 pages, 331867 bytes).
+Output written on memoria.pdf (8 pages, 331786 bytes).
 PDF statistics:
  138 PDF objects out of 1000 (max. 8388607)
  84 compressed objects within 1 object stream
