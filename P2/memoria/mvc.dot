@@ -1,0 +1,107 @@
+digraph MVC {
+    graph [
+        bgcolor="#ffffff"
+        fontname="Helvetica"
+        splines=polyline
+        nodesep=0.6
+        ranksep=0.6
+        pad=0.5
+    ]
+    node [
+        fontname="Helvetica"
+        fontsize=13
+        style="filled,rounded"
+        shape=box
+        margin="0.25,0.15"
+    ]
+    edge [
+        fontname="Helvetica"
+        fontsize=10
+    ]
+
+    // ── CONTROLLER ─────────────────────────────────────────
+    subgraph cluster_controller {
+        label="Controller"
+        fontsize=15
+        fontname="Helvetica Bold"
+        style="filled,rounded"
+        fillcolor="#f5f0dc"
+        color="#baa84a"
+        penwidth=2
+
+        SolverController   [label="SolverController",   fillcolor="#eae8a8", color="#baa84a"]
+        SolverTask         [label="SolverTask",          fillcolor="#eae8a8", color="#baa84a"]
+        BacktrackingSolver [label="BacktrackingSolver",  fillcolor="#eae8a8", color="#baa84a"]
+    }
+
+    // ── MODEL ──────────────────────────────────────────────
+    subgraph cluster_model {
+        label="Model"
+        fontsize=15
+        fontname="Helvetica Bold"
+        style="filled,rounded"
+        fillcolor="#dce8f5"
+        color="#4a7eba"
+        penwidth=2
+
+        Board         [label="Board",         fillcolor="#a8c8ea", color="#4a7eba"]
+        Position      [label="Position",      fillcolor="#a8c8ea", color="#4a7eba"]
+        PieceType     [label="PieceType",     fillcolor="#a8c8ea", color="#4a7eba"]
+        MovementType  [label="MovementType",  fillcolor="#a8c8ea", color="#4a7eba"]
+        SolverMetrics [label="SolverMetrics", fillcolor="#a8c8ea", color="#4a7eba"]
+    }
+
+    // ── VIEW ───────────────────────────────────────────────
+    subgraph cluster_view {
+        label="View"
+        fontsize=15
+        fontname="Helvetica Bold"
+        style="filled,rounded"
+        fillcolor="#dcf5dc"
+        color="#4aba4a"
+        penwidth=2
+
+        MainFrame    [label="MainFrame",    fillcolor="#a8eaa8", color="#4aba4a"]
+        BoardPanel   [label="BoardPanel",   fillcolor="#a8eaa8", color="#4aba4a"]
+        ConfigPanel  [label="ConfigPanel",  fillcolor="#a8eaa8", color="#4aba4a"]
+        ControlPanel [label="ControlPanel", fillcolor="#a8eaa8", color="#4aba4a"]
+        StatsPanel   [label="StatsPanel",   fillcolor="#a8eaa8", color="#4aba4a"]
+        PieceIcon    [label="PieceIcon",    fillcolor="#a8eaa8", color="#4aba4a"]
+    }
+
+    // ── LAYOUT HELPERS ─────────────────────────────────────
+    // Controller at top; Model and View side by side below
+    SolverController -> MainFrame [style=invis]
+    Board      -> _align          [style=invis]
+    MainFrame  -> _align          [style=invis]
+    _align [style=invis, width=0, height=0, label=""]
+
+    // ── EDGES ──────────────────────────────────────────────
+
+    // Controller internal
+    SolverController -> SolverTask         [label="  creates",  color="#baa84a", fontcolor="#baa84a", penwidth=1.5]
+    SolverController -> BacktrackingSolver [label="  creates",  color="#baa84a", fontcolor="#baa84a", penwidth=1.5]
+    SolverTask -> BacktrackingSolver       [label="  executes", color="#baa84a", fontcolor="#baa84a", penwidth=1.5]
+
+    // Controller → View
+    SolverController -> MainFrame [label="  controls", color="#7a4aba", fontcolor="#7a4aba", penwidth=1.5]
+
+    // Controller → Model
+    BacktrackingSolver -> Board         [label="  uses", color="#4a7eba", fontcolor="#4a7eba", penwidth=1.5]
+    BacktrackingSolver -> SolverMetrics [label="  owns", color="#4a7eba", fontcolor="#4a7eba", penwidth=1.5]
+
+    // Model internal
+    Board -> Position     [label="  uses", color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+    Board -> PieceType    [label="  uses", color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+    PieceType -> MovementType [label="  uses", color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+
+    // View internal
+    MainFrame -> BoardPanel   [label="  contains", color="#4aba4a", fontcolor="#4aba4a", penwidth=1.2, style=dashed]
+    MainFrame -> ConfigPanel  [label="  contains", color="#4aba4a", fontcolor="#4aba4a", penwidth=1.2, style=dashed]
+    MainFrame -> ControlPanel [label="  contains", color="#4aba4a", fontcolor="#4aba4a", penwidth=1.2, style=dashed]
+    MainFrame -> StatsPanel   [label="  contains", color="#4aba4a", fontcolor="#4aba4a", penwidth=1.2, style=dashed]
+    ConfigPanel -> PieceIcon  [label="  contains", color="#4aba4a", fontcolor="#4aba4a", penwidth=1.2, style=dashed]
+
+    // View → Model
+    StatsPanel -> SolverMetrics [label="  reads", color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+}

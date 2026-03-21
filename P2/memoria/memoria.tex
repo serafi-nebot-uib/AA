@@ -600,57 +600,83 @@ recursiva (\texttt{otherPos, otherPiece, next, curPiece}) implementa
 l'alternança de torns.
 La profunditat màxima és $N \cdot M - 2$.
 
-El progrés s'envia al fil EDT cada \texttt{PROGRESS\_UPDATE\_INTERVAL}
-(1000) iteracions via un \texttt{Consumer<Integer>} configurat per
-\texttt{SolverTask}, desacoblant el solver de qualsevol dependència de
-la vista. L'aturada cooperativa es gestiona amb un indicador \texttt{volatile
+L'aturada cooperativa es gestiona amb un indicador \texttt{volatile
 boolean stopped}: el bucle comprova \texttt{stopped} a cada iteració,
 i el controlador el posa a \texttt{true} quan l'usuari clica \textit{Aturar}.
 
 \subsubsection{SolverTask}
 
-Estén \texttt{SwingWorker<Boolean, Void>}. El mètode
-\texttt{doInBackground()} registra un \textit{callback} de progrés
-al solver que usa \texttt{SwingUtilities.invokeLater} per actualitzar
-el \texttt{StatsPanel} cada \texttt{PROGRESS\_UPDATE\_INTERVAL}
-iteracions (1000 per defecte), i llavors executa \texttt{solver.solve()}.
+\texttt{SolverTask} és el responsable d'executar i gestionar el cicle
+de vida de \texttt{BacktrackingSolver}: el crea \texttt{SolverController},
+però és \texttt{SolverTask} qui l'executa al fil de fons, registra
+el callback de progrés i gestiona la seva aturada.
+
+Estén \texttt{SwingWorker<Boolean, Void>}. El mètode \texttt{doInBackground()}
+registra un \texttt{Consumer<Integer>}
+al solver com a \textit{callback} de progrés: cada
+\texttt{PROGRESS\_UPDATE\_INTERVAL} iteracions (1000 per defecte),
+el solver invoca aquest callback, que usa
+\texttt{SwingUtilities.invokeLater} per planificar al fil EDT el
+\texttt{Runnable onProgress} que el controlador ha registrat en
+construir la tasca. És doncs el controlador qui defineix l'acció
+(\texttt{view.updateStats()}); \texttt{SolverTask} només garanteix
+que s'executi de manera segura al fil EDT. Aquest disseny desacobla
+el solver de qualsevol dependència de la vista:
+\texttt{BacktrackingSolver} no coneix ni Swing ni la interfície
+gràfica, només crida un \texttt{Consumer} genèric. Un cop registrat
+el callback, \texttt{doInBackground()} executa \texttt{solver.solve()}.
+
 El mètode \texttt{done()} recupera el resultat i l'envia a un
 \texttt{BiConsumer<Boolean, SolverMetrics>} que el controlador ha
-registrat en construir la tasca. L'aturada voluntària es propaga
-cridant \texttt{solver.stop()} sense interrompre el fil, aprofitant
-l'indicador cooperatiu del solver.
+registrat en construir la tasca. L'aturada es gestiona amb
+\texttt{stopSolver()}: crida \texttt{solver.stop()} per activar
+l'indicador cooperatiu i \texttt{cancel(false)} (mètode de \texttt{SwingWorker}) per cancel·lar la
+tasca sense interrompre el fil, deixant que l'indicador
+\texttt{stopped} aturi la cerca de manera neta.
 
 \subsubsection{SolverController}
 
-Implementa el rol de controlador en el patró MVC i és l'únic dipositari
+Implementa el rol de controlador en el patró MVC i és l'únic que disposa
 de l'estat de navegació de la solució: la llista de posicions del camí
 hamiltonià, el pas actual i els tipus de les dues peces.
 
-\paragraph{Registre de listeners.}
 Tot el registre d'esdeveniments es concentra al mètode privat
 \texttt{wireListeners()}, invocat al constructor. Aquesta decisió de
 disseny és intencional: centralitzar el \textit{wiring} al controlador
 manté \texttt{MainFrame} com una classe de presentació pura sense cap
 coneixement de la lògica de negoci, i evita que la vista hagi de
-conèixer el controlador directament. El mètode registra set listeners:
-els tres botons d'execució (Iniciar, Aturar, Reiniciar), els tres de
-navegació (pas anterior, pas següent, reproduir/pausar), el lliscador
-de velocitat i el callback \texttt{onConfigChanged} de
-\texttt{ConfigPanel}. El listener del lliscador té un comportament
-notable: si l'animació ja està en curs, actualitza el retard del
-temporitzador en temps real (\texttt{animationTimer.setDelay()}) sense
-aturar ni reiniciar l'animació. El callback de configuració redimensiona
-el tauler i refresca la previsualització de les peces cada vegada que
-l'usuari canvia les dimensions o el tipus de peça.
+conèixer el controlador directament. El mètode registra els següents
+listeners de la vista:
 
-\paragraph{Animació pas a pas.}
+\begin{itemize}
+    \item \textbf{Iniciar, Aturar, Reiniciar:} botons d'execució de la cerca.
+    \item \textbf{Pas anterior, pas següent:} navegació manual per la solució.
+    \item \textbf{Reproduir/Pausar:} inicia o atura l'animació automàtica.
+    \item \textbf{Lliscador de velocitat:} si l'animació ja està en curs,
+          actualitza el retard del temporitzador en temps real
+          (\texttt{animationTimer.setDelay()}) sense aturar ni reiniciar
+          l'animació.
+    \item \textbf{\texttt{onConfigChanged}:} callback de \texttt{ConfigPanel}
+          que redimensiona el tauler i refresca la previsualització de les
+          peces cada vegada que l'usuari canvia les dimensions o el tipus
+          de peça.
+\end{itemize}
+
+El controlador també és el responsable de l'animació de la reproducció de
+la solució trobada. Això és una decisió de disseny
+subjecta a interpretació; no és l'única opció vàlida. La justificació
+adoptada és que la vista no ha de mantenir cap estat de dades: si el
+temporitzador residís a la vista, aquesta hauria de tenir accés a la
+solució (llista de posicions) i a \texttt{currentStep} per poder
+avançar. El controlador en canvi ja gestiona totes dues dades, de
+manera que el temporitzador encaixa naturalment en la seva lògica.
+
 Quan l'usuari clica \textit{Reproduir}, es crea un nou
 \texttt{javax.swing.Timer} amb el retard actual del lliscador; si la
 reproducció anterior havia arribat al final, el pas es reinicia a 0
-automàticament. Cada \textit{tick} del temporitzador crida
-\texttt{stepForward()}: si queden passos, incrementa \texttt{currentStep}
-i actualitza el tauler; si s'ha assolit l'últim pas, atura el
-temporitzador automàticament. En acabar la cerca, el mètode
+automàticament. Cada \textit{tick} crida \texttt{stepForward()}: si
+queden passos, incrementa \texttt{currentStep} i actualitza el tauler;
+si s'ha assolit l'últim pas, atura el temporitzador automàticament. En acabar la cerca, el mètode
 \texttt{onSolvingComplete()} gestiona tres casos: si el solver ha estat
 aturat, si ha trobat solució (en aquest cas carrega el camí i habilita
 la navegació) o si no existeix solució; en tots tres casos actualitza
@@ -672,20 +698,11 @@ Quan s'inicia la cerca:
 
 La Fig.~\ref{fig:mvc} mostra el diagrama de classes simplificat amb les
 relacions entre les tres capes.
-
-\begin{figure}[!h]
-    \centering
-    % --- SUGGERIMENT D'IMATGE ---
-    % Diagrama de classes que mostri les relacions entre:
-    %   - Model: BacktrackingSolver, Board, PieceType, SolverMetrics
-    %   - Vista: MainFrame, BoardPanel, ConfigPanel, ControlPanel, StatsPanel
-    %   - Controlador: SolverController, SolverTask
-    % amb fletxes d'associació i dependència entre capes.
-    % Crear amb draw.io, PlantUML o similar i exportar com PNG.
-    \fbox{\parbox{0.9\columnwidth}{\centering\vspace{1cm}
-    \textit{[Diagrama de classes MVC --- vegeu suggeriment al codi font]}
-    \vspace{1cm}}}
+\begin{figure}[h]
+      \centering
+      \includegraphics[width=\linewidth]{mvc}
     \caption{Diagrama de classes i relacions entre les tres capes MVC.\label{fig:mvc}}
+      \label{fig:mvc}
 \end{figure}
 
 %% ================================================================
