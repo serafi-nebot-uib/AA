@@ -708,24 +708,77 @@ relacions entre les tres capes.
 %% ================================================================
 \section{Anàlisi de Complexitat}
 
-\subsection{Complexitat en el Pitjor Cas}
+\subsection{Complexitat en el pitjor cas}
 
-Sigui $N \cdot M = S$ el nombre total de caselles. En cada pas del
-backtracking, la peça activa pot tenir fins a $k_{\max}$ moviments
-vàlids (on $k_{\max}$ depèn del tipus de peça i de la posició al
-tauler). L'arbre de cerca té profunditat màxima $S - 2$ (les dues
-caselles inicials ja estan marcades). Per tant, el cost en el pitjor
-cas és:
+Sigui $S = N \cdot M$ el nombre total de caselles. Les dues peces
+s'alternen: en cada nivell de l'arbre mou una peça diferent, de manera
+que els nivells parells corresponen a la peça blanca i els senars a la
+negra. Siguin $k_w$ i $k_b$ els màxims de moviments vàlids de la peça
+blanca i negra respectivament. L'arbre té profunditat màxima $S - 2$
+(les dues caselles inicials ja estan marcades), amb $(S-2)/2$ nivells
+per a cada peça. El nombre total de nodes de l'arbre:
 
 \begin{equation}
 \label{eq:worst}
-T_{\text{pitjor}}(S) = O(k_{\max}^{S-2})
+V = k_w^{\,(S-2)/2} k_b^{\,(S-2)/2} = (k_w k_b)^{(S-2)/2}
 \end{equation}
 
-que és exponencial en la mida del tauler. Per a un tauler $8 \times 8$
-(el tauler d'escacs estàndard, $S = 64$) i un cavall ($k_{\max} = 8$),
-el pitjor cas és $O(8^{62}) \approx 10^{55}$, completament inabordable
-sense heurística.
+Quan les dues peces tenen la mateixa quantitat de moviments possibles
+($k_w = k_b = k$) això simplifica a $k^{S-2}$.
+
+La Taula~\ref{tab:kmax} mostra el producte $k_w  k_b$ per a
+totes les combinacions de peces en un tauler $8 \times 8 = 64$, on els
+valors $k$ son màxims teòrics (suposant que sempre es poden realitzar
+totes les passes possibles). El nombre total de nodes és $V = (k_w k_b)^{(64-2)/2} = (k_w k_b)^{31}$
+
+S'utilitza només l'inicial del nom de cada peça per tal de mantenir
+la taula compacta.
+
+\begin{table}[h]
+\centering
+\caption{Producte $k_w k_b$ per a cada combinació de peces
+         en un tauler $8\times8$}
+\label{tab:kmax}
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{l|cccccc}
+\toprule
+  & \textbf{C (8)} & \textbf{M (8)} & \textbf{S (8)}
+  & \textbf{A (13)} & \textbf{T (14)} & \textbf{R (27)} \\
+\midrule
+\textbf{C (8)} &  64 &  64 &  64 & 104 & 112 & 216 \\
+\textbf{M (8)} &  64 &  64 &  64 & 104 & 112 & 216 \\
+\textbf{S (8)} &  64 &  64 &  64 & 104 & 112 & 216 \\
+\textbf{A (13)} & 104 & 104 & 104 & 169 & 182 & 351 \\
+\textbf{T (14)} & 112 & 112 & 112 & 182 & 196 & 378 \\
+\textbf{R (27)} & 216 & 216 & 216 & 351 & 378 & 729 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Sigui $k = \max(k_w, k_b)$ el nombre total de moviments vàlids
+(caselles assolibles) i $d$ el nombre de vectors de direcció de la
+peça ($d \leq 8$). Per a peces estàtiques $k = d$; per a peces
+contínues $k \gg d$ (p.~ex.\ la Reina té $d = 8$ direccions però
+$k = 27$ caselles assolibles en un tauler $8 \times 8$).
+
+Per a cada node de l'arbre, el mètode \texttt{canCapture} s'invoca
+dues vegades per candidat; en el pitjor cas, recorre les $d$
+direccions fins a $\max(N, M)$ passos cadascuna, amb cost
+$O(d \cdot \max(N, M))$ per crida. Com que $d \leq 8$ és una
+constant, això és $O(\max(N, M))$. Amb $k$ candidats per node,
+el cost per node és $O(k \cdot \max(N, M))$.
+
+Juntant-ho tot, tenim un cost computacional:
+\[
+      T(S) \in O\!\left((k_w k_b)^{(S-2)/2}
+                        \cdot k \cdot \max(N, M)\right)
+\]
+
+Com que el factor polinomial $k \cdot \max(N, M)$ creix molt més
+lentament que el terme exponencial $(k_w k_b)^{(S-2)/2}$, queda
+absorbit i la complexitat en el pitjor cas continua sent
+$T(S) \in O\!\left((k_w k_b)^{(S-2)/2}\right)$.
 
 \subsection{Heurística de Warnsdorff com a Optimització}
 \label{sec:warnsdorff}
@@ -733,77 +786,48 @@ sense heurística.
 L'heurística de Warnsdorff~\cite{ref_warnsdorff} és una regla
 \textit{greedy} que ordena els moviments candidats creixentment pel
 nombre de moviments disponibles des de la casella destí cap a caselles
-no visitades. Formalment, donada la posició actual $p$, cada candidat
-$q$ rep un pes:
+no visitades. La intuïció és la següent: si una casella té pocs veïns
+lliures, és difícil d'arribar-hi més endavant; per tant, convé
+visitar-la ara, quan encara és accessible. Endarrerint les caselles
+«populars» —les que es poden assolir des de molts llocs—
+s'evita quedar-se aïllat en una zona del tauler sense sortida.
 
-\begin{equation}
-\label{eq:warnsdorff}
-w(q) = |\{r \in N(q) : r \notin V\}|
-\end{equation}
+L'heurística afegeix un cost addicional per node: per a cada candidat,
+es crida a \texttt{getValidMovesSorted} per a ordenar els moviments possibles
+segons l'heurística.
+Cada crida recorre les $d$ direccions fins a $\max(N,M)$ passos,
+amb cost $O(d \cdot \max(N,M)) = O(\max(N,M))$. Amb $k$ candidats,
+el càlcul dels valors heurístics costa $O(k \cdot \max(N,M))$.
+L'ordenació posterior (\texttt{List.sort()}) costa $O(k \log k)$, que
+queda dominat per $O(k \cdot \max(N, M))$ ja que $\max(N, M) \geq \log k$
+per a qualsevol tauler. El cost total per node és, per tant:
+\[
+      O\!\left(k \cdot \max(N, M)\right)
+\]
 
-on $N(q)$ és el conjunt de caselles accessibles des de $q$ i $V$ el
-conjunt de caselles ja visitades. S'escull primer el candidat amb menor
-$w(q)$, ja que les caselles d'accés difícil convé visitar-les aviat
-per evitar quedar-se sense moviments.
+Combinant amb el nombre de nodes de l'arbre:
+\[
+      T(S) \in O\!\left((k_w k_b)^{(S-2)/2} \cdot k \cdot \max(N, M)\right)
+\]
+Per la mateixa raó que la comprovació de captura entre peces,
+podem eliminar el factor de l'heurística de Warnsdorff per a
+obtenir el cost computacional global $T(S) \in O\!\left((k_w k_b)^{(S-2)/2}\right)$.
 
-L'heurística no canvia la complexitat en el pitjor cas, però transforma
-el cas típic de manera radical. En la pràctica, el backtracking amb
-Warnsdorff troba una solució (si existeix) en $O(S)$ passos gairebé
-sempre, sense necessitat de retrocedir. Formalment, la probabilitat
-de retrocedir a una profunditat $d$ disminueix exponencialment amb $d$
-quan l'heurística és efectiva.
-
-La Taula~\ref{tab:complexity} compara el cost observat experimentalment
-per a diverses combinacions de peces i mides de tauler.
-
-\begin{table}[!h]
-    \caption{Iteracions i retrocesos observats per a diverses configuracions (valors orientatius).\label{tab:complexity}}
-    \centering
-    \begin{tabular}{llcc}
-        \toprule
-        Peces & Tauler & Iteracions & Retrocesos \\
-        \midrule
-        Cavall + Cavall   & $8\times8$  & $\sim 64$    & $\sim 0$   \\
-        Cavall + Torre    & $8\times8$  & $\sim 100$   & $\sim 5$   \\
-        Cavall + Reina    & $6\times6$  & $\sim 500$   & $\sim 20$  \\
-        Reina + Reina     & $6\times6$  & $>10^6$      & $>10^4$    \\
-        Alfil + Mussol    & $5\times5$  & $\sim 200$   & $\sim 10$  \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-Aquests valors mostren clarament l'efecte de l'heurística de Warnsdorff:
-per a peces amb moviments ben distribuïts (com el Cavall), l'heurística
-elimina gairebé tots els retrocesos, mentre que per a peces amb gran
-mobilitat i restriccions de captura severes (com dues Reines), el
-nombre de retrocesos creix exponencialment.
-
-\subsection{Cost de Comprovació de Captura}
-
-El mètode \texttt{canCapture(attackerPos, attacker, targetPos)} té un cost proporcional
-al nombre de directions de la peça multiplicat per la mida màxima del
-tauler (per a peces contínues):
-
-\begin{equation}
-\label{eq:capture}
-T_{\text{captura}} = O(d \cdot \max(N, M))
-\end{equation}
-
-on $d$ és el nombre de vectors de la peça ($d \leq 8$ per a la
-Serp i el Mussol). Com que \texttt{canCapture} s'invoca dues vegades per a cada
-moviment candidat, el cost total de la comprovació de captura per iteració
-és $O(d \cdot \max(N, M))$.
-
-\subsection{Cost de l'Ordenació per Warnsdorff}
-
-Per a cada posició candidata $q$, calcular $w(q)$ requereix generar
-els moviments des de $q$ i comptar-ne els no visitats: cost
-$O(d \cdot \max(N, M))$. L'ordenació de $k$ candidats és $O(k \log k)$.
-En total, el cost de l'ordenació per iteració és:
-
-\begin{equation}
-T_{\text{ord}} = O(k \cdot d \cdot \max(N, M) + k \log k)
-\end{equation}
+Important comentar que l'heurística no millora el pitjor cas però sí millora
+significativament el cas típic. Per tant, en promig és una optimització útil.
+Per exemple, per a un tauler de $22 \times 22$ amb dos cavalls el cost computacional
+sería el següent:
+\[
+      (8 \cdot 8)^{(22 \cdot 22 - 2) / 2} = (2^{6})^{241} = 2^{6 \cdot 241} = 2^{1446}
+\]
+Si ho volem expressar com a potència de 10:
+\[
+      10^e = 2^{1446} \implies e = \log_{10} 2^{1446} = 1446 \log_{10} 2 \approx 435
+\]
+Per tant el cost total teòric seria de $10^{435}$, completament intractable. Però
+amb l'heurística el cost real és molt menor. En una prova del programa amb aquesta
+configuració s'ha arribat a una solució en menys d'un segon, amb un total de 
+1109 nodes visitats i només uns 627 \textit{backtracks}.
 
 %% ================================================================
 \section{Resultats i Discussió}
