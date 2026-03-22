@@ -61,7 +61,7 @@
 
 \begin{document}
 
-\title{Problema del Recorregut de Dues Peces en un Tauler\\ Pràctica 2}
+\title{Recorregut de Dues Peces en un Tauler\\ Pràctica 2}
 
 \author{\IEEEauthorblockN{Serafí Nebot Ginard}
 \IEEEauthorblockA{Universitat de les Illes Balears (UIB)\\
@@ -827,165 +827,34 @@ configuració s'ha arribat a una solució en menys d'un segon, amb un total de
 1109 nodes visitats i només uns 627 \textit{backtracks}.
 
 %% ================================================================
-\section{Resultats i Discussió}
+\section{Conclusió i opinió personal}
 
-\subsection{Verificació de Correcció}
+La implementació del recorregut de dues peces alternades, sense matar-se mútuament,
+a un tauler d'escacs ha demostrat ser un problema bastant complex amb un cost computacional
+extremadament alt amb segons quines configuracions. Tal com s'ha exposat formalment,
+aquest cost depèn de la quantitat de moviments que té cada peça i, sobretot, de la mida del tauler.
+Quan s'han realitzat proves per a comprovar el funcionament del programa ha quedat clar aquest
+comportament: amb tauler moderadament grans ($> 8 \times 8$) només s'ha pogut comprovar si s'arriba a una
+solució amb peces que tenen pocs moviments (cavall, mussol i serp); per a la resta de peces és
+completament infactible esperar a trobar una solució. Per a certes configuracions l'aplicació encara
+estaria executant-se.
 
-Per a cada configuració resolta, l'aplicació verifica internament que:
-\begin{enumerate}
-    \item Totes les caselles del tauler estan a la llista de posicions.
-    \item Cada moviment de la llista és vàlid per al tipus de peça corresponent.
-    \item Cap parell de posicions consecutives viola la restricció de
-          no-captura.
-\end{enumerate}
+Tot i així, el cost computacional tant elevat ha proporcionat una oportunitat d'optimització
+de la qual estic molt content haver aprofitat. L'heurística de Warsndorff millora significativament
+el nombre de passes necessaries per a arribar a una solució, per a la majoria de configuracions.
+La simple prova realitzada a un tauler $22 \times 22$ amb dos cavalls (una de les peces que
+minimitza el cost del problema) ho ha posat de manifest molt clarament: temps inasumible fora l'heurística
+però pràcticament instantani amb l'heurística activada.
 
-Les proves manuals sobre taulers de mida $4 \times 4$ a $8 \times 8$
-amb diverses combinacions de peces han confirmat la correcció de
-l'algorisme.
+La implementació de la pràctica amb patró MVC, igual que en la pràctica anterior, ha forçat a
+pensar de forma crítica quins són els mòduls del programari i quines responsabilitats han de tenir.
+Ha estat molt útil per a mantenir una organització del projecte i permetrà extendre el codi en un futur
+molt fàcilment.
 
-\subsection{Influència de la Mida del Tauler}
-
-Com s'espera per un problema NP-hard, el temps de resolució creix
-molt ràpidament amb la mida del tauler quan la heurística no és
-suficient. Per a la combinació de dues reines, taulers de
-$7 \times 7$ o més ja presenten temps de resolució superiors a un minut.
-
-Aquest comportament exponencial es deu a dos factors: primer, l'espai
-de cerca creix com $O(k^{N \cdot M})$, on $k$ és el nombre mitjà de
-moviments per posició; segon, les restriccions de captura entre dues
-peces de gran abast (com reines) eliminen gairebé tots els candidats
-en profunditat mitjana-alta, forçant backtracking massiu. En contrast,
-taulers més grans amb peces de mobilitat limitada (com dos Cavalls)
-sovint es resolen més ràpidament perquè l'heurística de Warnsdorff té
-més opcions per escollir i pot evitar millor els camins sense sortida.
-
-% --- SUGGERIMENT D'IMATGE ---
-% Aquí es podria inserir una gràfica (generada amb gnuplot o similar)
-% que mostri el temps de resolució (eix Y, escala logarítmica) en funció
-% de la mida del tauler N×N (eix X) per a dues o tres combinacions de
-% peces representatives.
-% Etiqueta suggerida: fig:time-vs-size
-% Mida: figure (una columna) o figure* (ample complet).
-
-\subsection{Influència del Tipus de Peça}
-
-El tipus de peça afecta tant la dificultat de la cerca com l'existència
-de solució. Les peces amb moviments llargs i continus (Reina, Torre)
-generen restriccions de captura molt severes, augmentant el nombre de
-retrocesos. Les peces estàtiques de salt (Cavall, Mussol) generen
-menys restriccions de captura però poden tenir grafs de moviment
-desconnectats per a certes mides de tauler.
-
-Cal destacar una observació crítica: l'heurística de Warnsdorff, dissenyada
-originalment per al Cavall en un tauler estàndard, no és igualment efectiva
-per a totes les combinacions de peces. Per a peces contínues com la Reina,
-l'heurística pot produir resultats contraproduents: escollir la casella amb
-menys accessibilitat futura pot bloquejar ràpidament l'altra peça a causa
-de les restriccions de captura. Aquest fenomen explica per què certes
-combinacions (Reina + Reina) són exponencialment més costoses que d'altres,
-fins i tot en taulers petits.
-
-\subsection{Impacte de la Posició Inicial}
-
-La posició inicial de les peces influeix significativament en el temps
-de resolució. Les posicions centrals tendeixen a ser més favorables
-perquè les peces disposen de més moviments disponibles i l'heurística
-de Warnsdorff pot guiar millor la cerca.
-
-No obstant això, existeixen casos excepcionals on posicions aparentment
-desfavorables (cantonades o marges) poden resultar en temps de resolució
-més curts. Aquest fenomen es deu al fet que començar en una posició
-restrictiva força l'algorisme a visitar zones difícils d'accés al principi
-del recorregut, evitant quedar atrapat en camins sense sortida més
-endavant. Aquest comportament suggereix que una estratègia híbrida
-—començant deliberadament per les zones més restrictives— podria
-millorar el rendiment mitjà de l'heurística.
-
-% --- SUGGERIMENT D'IMATGE ---
-% Aquí es podria inserir una captura de pantalla de la solució final
-% per a una configuració representativa (p.ex. Cavall + Cavall en un 8x8),
-% mostrant el tauler complet amb els 64 números de pas.
-% Etiqueta suggerida: fig:solution-8x8
-% Mida: figure* (ample complet) per mostrar bé els detalls.
-
-\subsection{Limitacions de l'Heurística}
-
-Tot i que l'heurística de Warnsdorff és altament efectiva per a moltes
-configuracions, presenta limitacions importants que han estat observades
-durant l'experimentació:
-
-\begin{enumerate}
-    \item \textbf{Decisions greedy irrevocables:} L'heurística pren
-          decisions locals òptimes que poden bloquejar globalment la
-          solució. En particular, no considera l'impacte de la restricció
-          de no-captura sobre l'altra peça.
-    \item \textbf{Empataments:} Quan múltiples caselles tenen el mateix
-          grau de Warnsdorff, la tria arbitrària pot determinar l'èxit
-          o fracàs de la cerca. Una exploració exhaustiva dels empataments
-          milloraria la taxa d'èxit però incrementaria el cost.
-    \item \textbf{Peces amb gran mobilitat:} Per a peces com la Reina,
-          el grau de Warnsdorff sovint és artificialment alt (gairebé
-          totes les caselles són accessibles), fent que l'heurística
-          perdi poder discriminatori.
-\end{enumerate}
-
-Aquestes observacions suggereixen que una heurística adaptativa, que
-ajusti els seus criteris segons el tipus de peces i les restriccions
-actives, podria superar significativament la implementació estàndard
-de Warnsdorff.
-
-\subsection{Disseny del Programari}
-
-L'arquitectura MVC ha demostrat la seva utilitat durant el
-desenvolupament. Gràcies a la separació estricta de responsabilitats:
-
-\begin{itemize}
-    \item L'algorisme de backtracking (\texttt{BacktrackingSolver}) s'ha
-          pogut provar de manera aïllada, sense cap dependència de
-          Swing.
-    \item Afegir nous tipus de peces ha consistit únicament en afegir
-          una constant a l'enum \texttt{PieceType} amb els seus vectors
-          de moviment; cap altra classe ha necessitat modificació.
-    \item La navegació pas a pas s'ha pogut implementar a la capa de
-          la vista sense afectar el model ni el controlador.
-\end{itemize}
-
-%% ================================================================
-\section{Conclusions}
-
-Aquesta pràctica ha permès aplicar el paradigma del backtracking a un
-problema combinatori no trivial i comprovar experimentalment l'impacte
-de l'heurística de Warnsdorff sobre el rendiment de la cerca.
-
-Des del punt de vista algorísmic, la principal conclusió és que el
-backtracking pur és impracticable per a taulers de mida moderada a causa
-de la seva complexitat exponencial, però que l'heurística de Warnsdorff
-el transforma en un mètode eficaç per a la majoria de configuracions,
-reduint el nombre de retrocesos de l'ordre dels milions a l'ordre de
-les desenes o centenes.
-
-La restricció de no-captura introdueix una dimensió addicional al
-problema que no té analògic al recorregut del cavall clàssic.
-Combinacions de peces amb gran abast (Reina + Reina) generen situacions
-on la restricció elimina gairebé tots els moviments disponibles, fent
-la cerca molt costosa o fins i tot sense solució en taulers petits.
-
-Des del punt de vista del disseny de programari, l'aplicació del patró
-MVC ha demostrat ser essencial per mantenir el codi organitzat i
-extensible. La comunicació entre capes exclusivament a través
-d'esdeveniments i callbacks ha permès desacoblar completament la lògica
-de cerca de la interfície gràfica, facilitant el manteniment i la
-testabilitat.
-
-La gestió de la concurrència amb \texttt{SwingWorker} i l'aturada
-cooperativa amb indicadors \texttt{volatile} ha garantit una interfície
-sempre responsiva, fins i tot durant cerques de llarga durada.
-
-Com a treball futur, es podria implementar la visualització del procés
-de cerca en temps real (mostrant la frontera de cerca activa), explorar
-heurístiques addicionals com el reconeixement de caselles aïllades,
-o implementar una cerca paral·lela per explorar múltiples branques
-simultàniament.
+Com és normal amb totes les pràctiques, m'hagués agradat tenir més temps per a seguir millorant certes
+característiques i afegir funcionalitats. Específicament, hagués estat bé afegir la funcionalitat de
+trobar un recorregut per a més de dues peces i també fer previsions del temps que tardarà l'aplicació
+en trobar una solució.
 
 %% ================================================================
 
