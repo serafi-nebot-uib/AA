@@ -1,2 +1,19 @@
+# macOS
 .DS_Store
 .localized
+
+# LaTeX intermediates (keep PDF)
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.toc
+*.out
+*.bbl
+*.blg
+*.lof
+*.lot
+*.nav
+*.snm
+*.vrb
