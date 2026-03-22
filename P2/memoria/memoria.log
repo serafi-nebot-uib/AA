@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.29)  22 MAR 2026 09:57
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.29)  22 MAR 2026 10:55
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -381,12 +381,19 @@ Package: cuted 2021/10/04 v2.0 Mixing onecolumn and twocolumn modes
 \var@@pagediscards@ht=\dimen269
 \stripsep=\skip64
 \viper@penalty=\count318
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/wrapfig/wrapfig.sty
+\wrapoverhang=\dimen270
+\WF@size=\dimen271
+\c@WF@wrappedlines=\count319
+\WF@box=\box69
+\WF@everypar=\toks36
+Package: wrapfig 2003/01/31  v 3.6
 ) (/usr/local/texlive/2025/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2024/09/23 1.10c listings language file
 ) (/usr/local/texlive/2025/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2024-05-08 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count319
-\l__pdf_internal_box=\box69
+\l__color_backend_stack_int=\count320
+\l__pdf_internal_box=\box70
 ) (./memoria.aux
 
 LaTeX Warning: Label `fig:mvc' multiply defined.
@@ -394,20 +401,20 @@ LaTeX Warning: Label `fig:mvc' multiply defined.
 )
 \openout1 = `memoria.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 62.
-LaTeX Font Info:    ... okay on input line 62.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 62.
-LaTeX Font Info:    ... okay on input line 62.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 62.
-LaTeX Font Info:    ... okay on input line 62.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 62.
-LaTeX Font Info:    ... okay on input line 62.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 62.
-LaTeX Font Info:    ... okay on input line 62.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 62.
-LaTeX Font Info:    ... okay on input line 62.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 62.
-LaTeX Font Info:    ... okay on input line 62.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 63.
+LaTeX Font Info:    ... okay on input line 63.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 63.
+LaTeX Font Info:    ... okay on input line 63.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 63.
+LaTeX Font Info:    ... okay on input line 63.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 63.
+LaTeX Font Info:    ... okay on input line 63.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 63.
+LaTeX Font Info:    ... okay on input line 63.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 63.
+LaTeX Font Info:    ... okay on input line 63.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 63.
+LaTeX Font Info:    ... okay on input line 63.
 
 -- Lines per column: 58 (exact).
 Package caption Info: Begin \AtBeginDocument code.
@@ -415,36 +422,36 @@ Package caption Info: subfig package v1.3 is loaded.
 Package caption Info: End \AtBeginDocument code.
 (/usr/local/texlive/2025/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count320
-\scratchdimen=\dimen270
-\scratchbox=\box70
-\nofMPsegments=\count321
-\nofMParguments=\count322
-\everyMPshowfont=\toks36
-\MPscratchCnt=\count323
-\MPscratchDim=\dimen271
-\MPnumerator=\count324
-\makeMPintoPDFobject=\count325
-\everyMPtoPDFconversion=\toks37
+\scratchcounter=\count321
+\scratchdimen=\dimen272
+\scratchbox=\box71
+\nofMPsegments=\count322
+\nofMParguments=\count323
+\everyMPshowfont=\toks37
+\MPscratchCnt=\count324
+\MPscratchDim=\dimen273
+\MPnumerator=\count325
+\makeMPintoPDFobject=\count326
+\everyMPtoPDFconversion=\toks38
 ) (/usr/local/texlive/2025/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
 Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 485.
  (/usr/local/texlive/2025/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
 ))
-\c@lstlisting=\count326
-LaTeX Info: Redefining \l on input line 62.
-LaTeX Info: Redefining \L on input line 62.
-LaTeX Font Info:    Trying to load font information for T1+phv on input line 71.
+\c@lstlisting=\count327
+LaTeX Info: Redefining \l on input line 63.
+LaTeX Info: Redefining \L on input line 63.
+LaTeX Font Info:    Trying to load font information for T1+phv on input line 72.
  (/usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/t1phv.fd
 File: t1phv.fd 2020/03/25 scalable font definitions for T1/phv.
 )
-LaTeX Font Info:    Calculating math sizes for size <9.03374> on input line 77.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 77.
+LaTeX Font Info:    Calculating math sizes for size <9.03374> on input line 78.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 78.
  (/usr/local/texlive/2025/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 77.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 78.
  (/usr/local/texlive/2025/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
@@ -460,18 +467,18 @@ Pagestretch: 0.0pt
 CUTED [output]: 0.0pt
 CUTED [leftcolumn badness]: 0
 CUTED [rightcolumn badness]: 0
-LaTeX Font Info:    Calculating math sizes for size <10.03749> on input line 108.
+LaTeX Font Info:    Calculating math sizes for size <10.03749> on input line 109.
 
 
-LaTeX Font Info:    Trying to load font information for T1+pcr on input line 137.
+LaTeX Font Info:    Trying to load font information for T1+pcr on input line 138.
 (/usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/t1pcr.fd
 File: t1pcr.fd 2001/06/04 font definitions for T1/pcr.
 )
-LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 149.
+LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 150.
  (/usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/ts1ptm.fd
 File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
 )
-Underfull \hbox (badness 2057) in paragraph at lines 149--154
+Underfull \hbox (badness 2057) in paragraph at lines 150--155
 []\T1/ptm/m/n/10.03749 Activant el mo-de de col\TS1/ptm/m/n/10.03749 ·\T1/ptm/m/n/10.03749 locació amb el bo-tó
  []
 
@@ -483,264 +490,349 @@ Underfull \hbox (badness 2057) in paragraph at lines 149--154
 ]
 
 
-Underfull \hbox (badness 7256) in paragraph at lines 243--247
+Underfull \hbox (badness 7256) in paragraph at lines 244--248
  \T1/ptm/b/n/10.03749 3.2.1. Mo-ve-mentTy-pe. [][] \T1/ptm/m/n/10.03749 Enu-me-ra-ció amb dos va-lors:
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 253--255
+Underfull \hbox (badness 10000) in paragraph at lines 254--256
 []\T1/pcr/m/n/10.03749 MovementType\T1/ptm/m/n/10.03749 : \T1/pcr/m/n/10.03749 STATIC \T1/ptm/m/n/10.03749 (un sol salt) o
  []
 
-LaTeX Font Info:    Calculating math sizes for size <8.03> on input line 268.
-
-
-[2]
-Underfull \hbox (badness 10000) in paragraph at lines 304--307
-[]\T1/pcr/m/n/10.03749 getValidMovesSorted(pos, piece)\T1/ptm/m/n/10.03749 :
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 307--314
-[]\T1/pcr/m/n/10.03749 canCapture(attackerPos, attacker,
- []
-
-
-Underfull \hbox (badness 3954) in paragraph at lines 307--314
-\T1/ptm/m/n/10.03749 a pe-ces es-tà-ti-ques, com-pro-va si \T1/pcr/m/n/10.03749 targetPos
- []
-
-
-Underfull \hbox (badness 1424) in paragraph at lines 307--314
-\T1/ptm/m/n/10.03749 és exac-ta-ment una apli-ca-ció d'al-gun vec-tor de
- []
-
-
-Underfull \hbox (badness 2142) in paragraph at lines 307--314
-\T1/ptm/m/n/10.03749 mo-vi-ment. Per a pe-ces con-tí-nu-es, re-corr ca-da
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 351--352
-[]\T1/pcr/m/n/10.03749 StatsPanel \T1/ptm/m/n/10.03749 al sud (a la dre-ta de
- []
-
-
-
-
-Underfull \hbox (badness 1603) in paragraph at lines 389--402
-\T1/ptm/m/n/10.03749 si-o-na la gra-e-lla a $[] \OMS/cmsy/m/n/10 ^^B []$ \T1/ptm/m/n/10.03749 per $[] \OMS/cmsy/m/n/10 ^^B
- []
-
-
-Underfull \hbox (badness 1394) in paragraph at lines 389--402
-[]$\T1/ptm/m/n/10.03749 , ga-ran-tint que ca-da ca-se-lla si-gui un qua-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 403--408
-\T1/pcr/m/n/10.03749 whiteType, blackType) \T1/ptm/m/n/10.03749 ac-tu-a-lit-za tots els
- []
-
-
-
-[3]
-Underfull \hbox (badness 10000) in paragraph at lines 462--470
-[]\T1/ptm/m/n/10.03749 El pa-nell ex-po-sa tres mè-to-des d'es-tat ex-plí-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 462--470
-\T1/ptm/m/n/10.03749 cits (\T1/pcr/m/n/10.03749 setIdleState\T1/ptm/m/n/10.03749 , \T1/pcr/m/n/10.03749 setExecutionState\T1/ptm/m/n/10.03749 ,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 462--470
-\T1/pcr/m/n/10.03749 setSolutionState\T1/ptm/m/n/10.03749 ) que ges-ti-o-nen l'-ha-bi-li-ta-ci-ó/-
- []
-
-
-Underfull \hbox (badness 1609) in paragraph at lines 473--477
-\T1/ptm/m/n/10.03749 lo vi-su-al-ment res-pec-te de l'e-ti-que-ta. El pa-nell té un
- []
-
-
-Underfull \hbox (badness 1527) in paragraph at lines 486--491
-\T1/ptm/m/n/10.03749 (un se-gon) i re-cal-cu-la el temps trans-cor-re-gut des de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 527--531
- \T1/ptm/b/n/10.03749 3.3.6. Pi-e-ceI-con. [][] \T1/ptm/m/n/10.03749 Com-po-nent reu-ti-lit-za-ble que es-tén
- []
-
-
-
-
-Underfull \hbox (badness 2689) in paragraph at lines 532--537
-[]\T1/ptm/m/n/10.03749 Les imat-ges es car-re-guen des del class-path mit-
- []
-
-
-Underfull \hbox (badness 3919) in paragraph at lines 532--537
-\T1/ptm/m/n/10.03749 jan-çant \T1/pcr/m/n/10.03749 ImageIO.read() \T1/ptm/m/n/10.03749 amb un \T1/pcr/m/n/10.03749 InputStream\T1/ptm/m/n/10.03749 .
- []
-
-
-Underfull \hbox (badness 7273) in paragraph at lines 532--537
-\T1/ptm/m/n/10.03749 Per evi-tar ope-ra-ci-ons d'I/O re-pe-ti-des, s'u-ti-lit-za un
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 538--548
-[]\T1/ptm/m/n/10.03749 El mè-to-de \T1/pcr/m/n/10.03749 paintComponent() \T1/ptm/m/n/10.03749 uti-lit-za
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 538--548
-\T1/pcr/m/n/10.03749 Graphics2D \T1/ptm/m/n/10.03749 amb dos \T1/ptm/m/it/10.03749 ren-de-ring hints \T1/ptm/m/n/10.03749 [4], [5]:
- []
-
-
-Underfull \hbox (badness 3735) in paragraph at lines 538--548
-\T1/pcr/m/n/10.03749 KEY_ANTIALIASING \T1/ptm/m/n/10.03749 per-què les ico-nes es mos-tren
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 538--548
-\T1/ptm/m/n/10.03749 (\T1/pcr/m/n/10.03749 Math.min(w, h)\T1/ptm/m/n/10.03749 ) i es cen-tra ho-rit-zon-tal-ment i
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 557--564
-[]\T1/ptm/m/n/10.03749 La capa del con-tro-la-dor cons-ta de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 557--564
-\T1/ptm/m/n/10.03749 tres clas-ses: \T1/pcr/m/n/10.03749 BacktrackingSolver\T1/ptm/m/n/10.03749 ,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 557--564
-\T1/pcr/m/n/10.03749 SolverTask \T1/ptm/m/n/10.03749 i \T1/pcr/m/n/10.03749 SolverController\T1/ptm/m/n/10.03749 . Tot i que
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 557--564
-\T1/pcr/m/n/10.03749 BacktrackingSolver \T1/ptm/m/n/10.03749 im-ple-men-ta l'al-go-ris-me de
- []
-
-
-Underfull \hbox (badness 1577) in paragraph at lines 567--574
- \T1/ptm/b/n/10.03749 3.4.1. Back-tracking-Sol-ver. [][] \T1/ptm/m/n/10.03749 El nu-cli al-go-rís-mic. Abans
- []
-
-LaTeX Font Info:    Font shape `T1/pcr/m/it' in size <8.03> not available
-(Font)              Font shape `T1/pcr/m/sl' tried instead on input line 587.
+LaTeX Font Info:    Calculating math sizes for size <8.03> on input line 271.
+<moviments_peces.png, id=17, 518.1759pt x 363.15675pt>
+File: moviments_peces.png Graphic file (type png)
+<use moviments_peces.png>
+Package pdftex.def Info: moviments_peces.png  used on input line 287.
+(pdftex.def)             Requested size: 243.91125pt x 170.93858pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 
-Underfull \hbox (badness 2478) in paragraph at lines 603--606
+
+[2]
+Underfull \hbox (badness 10000) in paragraph at lines 315--318
+[]\T1/pcr/m/n/10.03749 getValidMovesSorted(pos, piece)\T1/ptm/m/n/10.03749 :
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 318--325
+[]\T1/pcr/m/n/10.03749 canCapture(attackerPos, attacker,
+ []
+
+
+Underfull \hbox (badness 3954) in paragraph at lines 318--325
+\T1/ptm/m/n/10.03749 a pe-ces es-tà-ti-ques, com-pro-va si \T1/pcr/m/n/10.03749 targetPos
+ []
+
+
+Underfull \hbox (badness 1424) in paragraph at lines 318--325
+\T1/ptm/m/n/10.03749 és exac-ta-ment una apli-ca-ció d'al-gun vec-tor de
+ []
+
+
+Underfull \hbox (badness 2142) in paragraph at lines 318--325
+\T1/ptm/m/n/10.03749 mo-vi-ment. Per a pe-ces con-tí-nu-es, re-corr ca-da
+ []
+
+
+Underfull \vbox (badness 1688) has occurred while \output is active []
+
+
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 355--356
+[]\T1/pcr/m/n/10.03749 StatsPanel \T1/ptm/m/n/10.03749 al sud (a la dre-ta de
+ []
+
+
+Underfull \hbox (badness 1603) in paragraph at lines 385--398
+\T1/ptm/m/n/10.03749 si-o-na la gra-e-lla a $[] \OMS/cmsy/m/n/10 ^^B []$ \T1/ptm/m/n/10.03749 per $[] \OMS/cmsy/m/n/10 ^^B
+ []
+
+
+Underfull \hbox (badness 1394) in paragraph at lines 385--398
+[]$\T1/ptm/m/n/10.03749 , ga-ran-tint que ca-da ca-se-lla si-gui un qua-
+ []
+
+LaTeX Info: Symbol \textrightarrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 405.
+LaTeX Info: Symbol \textrightarrow not provided by
+            font family ptm in TS1 encoding.
+            Default family used instead on input line 405.
+
+
+[3{/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc} <./moviments_peces.png>]
+Underfull \hbox (badness 10000) in paragraph at lines 415--419
+[]\T1/ptm/m/n/10.03749 Quan la cer-ca fi-na-lit-za amb so-lu-ció,
+ []
+
+
+Underfull \hbox (badness 5316) in paragraph at lines 415--419
+\T1/pcr/m/n/10.03749 showFullSolution \T1/ptm/m/n/10.03749 cri-da \T1/pcr/m/n/10.03749 updateBoard \T1/ptm/m/n/10.03749 amb el
+ []
+
+<board.png, id=29, 573.14125pt x 582.175pt>
+File: board.png Graphic file (type png)
+<use board.png>
+Package pdftex.def Info: board.png  used on input line 425.
+(pdftex.def)             Requested size: 117.07635pt x 118.92024pt.
+<board-sol.png, id=30, 573.14125pt x 582.175pt>
+File: board-sol.png Graphic file (type png)
+<use board-sol.png>
+Package pdftex.def Info: board-sol.png  used on input line 427.
+(pdftex.def)             Requested size: 117.07635pt x 118.92024pt.
+<config-panel.png, id=31, 295.1025pt x 610.28pt>
+File: config-panel.png Graphic file (type png)
+<use config-panel.png>
+Package pdftex.def Info: config-panel.png  used on input line 449.
+(pdftex.def)             Requested size: 85.37042pt x 176.54831pt.
+
+Underfull \hbox (badness 10000) in paragraph at lines 455--462
+[][]\T1/ptm/m/n/10.03749 El mè-to-de
+ []
+
+
+Underfull \hbox (badness 2293) in paragraph at lines 455--462
+\T1/ptm/m/n/10.03749 dels lí-mits del tau-ler i si-guin
+ []
+
+
+Underfull \hbox (badness 6252) in paragraph at lines 455--462
+\T1/ptm/m/n/10.03749 fa a tra-vés d'un \T1/pcr/m/n/10.03749 Runnable
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 455--462
+\T1/pcr/m/n/10.03749 onConfigChanged\T1/ptm/m/n/10.03749 ,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 455--462
+\T1/ptm/m/n/10.03749 re-gis-trat ex-clu-si-va-ment per
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 455--462
+\T1/pcr/m/n/10.03749 SolverController \T1/ptm/m/n/10.03749 en
+ []
+
+
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 492--500
+[]\T1/ptm/m/n/10.03749 El pa-nell ex-po-sa tres mè-to-des d'es-tat ex-plí-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 492--500
+\T1/ptm/m/n/10.03749 cits (\T1/pcr/m/n/10.03749 setIdleState\T1/ptm/m/n/10.03749 , \T1/pcr/m/n/10.03749 setExecutionState\T1/ptm/m/n/10.03749 ,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 492--500
+\T1/pcr/m/n/10.03749 setSolutionState\T1/ptm/m/n/10.03749 ) que ges-ti-o-nen l'-ha-bi-li-ta-ci-ó/-
+ []
+
+
+Underfull \hbox (badness 1609) in paragraph at lines 503--507
+\T1/ptm/m/n/10.03749 lo vi-su-al-ment res-pec-te de l'e-ti-que-ta. El pa-nell té un
+ []
+
+
+Underfull \hbox (badness 1527) in paragraph at lines 516--521
+\T1/ptm/m/n/10.03749 (un se-gon) i re-cal-cu-la el temps trans-cor-re-gut des de
+ []
+
+
+
+[4 <./board.png> <./board-sol.png> <./config-panel.png>]
+Underfull \hbox (badness 10000) in paragraph at lines 548--550
+[]\T1/ptm/m/n/10.03749 La Fi-gu-ra 4[] mos-tra com \T1/pcr/m/n/10.03749 ControlPanel \T1/ptm/m/n/10.03749 i
+ []
+
+
+Underfull \hbox (badness 2856) in paragraph at lines 548--550
+\T1/pcr/m/n/10.03749 StatsPanel \T1/ptm/m/n/10.03749 s'-han jun-tat a la part in-fe-ri-or de la
+ []
+
+<lower-panel.png, id=39, 910.40125pt x 138.5175pt>
+File: lower-panel.png Graphic file (type png)
+<use lower-panel.png>
+Package pdftex.def Info: lower-panel.png  used on input line 553.
+(pdftex.def)             Requested size: 243.91125pt x 37.11066pt.
+
+Underfull \hbox (badness 10000) in paragraph at lines 560--564
+ \T1/ptm/b/n/10.03749 3.3.6. Pi-e-ceI-con. [][] \T1/ptm/m/n/10.03749 Com-po-nent reu-ti-lit-za-ble que es-tén
+ []
+
+
+Underfull \hbox (badness 2689) in paragraph at lines 565--570
+[]\T1/ptm/m/n/10.03749 Les imat-ges es car-re-guen des del class-path mit-
+ []
+
+
+Underfull \hbox (badness 3919) in paragraph at lines 565--570
+\T1/ptm/m/n/10.03749 jan-çant \T1/pcr/m/n/10.03749 ImageIO.read() \T1/ptm/m/n/10.03749 amb un \T1/pcr/m/n/10.03749 InputStream\T1/ptm/m/n/10.03749 .
+ []
+
+
+Underfull \hbox (badness 7273) in paragraph at lines 565--570
+\T1/ptm/m/n/10.03749 Per evi-tar ope-ra-ci-ons d'I/O re-pe-ti-des, s'u-ti-lit-za un
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 571--581
+[]\T1/ptm/m/n/10.03749 El mè-to-de \T1/pcr/m/n/10.03749 paintComponent() \T1/ptm/m/n/10.03749 uti-lit-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 571--581
+\T1/ptm/m/n/10.03749 za \T1/pcr/m/n/10.03749 Graphics2D \T1/ptm/m/n/10.03749 amb dos \T1/ptm/m/it/10.03749 ren-de-ring hints\T1/ptm/m/n/10.03749 :
+ []
+
+
+Underfull \hbox (badness 3735) in paragraph at lines 571--581
+\T1/pcr/m/n/10.03749 KEY_ANTIALIASING \T1/ptm/m/n/10.03749 per-què les ico-nes es mos-tren
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 571--581
+\T1/ptm/m/n/10.03749 (\T1/pcr/m/n/10.03749 Math.min(w, h)\T1/ptm/m/n/10.03749 ) i es cen-tra ho-rit-zon-tal-ment i
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 590--597
+[]\T1/ptm/m/n/10.03749 La capa del con-tro-la-dor cons-ta de
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 590--597
+\T1/ptm/m/n/10.03749 tres clas-ses: \T1/pcr/m/n/10.03749 BacktrackingSolver\T1/ptm/m/n/10.03749 ,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 590--597
+\T1/pcr/m/n/10.03749 SolverTask \T1/ptm/m/n/10.03749 i \T1/pcr/m/n/10.03749 SolverController\T1/ptm/m/n/10.03749 . Tot i que
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 590--597
+\T1/pcr/m/n/10.03749 BacktrackingSolver \T1/ptm/m/n/10.03749 im-ple-men-ta l'al-go-ris-me de
+ []
+
+
+
+
+Underfull \hbox (badness 1577) in paragraph at lines 600--607
+ \T1/ptm/b/n/10.03749 3.4.1. Back-tracking-Sol-ver. [][] \T1/ptm/m/n/10.03749 El nu-cli al-go-rís-mic. Abans
+ []
+
+LaTeX Font Info:    Font shape `T1/pcr/m/it' in size <8.03> not available
+(Font)              Font shape `T1/pcr/m/sl' tried instead on input line 620.
+
+Underfull \hbox (badness 2478) in paragraph at lines 636--639
 []\T1/ptm/m/n/10.03749 L'aturada co-o-pe-ra-ti-va es ges-ti-o-na amb un in-di-ca-
  []
 
 
-
-[4]
-Underfull \hbox (badness 10000) in paragraph at lines 609--613
+Underfull \hbox (badness 10000) in paragraph at lines 642--646
  \T1/ptm/b/n/10.03749 3.4.2. Sol-ver-Task. [][] \T1/pcr/m/n/10.03749 SolverTask \T1/ptm/m/n/10.03749 és el res-pon-
  []
 
 
-Underfull \hbox (badness 7631) in paragraph at lines 609--613
+Underfull \hbox (badness 7631) in paragraph at lines 642--646
 \T1/ptm/m/n/10.03749 sa-ble d'e-xe-cu-tar i ges-ti-o-nar el ci-cle de vi-da de
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 614--628
+Underfull \hbox (badness 10000) in paragraph at lines 647--661
 []\T1/ptm/m/n/10.03749 Estén \T1/pcr/m/n/10.03749 SwingWorker<Boolean, Void>\T1/ptm/m/n/10.03749 .
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 614--628
+Underfull \hbox (badness 10000) in paragraph at lines 647--661
 \T1/ptm/m/n/10.03749 El mè-to-de \T1/pcr/m/n/10.03749 doInBackground() \T1/ptm/m/n/10.03749 re-gis-tra un
  []
 
 
-Underfull \hbox (badness 1783) in paragraph at lines 614--628
+Underfull \hbox (badness 1783) in paragraph at lines 647--661
 \T1/pcr/m/n/10.03749 Consumer<Integer> \T1/ptm/m/n/10.03749 al sol-ver com a \T1/ptm/m/it/10.03749 call-back \T1/ptm/m/n/10.03749 de
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 614--628
+Underfull \hbox (badness 10000) in paragraph at lines 647--661
 \T1/ptm/m/n/10.03749 qui de-fi-neix l'ac-ció (\T1/pcr/m/n/10.03749 view.updateStats()\T1/ptm/m/n/10.03749 );
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 614--628
+Underfull \hbox (badness 10000) in paragraph at lines 647--661
 \T1/pcr/m/n/10.03749 SolverTask \T1/ptm/m/n/10.03749 no-més ga-ran-teix que s'e-xe-cu-ti de
  []
 
 
-Underfull \hbox (badness 2050) in paragraph at lines 614--628
+Underfull \hbox (badness 2050) in paragraph at lines 647--661
 \T1/ptm/m/n/10.03749 ma-ne-ra se-gu-ra al fil EDT. Aquest dis-seny des-a-co-bla
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 614--628
+Underfull \hbox (badness 10000) in paragraph at lines 647--661
 \T1/ptm/m/n/10.03749 el sol-ver de qual-se-vol de-pen-dèn-cia de la vis-ta:
  []
 
 
-Underfull \hbox (badness 3343) in paragraph at lines 614--628
+Underfull \hbox (badness 3343) in paragraph at lines 647--661
 \T1/pcr/m/n/10.03749 BacktrackingSolver \T1/ptm/m/n/10.03749 no co-neix ni Swing ni la
  []
 
 
 
-
-Underfull \hbox (badness 5217) in paragraph at lines 674--684
+[5 <./lower-panel.png>]
+Underfull \hbox (badness 5217) in paragraph at lines 707--717
 []\T1/ptm/m/n/10.03749 Quan l'u-su-a-ri cli-ca \T1/ptm/m/it/10.03749 Re-pro-duir\T1/ptm/m/n/10.03749 , es crea un nou
  []
 
 
-Underfull \hbox (badness 2189) in paragraph at lines 674--684
+Underfull \hbox (badness 2189) in paragraph at lines 707--717
 \T1/ptm/m/n/10.03749 ca-dor; si la re-pro-duc-ció an-te-ri-or ha-via ar-ri-bat al fi-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 690--692
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 723--725
 []\T1/ptm/m/n/10.03749 Construeix un ob-jec-te \T1/pcr/m/n/10.03749 Board \T1/ptm/m/n/10.03749 i un
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 694--697
+Underfull \hbox (badness 10000) in paragraph at lines 727--730
 []\T1/ptm/m/n/10.03749 El call-back de com-ple-ta-ció
  []
 
-<mvc.png, id=27, 1240.635pt x 877.2775pt>
+<mvc.png, id=46, 1240.635pt x 877.2775pt>
 File: mvc.png Graphic file (type png)
 <use mvc.png>
-Package pdftex.def Info: mvc.png  used on input line 703.
+Package pdftex.def Info: mvc.png  used on input line 736.
 (pdftex.def)             Requested size: 243.91125pt x 172.46727pt.
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-
-
-[5]
-
 
 
 [6 <./mvc.png>]
-Underfull \hbox (badness 4072) in paragraph at lines 889--892
+
+
+
+[7]
+Underfull \hbox (badness 10000) in paragraph at lines 897--900
+\T1/ptm/m/n/8.03 27s _ tour # Warnsdor^^[ '[] s _ rule : ~ : text = Warnsdorf % 27s % 20rule % 20is ,[]
+ []
+
+
+Underfull \hbox (badness 4072) in paragraph at lines 902--905
 []\T1/ptm/m/n/8.03 M. Dah-mus and F. Kleinsch-midt, ``mou-se-Clicked vs. mou-se-
  []
 
 
-Underfull \hbox (badness 2253) in paragraph at lines 889--892
+Underfull \hbox (badness 2253) in paragraph at lines 902--905
 \T1/ptm/m/n/8.03 li-ne]. Avai-la-ble: $https : / / comp . lang . java . gui . narkive . com / bAHvswQ2 /
  []
 
@@ -759,7 +851,7 @@ Before submitting the final camera ready copy, remember to:
 
 
 
-[7
+[8
 
 ] (./memoria.aux)
  ***********
@@ -772,18 +864,18 @@ LaTeX Warning: There were multiply-defined labels.
 
  ) 
 Here is how much of TeX's memory you used:
- 9053 strings out of 473190
- 144260 string characters out of 5715800
- 833245 words of memory out of 5000000
- 32158 multiletter control sequences out of 15000+600000
- 686390 words of font info for 186 fonts, out of 8000000 for 9000
+ 9178 strings out of 473190
+ 146440 string characters out of 5715800
+ 833442 words of memory out of 5000000
+ 32276 multiletter control sequences out of 15000+600000
+ 687802 words of font info for 189 fonts, out of 8000000 for 9000
  1147 hyphenation exceptions out of 8191
- 57i,8n,65p,287b,1290s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrb8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrro8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on memoria.pdf (7 pages, 326802 bytes).
+ 57i,8n,65p,314b,1290s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrb8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrro8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on memoria.pdf (8 pages, 613236 bytes).
 PDF statistics:
- 135 PDF objects out of 1000 (max. 8388607)
- 82 compressed objects within 1 object stream
+ 155 PDF objects out of 1000 (max. 8388607)
+ 89 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 6 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 31 words of extra memory for PDF output out of 10000 (max. 10000000)
 

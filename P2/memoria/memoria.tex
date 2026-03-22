@@ -18,6 +18,7 @@
 \usepackage{booktabs}
 \usepackage{float}
 \usepackage{cuted}
+\usepackage{wrapfig}
 
 % Catalan names for abstract and index terms
 \renewcommand{\abstractname}{Resum}
@@ -225,7 +226,7 @@ La cerca de backtracking pot trigar des de mil·lisegons fins a
 hores o inclús dies per a taulers grans. Executar-la al fil EDT
 (\textit{Event Dispatch Thread}) bloquejaria la interfície, impedint
 qualsevol interacció de l'usuari durant la cerca. La solució estàndard
-és \texttt{SwingWorker}~\cite{ref_swingworker}~\cite{ref_swingworker_oracle},
+és \texttt{SwingWorker},
 una classe abstracta que encapsula el patró de treball en segon pla:
 el mètode \texttt{doInBackground()} s'executa en un fil separat del,
 mentre que \texttt{done()} s'invoca
@@ -260,7 +261,9 @@ Defineix els sis tipus de peces disponibles. Cada constant porta:
           icona PNG de la peça blanca si \texttt{isWhite=true} o negra si \textit{isWhite=false}.
 \end{itemize}
 
-La Taula~\ref{tab:pieces} resumeix les sis peces implementades.
+La Taula~\ref{tab:pieces} resumeix els paràmetres i la
+Figura~\ref{fig:moviments_peces} mostra els vectors de moviment i indica la
+quantitat de cel·les accessibles $k$, per a cada una de les peces implementades.
 
 \begin{table}[!h]
     \caption{Peces implementades amb el seu tipus de moviment i nombre de vectors.\label{tab:pieces}}
@@ -278,6 +281,14 @@ La Taula~\ref{tab:pieces} resumeix les sis peces implementades.
         \bottomrule
     \end{tabular}
 \end{table}
+
+\begin{figure}[h]
+      \centering
+      \includegraphics[width=\linewidth]{moviments_peces}
+      \caption{Vectors de moviment de cada peça sobre una graella $7\times7$.
+                  Les cel·les assolibles des del centre estan marcades en color.}
+      \label{fig:moviments_peces}
+\end{figure}
 
 Les peces especials \textit{Mussol} i \textit{Serp} s'han definit
 específicament per a aquesta pràctica. El Mussol es mou amb una
@@ -312,13 +323,6 @@ booleana \texttt{boolean[][]} de caselles visitades i un comptador
           cada direcció cel·la per cel·la fins al límit del tauler i
           comprova si \texttt{targetPos} cau en alguna d'aquestes línies.
 \end{itemize}
-
-% --- SUGGERIMENT D'IMATGE ---
-% Aquí es podria inserir un diagrama que mostri els vectors de moviment
-% de cadascuna de les sis peces sobre una petita graella 5x5,
-% amb les caselles accessibles marcades en color.
-% Etiqueta suggerida: fig:piece-movements
-% Mida: figure* (ample complet) o dues subfigures per columna.
 
 \subsubsection{SolverMetrics}
 
@@ -357,14 +361,6 @@ exclusivament a través dels mètodes públics de delegació
 (\texttt{resetBoard}, \texttt{updateStats}, \texttt{setSolverState},
 etc.), que operen amb dades, mai amb components Swing directament.
 
-% --- SUGGERIMENT D'IMATGE ---
-% Aquí es podria inserir una captura de pantalla de la finestra principal
-% amb una solució carregada (per exemple, Cavall + Torre en un 6x6),
-% mostrant el tauler amb els números de pas, el panell de configuració
-% a l'esquerra i el panell d'estadístiques a baix.
-% Etiqueta suggerida: fig:mainview
-% Mida: figure (una columna) o figure* (ample complet).
-
 \subsubsection{BoardPanel}
 
 Panell de dibuix del tauler. Utilitza un \texttt{GridLayout} per a
@@ -401,17 +397,37 @@ el botó, cosa que falla si l'usuari mou el cursor fins i tot un sol
 píxel durant el clic~\cite{ref_mouseclicked_platforms}.
 
 El mètode \texttt{updateBoard(path, currentStep, whiteType, blackType)}
-actualitza tots els \texttt{CellPanel} donada la llista de posicions de
-la solució i el pas a visualitzar. La paritat del pas (parell/senar)
-determina quina peça ocupa la casella corresponent (els passos parells
-corresponen a la peça blanca, els senars a la negra).
+implementa un renderitzat sense estat: crida primer \texttt{clearCells()}
+per restablir totes les caselles a l'estat buit i després reconstrueix
+la visualització des de zero recorrent la llista de posicions fins al pas
+indicat. Per a cada posició visitada s'assigna el número de seqüència
+en base 1 i es fa un seguiment de la posició més recent de cada peça
+(paritat parell → peça blanca, senar → peça negra); al final del recorregut
+s'hi col·loca la icona corresponent.
 
-% --- SUGGERIMENT D'IMATGE ---
-% Aquí es podria inserir una captura de pantalla del BoardPanel mostrant
-% una solució parcial (per exemple, els primers 12 passos en un tauler
-% 5x5), amb els números de pas visibles i la peça activa ressaltada.
-% Etiqueta suggerida: fig:boardpanel-step
-% Mida: figure (una columna).
+El renderitzat de cada \texttt{CellPanel} es fa per capes dins de
+\texttt{paintComponent}: primer el fons (blanc o marró per al tauler,
+verd clar o verd fosc si ja ha estat visitat, mantenint el patró de
+colors), després el número de seqüència a la cantonada superior esquerra,
+a continuació la icona de la peça centrada, i finalment una vora daurada
+de 3~px si la casella correspon al pas actual.
+
+Quan la cerca finalitza amb solució, \texttt{showFullSolution} crida
+\texttt{updateBoard} amb el camí complet i tot seguit elimina tots els
+ressaltats, de manera que la vista final mostra el tauler completament
+omplert sense cap casella destacada.
+
+La Figura~\ref{fig:boardpanel} contrasta el tauler inicial i el tauler
+amb solució trobada.
+
+\begin{figure}[H]
+      \centering
+      \includegraphics[width=0.48\linewidth]{board.png}
+      \hfill
+      \includegraphics[width=0.48\linewidth]{board-sol.png}
+      \caption{Captura de pantalla del \texttt{BoardPanel}.}
+      \label{fig:boardpanel}
+\end{figure}
 
 \subsubsection{ConfigPanel}
 
@@ -427,6 +443,15 @@ actualitzen el seu color de fons
 (verd per al bloqueig de mida, taronja per al mode de col·locació) mitjançant
 \texttt{setBackground()} per fer l'estat visible sense modificar el text.
 
+\begin{wrapfigure}{r}{0.35\linewidth}
+    \centering
+    \vspace{15pt}
+    \includegraphics[width=\linewidth]{config-panel.png}
+    \caption{Captura de pantalla del \texttt{ConfigPanel}.}
+    \label{fig:configpanel}
+    \vspace{15pt}
+\end{wrapfigure}
+
 El mètode \texttt{validateConfig()} comprova que les posicions estiguin
 dins dels límits del tauler i siguin distintes, mostrant diàlegs d'error
 en català si la validació falla. Tota comunicació cap al controlador es
@@ -434,6 +459,11 @@ fa a través d'un \texttt{Runnable} \texttt{onConfigChanged}, registrat
 exclusivament per \texttt{SolverController} en construir l'aplicació.
 Per tant, el panell no coneix el controlador, només invoca el callback
 quan detecta canvis de configuració.
+
+La Figura~\ref{fig:configpanel} mostra el panell de configuració, a l'esquerra de
+l'interfície gràfica, on es poden visualitzar totes les opcions disponibles:
+el botó de bloqueig de tauler quadrat, la quantitat de files i columnes,
+el selector de cada una de les dues peces juntament amb la seva posició al tauler.
 
 \subsubsection{ControlPanel}
 
@@ -515,12 +545,15 @@ seus colors associats.
     \end{tabular}
 \end{table}
 
-% --- SUGGERIMENT D'IMATGE ---
-% Aquí es podria inserir una captura de pantalla del StatsPanel mostrant
-% estadístiques reals d'una execució (p.ex. Cavall+Alfil en 8x8),
-% amb el temps, iteracions i backtracks visibles.
-% Etiqueta suggerida: fig:statspanel
-% Mida: figure (una columna).
+La Figura~\ref{fig:lowerpanel} mostra com \texttt{ControlPanel} i \texttt{StatsPanel}
+s'han juntat a la part inferior de la interfície gràfica.
+
+\begin{figure}[h]
+      \centering
+      \includegraphics[width=\linewidth]{lower-panel.png}
+      \caption{Captura de pantalla del \texttt{ControlPanel} i \texttt{StatsPanel}.}
+      \label{fig:lowerpanel}
+\end{figure}
 
 \subsubsection{PieceIcon}
 
@@ -536,7 +569,7 @@ estàtic (compartit amb totes les instàncies de \texttt{PieceIcon})
 com a cache de les imatges indexades per la seva ruta de recurs.
 
 El mètode \texttt{paintComponent()} utilitza \texttt{Graphics2D} amb
-dos \textit{rendering hints}~\cite{ref_rendering_hints,ref_rendering_hints_api}:
+dos \textit{rendering hints}:
 \texttt{KEY\_ANTIALIASING} perquè les icones es mostren sobre fons de
 colors variats i les vores irregulars serien especialment visibles, i
 \texttt{KEY\_INTERPOLATION\_BILINEAR} perquè les imatges s'escalen
@@ -701,7 +734,7 @@ relacions entre les tres capes.
 \begin{figure}[h]
       \centering
       \includegraphics[width=\linewidth]{mvc}
-    \caption{Diagrama de classes i relacions entre les tres capes MVC.\label{fig:mvc}}
+      \caption{Diagrama de classes i relacions entre les tres capes MVC.\label{fig:mvc}}
       \label{fig:mvc}
 \end{figure}
 
@@ -829,31 +862,31 @@ configuració s'ha arribat a una solució en menys d'un segon, amb un total de
 %% ================================================================
 \section{Conclusió i opinió personal}
 
-La implementació del recorregut de dues peces alternades, sense matar-se mútuament,
-a un tauler d'escacs ha demostrat ser un problema bastant complex amb un cost computacional
-extremadament alt amb segons quines configuracions. Tal com s'ha exposat formalment,
+La implementació del recorregut de dues peces alternades, sense capturar-se mútuament,
+en un tauler d'escacs ha demostrat ser un problema bastant complex amb un cost computacional
+extremadament elevat per a certes configuracions. Tal com s'ha exposat formalment,
 aquest cost depèn de la quantitat de moviments que té cada peça i, sobretot, de la mida del tauler.
-Quan s'han realitzat proves per a comprovar el funcionament del programa ha quedat clar aquest
-comportament: amb tauler moderadament grans ($> 8 \times 8$) només s'ha pogut comprovar si s'arriba a una
-solució amb peces que tenen pocs moviments (cavall, mussol i serp); per a la resta de peces és
-completament infactible esperar a trobar una solució. Per a certes configuracions l'aplicació encara
-estaria executant-se.
+Durant les proves de funcionament del programa ha quedat clar aquest
+comportament: amb taulers moderadament grans ($> 8 \times 8$) només s'ha pogut verificar si s'arriba a una
+solució amb peces que tenen pocs moviments (Cavall, Mussol i Serp). Per a la resta de peces és
+completament inviable esperar a trobar una solució; per a taulers grans, l'aplicació
+seguiria executant-se indefinidament.
 
-Tot i així, el cost computacional tant elevat ha proporcionat una oportunitat d'optimització
-de la qual estic molt content haver aprofitat. L'heurística de Warsndorff millora significativament
-el nombre de passes necessaries per a arribar a una solució, per a la majoria de configuracions.
-La simple prova realitzada a un tauler $22 \times 22$ amb dos cavalls (una de les peces que
-minimitza el cost del problema) ho ha posat de manifest molt clarament: temps inasumible fora l'heurística
-però pràcticament instantani amb l'heurística activada.
+Tot i així, el cost computacional tan elevat ha proporcionat una oportunitat d'optimització
+de la qual estic molt satisfet d'haver aprofitat. L'heurística de Warnsdorff millora significativament
+el nombre de passos necessaris per a arribar a una solució en la majoria de configuracions.
+La prova realitzada amb un tauler $22 \times 22$ i dos cavalls (una de les configuracions que
+minimitza el cost del problema) ho ha posat de manifest molt clarament: el temps seria inassumible sense l'heurística,
+però pràcticament instantani amb l'heurística activa.
 
-La implementació de la pràctica amb patró MVC, igual que en la pràctica anterior, ha forçat a
+La implementació de la pràctica amb el patró MVC, igual que en la pràctica anterior, ha forçat a
 pensar de forma crítica quins són els mòduls del programari i quines responsabilitats han de tenir.
-Ha estat molt útil per a mantenir una organització del projecte i permetrà extendre el codi en un futur
-molt fàcilment.
+Ha estat molt útil per a mantenir una bona organització del projecte i permetrà estendre el codi en el futur
+amb facilitat.
 
-Com és normal amb totes les pràctiques, m'hagués agradat tenir més temps per a seguir millorant certes
-característiques i afegir funcionalitats. Específicament, hagués estat bé afegir la funcionalitat de
-trobar un recorregut per a més de dues peces i també fer previsions del temps que tardarà l'aplicació
+Com és habitual en totes les pràctiques, m'hauria agradat tenir més temps per a continuar millorant certes
+característiques i afegir funcionalitats. Concretament, hauria estat interessant afegir la funcionalitat de
+trobar un recorregut per a més de dues peces i també fer estimacions del temps que tardarà l'aplicació
 en trobar una solució.
 
 %% ================================================================
@@ -863,27 +896,7 @@ en trobar una solució.
 \bibitem{ref_warnsdorff}
 Conrad\_Barski, ``Warnsdorff's rule for Knight's tours,''
 Wikipedia, Jan.\ 2025. [Online]. Available:
-\url{https://en.wikipedia.org/wiki/Knight%27s_tour#Warnsdorff's_rule}
-
-\bibitem{ref_swingworker}
-camickr, ``How do I use SwingWorker in Java?,''
-Stack Overflow, Apr.\ 2009. [Online]. Available:
-\url{https://stackoverflow.com/questions/782265/how-do-i-use-swingworker-in-java}
-
-\bibitem{ref_swingworker_oracle}
-Oracle, ``Worker Threads and SwingWorker,''
-\textit{The Java Tutorials: Concurrency in Swing}. [Online]. Available:
-\url{https://docs.oracle.com/javase/tutorial/uiswing/concurrency/worker.html}
-
-\bibitem{ref_rendering_hints}
-Oracle, ``Controlling Rendering Quality,''
-\textit{The Java Tutorials: 2D Graphics}. [Online]. Available:
-\url{https://docs.oracle.com/javase/tutorial/2d/advanced/quality.html}
-
-\bibitem{ref_rendering_hints_api}
-Oracle, ``RenderingHints (Java SE 8),''
-\textit{Java Platform SE 8 API Specification}. [Online]. Available:
-\url{https://docs.oracle.com/javase/8/docs/api/java/awt/RenderingHints.html}
+\url{https://en.wikipedia.org/wiki/Knight%27s_tour#Warnsdorff's_rule:~:text=Warnsdorf%27s%20rule%20is,square%20already%20visited.}
 
 \bibitem{ref_mouseclicked_platforms}
 M.~Dahmus and F.~Kleinschmidt, ``mouseClicked vs. mousePressed on Apple vs. Windows,''
