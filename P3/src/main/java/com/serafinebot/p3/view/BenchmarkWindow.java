@@ -3,6 +3,7 @@ package com.serafinebot.p3.view;
 import com.serafinebot.p3.controller.Controller;
 import com.serafinebot.p3.model.Benchmark;
 import com.serafinebot.p3.model.PointCloud;
+import com.serafinebot.p3.model.Predictor;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -22,6 +23,16 @@ public class BenchmarkWindow extends JDialog {
 
     private final BenchmarkGraphPanel graphPanel;
     private final DefaultTableModel tableModel;
+
+    // Prediction UI
+    private final JTextField predictNField;
+    private final JButton predictButton;
+    private final JLabel predBruteLabel;
+    private final JLabel predDCLabel;
+    private final JLabel predFarthestLabel;
+    private final JLabel crossoverLabel;
+
+    private Predictor.Constants fittedConstants;
 
     private static final String DEFAULT_N_VALUES = "100,500,1000,2000,5000,10000,20000,50000";
 
@@ -53,10 +64,11 @@ public class BenchmarkWindow extends JDialog {
         graphPanel.setPreferredSize(new Dimension(800, 400));
         add(graphPanel, BorderLayout.CENTER);
 
-        // === Options + table (right) ===
+        // === Right panel: options + prediction ===
         JPanel rightPanel = new JPanel(new BorderLayout(0, 5));
-        rightPanel.setPreferredSize(new Dimension(200, 0));
+        rightPanel.setPreferredSize(new Dimension(220, 0));
 
+        // -- Series visibility + scale --
         JPanel optionsPanel = new JPanel();
         optionsPanel.setLayout(new BoxLayout(optionsPanel, BoxLayout.Y_AXIS));
         optionsPanel.setBorder(BorderFactory.createTitledBorder("Opcions"));
@@ -78,9 +90,37 @@ public class BenchmarkWindow extends JDialog {
         }
 
         rightPanel.add(optionsPanel, BorderLayout.NORTH);
+
+        // -- Prediction panel --
+        JPanel predPanel = new JPanel();
+        predPanel.setLayout(new BoxLayout(predPanel, BoxLayout.Y_AXIS));
+        predPanel.setBorder(BorderFactory.createTitledBorder("Predicció"));
+
+        JPanel predInputRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
+        predInputRow.add(new JLabel("N:"));
+        predictNField = new JTextField("100000", 8);
+        predInputRow.add(predictNField);
+        predictButton = new JButton("Predir");
+        predictButton.setEnabled(false);
+        predInputRow.add(predictButton);
+        predInputRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        predPanel.add(predInputRow);
+
+        predBruteLabel   = makePredLabel("Bruta:   -");
+        predDCLabel      = makePredLabel("D&C:     -");
+        predFarthestLabel = makePredLabel("Lluny:   -");
+        crossoverLabel   = makePredLabel("Crossover: -");
+
+        predPanel.add(predBruteLabel);
+        predPanel.add(predDCLabel);
+        predPanel.add(predFarthestLabel);
+        predPanel.add(Box.createVerticalStrut(6));
+        predPanel.add(crossoverLabel);
+
+        rightPanel.add(predPanel, BorderLayout.CENTER);
         add(rightPanel, BorderLayout.EAST);
 
-        // Numeric table — full width at bottom
+        // === Data table (bottom) ===
         String[] cols = {"N", "Bruta (ms)", "D&C (ms)", "Mes lluny (ms)", "Speedup (Bruta/D&C)"};
         tableModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
@@ -97,12 +137,13 @@ public class BenchmarkWindow extends JDialog {
         tableScroll.setPreferredSize(new Dimension(0, 180));
         add(tableScroll, BorderLayout.SOUTH);
 
-        // === Wire button ===
+        // === Wire buttons ===
         runButton.addActionListener(e -> runBenchmark());
+        predictButton.addActionListener(e -> predict());
 
         pack();
         setLocationRelativeTo(owner);
-        setMinimumSize(new Dimension(1000, 550));
+        setMinimumSize(new Dimension(1100, 600));
     }
 
     private void runBenchmark() {
@@ -112,6 +153,7 @@ public class BenchmarkWindow extends JDialog {
         PointCloud.Distribution dist = (PointCloud.Distribution) distributionCombo.getSelectedItem();
 
         runButton.setEnabled(false);
+        predictButton.setEnabled(false);
         setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
         SwingWorker<Benchmark.BenchmarkEntry[], Void> worker = new SwingWorker<>() {
@@ -125,8 +167,12 @@ public class BenchmarkWindow extends JDialog {
             protected void done() {
                 try {
                     Benchmark.BenchmarkEntry[] results = get();
+                    fittedConstants = Predictor.fit(results);
                     graphPanel.setData(results);
+                    graphPanel.setFittedConstants(fittedConstants);
                     updateTable(results);
+                    updateCrossover();
+                    predictButton.setEnabled(true);
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(BenchmarkWindow.this,
                             "Error durant el benchmark: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -137,6 +183,39 @@ public class BenchmarkWindow extends JDialog {
             }
         };
         worker.execute();
+    }
+
+    private void predict() {
+        if (fittedConstants == null) return;
+        long n;
+        try {
+            n = Long.parseLong(predictNField.getText().trim());
+            if (n < 2) throw new NumberFormatException();
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Introduïu un enter >= 2.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        predBruteLabel.setText(String.format(
+            "<html><b>Bruta:</b> %s</html>",
+            formatTime(Predictor.predictBrute(fittedConstants.bruteForce(), n))));
+        predDCLabel.setText(String.format(
+            "<html><b>D&C:</b> %s</html>",
+            formatTime(Predictor.predictDC(fittedConstants.divideConquer(), n))));
+        predFarthestLabel.setText(String.format(
+            "<html><b>Lluny:</b> %s</html>",
+            formatTime(Predictor.predictFarthest(fittedConstants.farthest(), n))));
+    }
+
+    private void updateCrossover() {
+        if (fittedConstants == null) return;
+        long cross = Predictor.crossover(fittedConstants, 1_000_000_000L);
+        if (cross < 0) {
+            crossoverLabel.setText("<html><b>Crossover:</b> no trobat</html>");
+        } else {
+            crossoverLabel.setText(String.format(
+                "<html><b>Crossover:</b> n ≈ %,d</html>", cross));
+        }
     }
 
     private int[] parseNValues() {
@@ -162,10 +241,10 @@ public class BenchmarkWindow extends JDialog {
     private void updateTable(Benchmark.BenchmarkEntry[] entries) {
         tableModel.setRowCount(0);
         for (Benchmark.BenchmarkEntry e : entries) {
-            double brute   = e.bruteForce().averageTimeMs();
-            double dc      = e.divideConquer().averageTimeMs();
+            double brute    = e.bruteForce().averageTimeMs();
+            double dc       = e.divideConquer().averageTimeMs();
             double farthest = e.farthestPair().averageTimeMs();
-            double speedup = dc > 0 ? brute / dc : 0;
+            double speedup  = dc > 0 ? brute / dc : 0;
             tableModel.addRow(new Object[]{
                 e.n(),
                 String.format("%.4f", brute),
@@ -174,5 +253,21 @@ public class BenchmarkWindow extends JDialog {
                 String.format("%.2fx", speedup)
             });
         }
+    }
+
+    private String formatTime(double ms) {
+        if (ms >= 3_600_000) return String.format("%.2f h",   ms / 3_600_000);
+        if (ms >= 60_000)    return String.format("%.2f min", ms / 60_000);
+        if (ms >= 1_000)     return String.format("%.2f s",   ms / 1_000);
+        if (ms >= 1)         return String.format("%.4f ms",  ms);
+        if (ms >= 0.001)     return String.format("%.2f µs",  ms * 1_000);
+        return String.format("%.2f ns", ms * 1_000_000);
+    }
+
+    private JLabel makePredLabel(String text) {
+        JLabel l = new JLabel(text);
+        l.setAlignmentX(Component.LEFT_ALIGNMENT);
+        l.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
+        return l;
     }
 }

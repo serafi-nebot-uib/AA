@@ -1,6 +1,7 @@
 package com.serafinebot.p3.view;
 
 import com.serafinebot.p3.model.Benchmark;
+import com.serafinebot.p3.model.Predictor;
 
 import javax.swing.*;
 import java.awt.*;
@@ -28,6 +29,7 @@ public class BenchmarkGraphPanel extends JPanel {
     };
 
     private Benchmark.BenchmarkEntry[] entries;
+    private Predictor.Constants fittedConstants;
     private boolean logScale = false;
     private final boolean[] visible = {true, true, true};
 
@@ -43,6 +45,12 @@ public class BenchmarkGraphPanel extends JPanel {
 
     public void setData(Benchmark.BenchmarkEntry[] entries) {
         this.entries = entries;
+        this.fittedConstants = null;
+        repaint();
+    }
+
+    public void setFittedConstants(Predictor.Constants constants) {
+        this.fittedConstants = constants;
         repaint();
     }
 
@@ -118,8 +126,54 @@ public class BenchmarkGraphPanel extends JPanel {
             }
         }
 
+        // Draw fitted curves (dashed)
+        if (fittedConstants != null) {
+            drawFittedCurves(g2, plotW, plotH, maxN, maxTime, logMin, logMax);
+        }
+
         drawLegend(g2);
         g2.dispose();
+    }
+
+    private void drawFittedCurves(Graphics2D g2, int plotW, int plotH,
+                                   double maxN, double maxTime, double logMin, double logMax) {
+        float[] dash = {6f, 4f};
+        g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f, dash, 0f));
+
+        int steps = plotW; // one sample per pixel column
+        double[] constants = {
+            fittedConstants.bruteForce(),
+            fittedConstants.divideConquer(),
+            fittedConstants.farthest()
+        };
+
+        for (int i = 0; i < SERIES.length; i++) {
+            if (!visible[i]) continue;
+            g2.setColor(SERIES[i].color().darker());
+
+            int prevX = -1, prevY = -1;
+            for (int step = 0; step <= steps; step++) {
+                double n = 2 + (maxN - 2) * step / steps;
+                double t = switch (i) {
+                    case 0 -> Predictor.predictBrute(constants[0], (long) n);
+                    case 1 -> Predictor.predictDC(constants[1], (long) n);
+                    case 2 -> Predictor.predictFarthest(constants[2], (long) n);
+                    default -> 0;
+                };
+                int x = PAD_LEFT + (int) (plotW * n / maxN);
+                int y = computeY(t, plotH, maxTime, logMin, logMax);
+
+                if (y >= PAD_TOP && y <= PAD_TOP + plotH) {
+                    if (prevX >= 0) g2.drawLine(prevX, prevY, x, y);
+                    prevX = x;
+                    prevY = y;
+                } else {
+                    // Out of bounds — break the curve so no horizontal line appears
+                    prevX = -1;
+                    prevY = -1;
+                }
+            }
+        }
     }
 
     private int computeY(double timeMs, int plotH, double maxTime, double logMin, double logMax) {
