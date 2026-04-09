@@ -11,6 +11,8 @@ public class BruteForceClosest {
         double bestDistSq = points[0].distanceSquaredTo(points[1]);
 
         for (int i = 0; i < n - 1; i++) {
+            if (Thread.currentThread().isInterrupted())
+                throw new RuntimeException(new InterruptedException("Cancelled"));
             for (int j = i + 1; j < n; j++) {
                 double distSq = points[i].distanceSquaredTo(points[j]);
                 if (distSq < bestDistSq) {

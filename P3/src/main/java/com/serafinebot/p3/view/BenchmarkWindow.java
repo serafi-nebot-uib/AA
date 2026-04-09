@@ -2,12 +2,14 @@ package com.serafinebot.p3.view;
 
 import com.serafinebot.p3.controller.Controller;
 import com.serafinebot.p3.model.Benchmark;
+import com.serafinebot.p3.model.DistributionParams;
 import com.serafinebot.p3.model.PointCloud;
 import com.serafinebot.p3.model.Predictor;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.ItemEvent;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,8 +18,9 @@ public class BenchmarkWindow extends JDialog {
     private final Controller controller;
 
     private final JTextField nValuesField;
-    private final JComboBox<PointCloud.Distribution> distributionCombo;
     private final JButton runButton;
+    private final JComboBox<PointCloud.Distribution> distributionCombo;
+    private final DistributionParamPanel paramPanel;
     private final JCheckBox logScaleCheck;
     private final JCheckBox[] seriesChecks;
 
@@ -30,6 +33,7 @@ public class BenchmarkWindow extends JDialog {
     private final JLabel predBruteLabel;
     private final JLabel predDCLabel;
     private final JLabel predFarthestLabel;
+    private final JLabel predDCBucketLabel;
     private final JLabel crossoverLabel;
 
     private Predictor.Constants fittedConstants;
@@ -42,22 +46,36 @@ public class BenchmarkWindow extends JDialog {
 
         setLayout(new BorderLayout(5, 5));
 
-        // === Controls (top) ===
-        JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
-        controlPanel.setBorder(BorderFactory.createTitledBorder("Configuració"));
+        // === Controls (top) — two rows inside a vertical box ===
+        JPanel configWrapper = new JPanel();
+        configWrapper.setLayout(new BoxLayout(configWrapper, BoxLayout.Y_AXIS));
+        configWrapper.setBorder(BorderFactory.createTitledBorder("Configuració"));
 
-        controlPanel.add(new JLabel("Valors de N (separats per comes):"));
+        // Row 1: N values + run button
+        JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
+        row1.add(new JLabel("Valors de N (separats per comes):"));
         nValuesField = new JTextField(DEFAULT_N_VALUES, 35);
-        controlPanel.add(nValuesField);
-
-        controlPanel.add(new JLabel("Distribució:"));
-        distributionCombo = new JComboBox<>(PointCloud.Distribution.values());
-        controlPanel.add(distributionCombo);
-
+        row1.add(nValuesField);
         runButton = new JButton("Executar Benchmark");
-        controlPanel.add(runButton);
+        row1.add(runButton);
+        configWrapper.add(row1);
 
-        add(controlPanel, BorderLayout.NORTH);
+        // Row 2: distribution + params (variable width — isolated from row 1)
+        JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
+        row2.add(new JLabel("Distribució:"));
+        distributionCombo = new JComboBox<>(PointCloud.Distribution.values());
+        row2.add(distributionCombo);
+        paramPanel = new DistributionParamPanel();
+        paramPanel.setDistribution((PointCloud.Distribution) distributionCombo.getSelectedItem());
+        row2.add(paramPanel);
+        configWrapper.add(row2);
+
+        distributionCombo.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED)
+                paramPanel.setDistribution((PointCloud.Distribution) e.getItem());
+        });
+
+        add(configWrapper, BorderLayout.NORTH);
 
         // === Chart (center) ===
         graphPanel = new BenchmarkGraphPanel();
@@ -106,14 +124,16 @@ public class BenchmarkWindow extends JDialog {
         predInputRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         predPanel.add(predInputRow);
 
-        predBruteLabel   = makePredLabel("Bruta:   -");
-        predDCLabel      = makePredLabel("D&C:     -");
-        predFarthestLabel = makePredLabel("Lluny:   -");
-        crossoverLabel   = makePredLabel("Crossover: -");
+        predBruteLabel    = makePredLabel("Bruta:      -");
+        predDCLabel       = makePredLabel("D&C:        -");
+        predFarthestLabel = makePredLabel("Lluny:      -");
+        predDCBucketLabel = makePredLabel("D&C Bucket: -");
+        crossoverLabel    = makePredLabel("Crossover: -");
 
         predPanel.add(predBruteLabel);
         predPanel.add(predDCLabel);
         predPanel.add(predFarthestLabel);
+        predPanel.add(predDCBucketLabel);
         predPanel.add(Box.createVerticalStrut(6));
         predPanel.add(crossoverLabel);
 
@@ -121,17 +141,12 @@ public class BenchmarkWindow extends JDialog {
         add(rightPanel, BorderLayout.EAST);
 
         // === Data table (bottom) ===
-        String[] cols = {"N", "Bruta (ms)", "D&C (ms)", "Mes lluny (ms)", "Speedup (Bruta/D&C)"};
+        String[] cols = {"N", "Bruta (ms)", "D&C (ms)", "Mes lluny (ms)", "D&C Bucket (ms)", "Speedup (Bruta/D&C)"};
         tableModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         JTable table = new JTable(tableModel);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-        table.getColumnModel().getColumn(0).setPreferredWidth(80);
-        table.getColumnModel().getColumn(1).setPreferredWidth(120);
-        table.getColumnModel().getColumn(2).setPreferredWidth(120);
-        table.getColumnModel().getColumn(3).setPreferredWidth(120);
-        table.getColumnModel().getColumn(4).setPreferredWidth(150);
         JScrollPane tableScroll = new JScrollPane(table);
         tableScroll.setBorder(BorderFactory.createTitledBorder("Dades"));
         tableScroll.setPreferredSize(new Dimension(0, 180));
@@ -143,7 +158,7 @@ public class BenchmarkWindow extends JDialog {
 
         pack();
         setLocationRelativeTo(owner);
-        setMinimumSize(new Dimension(1100, 600));
+        setMinimumSize(new Dimension(1100, 650));
     }
 
     private void runBenchmark() {
@@ -151,6 +166,7 @@ public class BenchmarkWindow extends JDialog {
         if (nValues == null) return;
 
         PointCloud.Distribution dist = (PointCloud.Distribution) distributionCombo.getSelectedItem();
+        DistributionParams params = paramPanel.read();
 
         runButton.setEnabled(false);
         predictButton.setEnabled(false);
@@ -159,7 +175,7 @@ public class BenchmarkWindow extends JDialog {
         SwingWorker<Benchmark.BenchmarkEntry[], Void> worker = new SwingWorker<>() {
             @Override
             protected Benchmark.BenchmarkEntry[] doInBackground() {
-                controller.runBenchmarkSeries(nValues, dist, MainView.RANGE_MIN, MainView.RANGE_MAX);
+                controller.runBenchmarkSeries(nValues, dist, MainView.RANGE_MIN, MainView.RANGE_MAX, params);
                 return controller.getBenchmarkResults();
             }
 
@@ -205,6 +221,9 @@ public class BenchmarkWindow extends JDialog {
         predFarthestLabel.setText(String.format(
             "<html><b>Lluny:</b> %s</html>",
             formatTime(Predictor.predictFarthest(fittedConstants.farthest(), n))));
+        predDCBucketLabel.setText(String.format(
+            "<html><b>D&C Bucket:</b> %s</html>",
+            formatTime(Predictor.predictDC(fittedConstants.divideConquerBucket(), n))));
     }
 
     private void updateCrossover() {
@@ -244,12 +263,14 @@ public class BenchmarkWindow extends JDialog {
             double brute    = e.bruteForce().averageTimeMs();
             double dc       = e.divideConquer().averageTimeMs();
             double farthest = e.farthestPair().averageTimeMs();
+            double dcBucket = e.divideConquerBucket().averageTimeMs();
             double speedup  = dc > 0 ? brute / dc : 0;
             tableModel.addRow(new Object[]{
                 e.n(),
                 String.format("%.4f", brute),
                 String.format("%.4f", dc),
                 String.format("%.4f", farthest),
+                String.format("%.4f", dcBucket),
                 String.format("%.2fx", speedup)
             });
         }

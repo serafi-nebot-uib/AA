@@ -13,6 +13,7 @@ public class Controller implements ViewListener {
     private final Model model;
     private final MainView view;
     private BenchmarkWindow benchmarkWindow;
+    private SwingWorker<?, ?> runWorker;
 
     public Controller(Model model, MainView view) {
         this.model = model;
@@ -23,8 +24,8 @@ public class Controller implements ViewListener {
     // ---- ViewListener implementation ----
 
     @Override
-    public void onGenerate(int n, Distribution distribution, double rangeMin, double rangeMax) {
-        model.generatePoints(n, distribution, rangeMin, rangeMax);
+    public void onGenerate(int n, Distribution distribution, double rangeMin, double rangeMax, DistributionParams params) {
+        model.generatePoints(n, distribution, rangeMin, rangeMax, params);
         view.showPoints(rangeMin, rangeMax);
         view.clearResults();
         view.setRunButtonEnabled(true);
@@ -35,16 +36,18 @@ public class Controller implements ViewListener {
         view.setRunning(true);
         Point[] points = model.getPoints();
 
-        SwingWorker<Void, Void> worker = new SwingWorker<>() {
+        runWorker = new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() {
-                Benchmark.Result bruteResult    = Benchmark.run(BruteForceClosest::find, points);
-                Benchmark.Result dcResult       = Benchmark.run(DivideConquerClosest::find, points);
-                Benchmark.Result farthestResult = Benchmark.run(FarthestPair::find, points);
+                Benchmark.Result bruteResult    = Benchmark.run(BruteForceClosest::find,          points);
+                Benchmark.Result dcResult       = Benchmark.run(DivideConquerClosest::find,       points);
+                Benchmark.Result bucketResult   = Benchmark.run(DivideConquerClosestBucket::find, points);
+                Benchmark.Result farthestResult = Benchmark.run(FarthestPair::find,               points);
 
                 model.setResults(
                     bruteResult.pair(),    bruteResult.averageTimeMs(),
                     dcResult.pair(),       dcResult.averageTimeMs(),
+                    bucketResult.pair(),   bucketResult.averageTimeMs(),
                     farthestResult.pair(), farthestResult.averageTimeMs()
                 );
                 return null;
@@ -52,11 +55,16 @@ public class Controller implements ViewListener {
 
             @Override
             protected void done() {
-                view.updateResults();
+                if (!isCancelled()) view.updateResults();
                 view.setRunning(false);
             }
         };
-        worker.execute();
+        runWorker.execute();
+    }
+
+    @Override
+    public void onStop() {
+        if (runWorker != null) runWorker.cancel(true);
     }
 
     @Override
@@ -70,9 +78,10 @@ public class Controller implements ViewListener {
 
     // ---- Called by BenchmarkWindow ----
 
-    public void runBenchmarkSeries(int[] nValues, Distribution distribution, double rangeMin, double rangeMax) {
+    public void runBenchmarkSeries(int[] nValues, Distribution distribution,
+                                   double rangeMin, double rangeMax, DistributionParams params) {
         Benchmark.BenchmarkEntry[] results =
-            Benchmark.runSeries(nValues, distribution, rangeMin, rangeMax);
+            Benchmark.runSeries(nValues, distribution, rangeMin, rangeMax, params);
         model.setBenchmarkResults(results);
     }
 

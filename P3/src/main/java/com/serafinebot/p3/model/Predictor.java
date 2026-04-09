@@ -16,7 +16,7 @@ package com.serafinebot.p3.model;
  */
 public class Predictor {
 
-    public record Constants(double bruteForce, double divideConquer, double farthest) {}
+    public record Constants(double bruteForce, double divideConquer, double farthest, double divideConquerBucket) {}
 
     public static Constants fit(Benchmark.BenchmarkEntry[] entries) {
         if (entries == null || entries.length == 0)
@@ -29,6 +29,7 @@ public class Predictor {
         double numBrute = 0, denBrute = 0;
         double numDC = 0,    denDC = 0;
         double numFar = 0,   denFar = 0;
+        double numDCB = 0,   denDCB = 0;
         int count = 0;
 
         for (Benchmark.BenchmarkEntry e : entries) {
@@ -38,20 +39,23 @@ public class Predictor {
             double fQuad  = n * n;
             double fNLogN = n * log2(n);
 
-            numBrute += e.bruteForce().averageTimeMs()    * fQuad;
+            numBrute += e.bruteForce().averageTimeMs()            * fQuad;
             denBrute += fQuad  * fQuad;
 
-            numDC    += e.divideConquer().averageTimeMs() * fNLogN;
+            numDC    += e.divideConquer().averageTimeMs()          * fNLogN;
             denDC    += fNLogN * fNLogN;
 
-            numFar   += e.farthestPair().averageTimeMs()  * fNLogN;
+            numFar   += e.farthestPair().averageTimeMs()           * fNLogN;
             denFar   += fNLogN * fNLogN;
+
+            numDCB   += e.divideConquerBucket().averageTimeMs()    * fNLogN;
+            denDCB   += fNLogN * fNLogN;
             count++;
         }
 
         if (count == 0) throw new IllegalArgumentException("No usable entries");
 
-        return new Constants(numBrute / denBrute, numDC / denDC, numFar / denFar);
+        return new Constants(numBrute / denBrute, numDC / denDC, numFar / denFar, numDCB / denDCB);
     }
 
     public static double predictBrute(double a, long n) {

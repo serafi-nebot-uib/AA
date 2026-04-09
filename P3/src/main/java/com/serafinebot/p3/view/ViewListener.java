@@ -1,5 +1,6 @@
 package com.serafinebot.p3.view;
 
+import com.serafinebot.p3.model.DistributionParams;
 import com.serafinebot.p3.model.PointCloud;
 
 /**
@@ -7,7 +8,8 @@ import com.serafinebot.p3.model.PointCloud;
  * so the view never needs to hold a reference to any controller type.
  */
 public interface ViewListener {
-    void onGenerate(int n, PointCloud.Distribution distribution, double rangeMin, double rangeMax);
+    void onGenerate(int n, PointCloud.Distribution distribution, double rangeMin, double rangeMax, DistributionParams params);
     void onRun();
+    void onStop();
     void onOpenBenchmark();
 }

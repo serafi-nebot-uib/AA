@@ -21,17 +21,18 @@ public class BenchmarkGraphPanel extends JPanel {
             Color color,
             ToDoubleFunction<Benchmark.BenchmarkEntry> getValue) {}
 
-    /** The three series in display order. Shared with BenchmarkWindow for checkbox labels. */
+    /** The series in display order. Shared with BenchmarkWindow for checkbox labels. */
     public static final Series[] SERIES = {
-        new Series("Força Bruta",          "O(n²)",       new Color(220, 60,  0),  e -> e.bruteForce().averageTimeMs()),
-        new Series("Divideix i Venceràs",  "O(n·log n)",  new Color(0,  140,  0),  e -> e.divideConquer().averageTimeMs()),
-        new Series("Parella Més Llunyana", "O(n·log n)",  new Color(0,   80, 200), e -> e.farthestPair().averageTimeMs()),
+        new Series("Força Bruta",             "O(n²)",       new Color(220, 60,  0),  e -> e.bruteForce().averageTimeMs()),
+        new Series("Divideix i Venceràs",     "O(n·log n)",  new Color(0,  140,  0),  e -> e.divideConquer().averageTimeMs()),
+        new Series("Parella Més Llunyana",    "O(n·log n)",  new Color(0,   80, 200), e -> e.farthestPair().averageTimeMs()),
+        new Series("D&C Bucket",              "O(n·log n)",  new Color(160,  0, 200), e -> e.divideConquerBucket().averageTimeMs()),
     };
 
     private Benchmark.BenchmarkEntry[] entries;
     private Predictor.Constants fittedConstants;
     private boolean logScale = false;
-    private final boolean[] visible = {true, true, true};
+    private final boolean[] visible = {true, true, true, true};
 
     private static final int PAD_LEFT   = 75;
     private static final int PAD_RIGHT  = 25;
@@ -144,7 +145,8 @@ public class BenchmarkGraphPanel extends JPanel {
         double[] constants = {
             fittedConstants.bruteForce(),
             fittedConstants.divideConquer(),
-            fittedConstants.farthest()
+            fittedConstants.farthest(),
+            fittedConstants.divideConquerBucket()
         };
 
         for (int i = 0; i < SERIES.length; i++) {
@@ -158,6 +160,7 @@ public class BenchmarkGraphPanel extends JPanel {
                     case 0 -> Predictor.predictBrute(constants[0], (long) n);
                     case 1 -> Predictor.predictDC(constants[1], (long) n);
                     case 2 -> Predictor.predictFarthest(constants[2], (long) n);
+                    case 3 -> Predictor.predictDC(constants[3], (long) n);
                     default -> 0;
                 };
                 int x = PAD_LEFT + (int) (plotW * n / maxN);

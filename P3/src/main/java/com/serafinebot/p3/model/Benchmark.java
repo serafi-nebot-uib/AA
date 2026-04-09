@@ -24,12 +24,16 @@ public class Benchmark {
 
         // Warmup: discard first 3 runs (cache, JIT)
         for (int i = 0; i < WARMUP_RUNS; i++) {
+            if (Thread.currentThread().isInterrupted())
+                throw new RuntimeException(new InterruptedException("Cancelled"));
             result = finder.find(points);
         }
 
         // Measured runs: average of 5
         long totalNanos = 0;
         for (int i = 0; i < MEASURED_RUNS; i++) {
+            if (Thread.currentThread().isInterrupted())
+                throw new RuntimeException(new InterruptedException("Cancelled"));
             long start = System.nanoTime();
             result = finder.find(points);
             long end = System.nanoTime();
@@ -52,26 +56,27 @@ public class Benchmark {
      */
     @SuppressWarnings("unchecked")
     public static BenchmarkEntry[] runSeries(int[] nValues, PointCloud.Distribution distribution,
-                                              double rangeMin, double rangeMax) {
-        jitWarmup(distribution, rangeMin, rangeMax);
+                                              double rangeMin, double rangeMax, DistributionParams params) {
+        jitWarmup(distribution, rangeMin, rangeMax, params);
 
-        // Pre-generate all point arrays (fast, deterministic)
+        // Pre-generate all point arrays
         Point[][] allPoints = new Point[nValues.length][];
         for (int i = 0; i < nValues.length; i++) {
-            PointCloud cloud = new PointCloud(42L + i);
-            allPoints[i] = cloud.generate(nValues[i], distribution, rangeMin, rangeMax);
+            PointCloud cloud = new PointCloud();
+            allPoints[i] = cloud.generate(nValues[i], distribution, rangeMin, rangeMax, params);
         }
 
         int threads = Runtime.getRuntime().availableProcessors();
         ExecutorService pool = Executors.newFixedThreadPool(threads);
 
-        // futures[i][0] = brute, [1] = D&C, [2] = farthest
-        Future<Result>[][] futures = new Future[nValues.length][3];
+        // futures[i][0] = brute, [1] = D&C, [2] = farthest, [3] = D&C bucket
+        Future<Result>[][] futures = new Future[nValues.length][4];
         for (int i = 0; i < nValues.length; i++) {
             Point[] pts = allPoints[i];
-            futures[i][0] = pool.submit(() -> run(BruteForceClosest::find, pts));
-            futures[i][1] = pool.submit(() -> run(DivideConquerClosest::find, pts));
-            futures[i][2] = pool.submit(() -> run(FarthestPair::find, pts));
+            futures[i][0] = pool.submit(() -> run(BruteForceClosest::find,            pts));
+            futures[i][1] = pool.submit(() -> run(DivideConquerClosest::find,         pts));
+            futures[i][2] = pool.submit(() -> run(FarthestPair::find,                 pts));
+            futures[i][3] = pool.submit(() -> run(DivideConquerClosestBucket::find,   pts));
         }
 
         pool.shutdown();
@@ -83,7 +88,8 @@ public class Benchmark {
                     nValues[i],
                     futures[i][0].get(),
                     futures[i][1].get(),
-                    futures[i][2].get()
+                    futures[i][2].get(),
+                    futures[i][3].get()
                 );
             } catch (Exception e) {
                 throw new RuntimeException("Benchmark task failed for slot " + i, e);
@@ -101,15 +107,16 @@ public class Benchmark {
      * Uses the same distribution as the actual benchmark so the same code paths
      * (e.g. rejection-sampling branches in PointCloud) are compiled too.
      */
-    private static void jitWarmup(PointCloud.Distribution distribution, double rangeMin, double rangeMax) {
-        Point[] pts = new PointCloud(0).generate(JIT_WARMUP_N, distribution, rangeMin, rangeMax);
+    private static void jitWarmup(PointCloud.Distribution distribution, double rangeMin, double rangeMax, DistributionParams params) {
+        Point[] pts = new PointCloud().generate(JIT_WARMUP_N, distribution, rangeMin, rangeMax, params);
         for (int i = 0; i < JIT_WARMUP_ITERS; i++) {
             BruteForceClosest.find(pts);
             DivideConquerClosest.find(pts);
             FarthestPair.find(pts);
+            DivideConquerClosestBucket.find(pts);
         }
     }
 
-    public record BenchmarkEntry(int n, Result bruteForce, Result divideConquer, Result farthestPair) {
+    public record BenchmarkEntry(int n, Result bruteForce, Result divideConquer, Result farthestPair, Result divideConquerBucket) {
     }
 }
