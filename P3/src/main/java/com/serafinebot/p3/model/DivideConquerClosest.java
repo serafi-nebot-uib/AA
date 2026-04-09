@@ -29,35 +29,30 @@ public class DivideConquerClosest {
 
         PointPair leftPair = closestRec(px, left, mid);
         PointPair rightPair = closestRec(px, mid + 1, right);
+        PointPair best = leftPair.distanceSq() <= rightPair.distanceSq() ? leftPair : rightPair;
 
-        PointPair best;
-        if (leftPair.distance() <= rightPair.distance()) {
-            best = leftPair;
-        } else {
-            best = rightPair;
-        }
+        double dMinSq = best.distanceSq();
+        double dMin   = best.distance();
 
-        double dMin = best.distance();
-
-        // Build strip: points within dMin of the dividing line
-        Point[] strip = new Point[size];
-        int stripSize = 0;
-        for (int i = left; i <= right; i++) {
-            if (Math.abs(px[i].x() - midX) < dMin) {
-                strip[stripSize++] = px[i];
-            }
-        }
+        // Build strip: px is sorted by X, so points within dMin of midX are contiguous.
+        // Binary search for the left and right boundaries, then slice directly.
+        int stripLeft  = lowerBound(px, left,  right, midX - dMin);
+        int stripRight = upperBound(px, left,  right, midX + dMin);
+        Point[] strip = Arrays.copyOfRange(px, stripLeft, stripRight + 1);
 
         // Sort strip by Y
-        Arrays.sort(strip, 0, stripSize, Comparator.comparingDouble(Point::y));
+        Arrays.sort(strip, Comparator.comparingDouble(Point::y));
 
-        // Check at most 7 neighbors for each point in the strip
+        // Check at most 7 neighbors for each point in the strip.
+        // Use squared distance for comparisons — sqrt only when a better pair is found.
+        int stripSize = strip.length;
         for (int i = 0; i < stripSize; i++) {
             for (int j = i + 1; j < stripSize && (strip[j].y() - strip[i].y()) < dMin; j++) {
-                double dist = strip[i].distanceTo(strip[j]);
-                if (dist < dMin) {
-                    dMin = dist;
-                    best = new PointPair(strip[i], strip[j], dist);
+                double distSq = strip[i].distanceSquaredTo(strip[j]);
+                if (distSq < dMinSq) {
+                    dMinSq = distSq;
+                    dMin   = Math.sqrt(dMinSq); // keep dMin in sync for the Y-gap check above
+                    best   = new PointPair(strip[i], strip[j]);
                 }
             }
         }
@@ -65,16 +60,36 @@ public class DivideConquerClosest {
         return best;
     }
 
+    /** First index i in [left, right] where px[i].x() >= minX. */
+    private static int lowerBound(Point[] px, int left, int right, double minX) {
+        while (left < right) {
+            int mid = (left + right) >>> 1;
+            if (px[mid].x() < minX) left = mid + 1;
+            else right = mid;
+        }
+        return px[left].x() >= minX ? left : left + 1;
+    }
+
+    /** Last index i in [left, right] where px[i].x() <= maxX. */
+    private static int upperBound(Point[] px, int left, int right, double maxX) {
+        while (left < right) {
+            int mid = (left + right + 1) >>> 1;
+            if (px[mid].x() > maxX) right = mid - 1;
+            else left = mid;
+        }
+        return px[right].x() <= maxX ? right : right - 1;
+    }
+
     private static PointPair bruteForceRange(Point[] points, int left, int right) {
         PointPair best = new PointPair(points[left], points[left + 1]);
-        double bestDist = best.distance();
+        double bestDistSq = points[left].distanceSquaredTo(points[left + 1]);
 
         for (int i = left; i <= right; i++) {
             for (int j = i + 1; j <= right; j++) {
-                double dist = points[i].distanceTo(points[j]);
-                if (dist < bestDist) {
-                    bestDist = dist;
-                    best = new PointPair(points[i], points[j], dist);
+                double distSq = points[i].distanceSquaredTo(points[j]);
+                if (distSq < bestDistSq) {
+                    bestDistSq = distSq;
+                    best = new PointPair(points[i], points[j]);
                 }
             }
         }

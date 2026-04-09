@@ -3,7 +3,6 @@ package com.serafinebot.p3.model;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.function.Supplier;
 
 public class Benchmark {
 
@@ -20,19 +19,19 @@ public class Benchmark {
      * Discards the first WARMUP_RUNS executions, then averages MEASURED_RUNS.
      * Follows the methodology from the class notes (slide 125).
      */
-    public static Result run(Supplier<PointPair> algorithm) {
+    public static Result run(PairFinder finder, Point[] points) {
         PointPair result = null;
 
         // Warmup: discard first 3 runs (cache, JIT)
         for (int i = 0; i < WARMUP_RUNS; i++) {
-            result = algorithm.get();
+            result = finder.find(points);
         }
 
         // Measured runs: average of 5
         long totalNanos = 0;
         for (int i = 0; i < MEASURED_RUNS; i++) {
             long start = System.nanoTime();
-            result = algorithm.get();
+            result = finder.find(points);
             long end = System.nanoTime();
             totalNanos += (end - start);
         }
@@ -70,9 +69,9 @@ public class Benchmark {
         Future<Result>[][] futures = new Future[nValues.length][3];
         for (int i = 0; i < nValues.length; i++) {
             Point[] pts = allPoints[i];
-            futures[i][0] = pool.submit(() -> run(() -> BruteForceClosest.find(pts)));
-            futures[i][1] = pool.submit(() -> run(() -> DivideConquerClosest.find(pts)));
-            futures[i][2] = pool.submit(() -> run(() -> FarthestPair.find(pts)));
+            futures[i][0] = pool.submit(() -> run(BruteForceClosest::find, pts));
+            futures[i][1] = pool.submit(() -> run(DivideConquerClosest::find, pts));
+            futures[i][2] = pool.submit(() -> run(FarthestPair::find, pts));
         }
 
         pool.shutdown();

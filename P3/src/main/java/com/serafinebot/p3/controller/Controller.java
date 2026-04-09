@@ -38,9 +38,9 @@ public class Controller implements ViewListener {
         SwingWorker<Void, Void> worker = new SwingWorker<>() {
             @Override
             protected Void doInBackground() {
-                Benchmark.Result bruteResult    = Benchmark.run(() -> BruteForceClosest.find(points));
-                Benchmark.Result dcResult       = Benchmark.run(() -> DivideConquerClosest.find(points));
-                Benchmark.Result farthestResult = Benchmark.run(() -> FarthestPair.find(points));
+                Benchmark.Result bruteResult    = Benchmark.run(BruteForceClosest::find, points);
+                Benchmark.Result dcResult       = Benchmark.run(DivideConquerClosest::find, points);
+                Benchmark.Result farthestResult = Benchmark.run(FarthestPair::find, points);
 
                 model.setResults(
                     bruteResult.pair(),    bruteResult.averageTimeMs(),
