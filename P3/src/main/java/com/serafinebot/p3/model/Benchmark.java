@@ -11,6 +11,11 @@ public class Benchmark {
     private static final int JIT_WARMUP_N = 500;
     private static final int JIT_WARMUP_ITERS = 10;
 
+    public static final PairFinder BRUTE    = new BruteForceClosest();
+    public static final PairFinder DC       = new DivideConquerClosest();
+    public static final PairFinder BUCKET   = new DivideConquerClosestBucket();
+    public static final PairFinder FARTHEST = new FarthestPair();
+
     public record Result(double averageTimeMs, PointPair pair) {
     }
 
@@ -73,10 +78,10 @@ public class Benchmark {
         Future<Result>[][] futures = new Future[nValues.length][4];
         for (int i = 0; i < nValues.length; i++) {
             Point[] pts = allPoints[i];
-            futures[i][0] = pool.submit(() -> run(BruteForceClosest::find,            pts));
-            futures[i][1] = pool.submit(() -> run(DivideConquerClosest::find,         pts));
-            futures[i][2] = pool.submit(() -> run(FarthestPair::find,                 pts));
-            futures[i][3] = pool.submit(() -> run(DivideConquerClosestBucket::find,   pts));
+            futures[i][0] = pool.submit(() -> run(BRUTE,    pts));
+            futures[i][1] = pool.submit(() -> run(DC,       pts));
+            futures[i][2] = pool.submit(() -> run(FARTHEST, pts));
+            futures[i][3] = pool.submit(() -> run(BUCKET,   pts));
         }
 
         pool.shutdown();
@@ -110,10 +115,10 @@ public class Benchmark {
     private static void jitWarmup(PointCloud.Distribution distribution, double rangeMin, double rangeMax, DistributionParams params) {
         Point[] pts = new PointCloud().generate(JIT_WARMUP_N, distribution, rangeMin, rangeMax, params);
         for (int i = 0; i < JIT_WARMUP_ITERS; i++) {
-            BruteForceClosest.find(pts);
-            DivideConquerClosest.find(pts);
-            FarthestPair.find(pts);
-            DivideConquerClosestBucket.find(pts);
+            BRUTE.find(pts);
+            DC.find(pts);
+            FARTHEST.find(pts);
+            BUCKET.find(pts);
         }
     }
 

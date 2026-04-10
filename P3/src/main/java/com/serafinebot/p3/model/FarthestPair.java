@@ -5,9 +5,10 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
-public class FarthestPair {
+public class FarthestPair implements PairFinder {
 
-    public static PointPair find(Point[] points) {
+    @Override
+    public PointPair find(Point[] points) {
         int n = points.length;
         if (n < 2) throw new IllegalArgumentException("Es necessiten almenys 2 punts");
         if (n == 2) return new PointPair(points[0], points[1]);
@@ -71,7 +72,7 @@ public class FarthestPair {
             j++;
         }
 
-        double bestDistSq = 0;
+        double bestDist = 0;
         Point bestP1 = null, bestP2 = null;
 
         for (int i = 0; i < h; i++) {
@@ -82,16 +83,16 @@ public class FarthestPair {
                 j = (j + 1) % h;
             }
 
-            double distSqI = a.distanceSquaredTo(hull.get(j));
-            if (distSqI > bestDistSq) {
-                bestDistSq = distSqI;
+            double distI = a.distanceTo(hull.get(j));
+            if (distI > bestDist) {
+                bestDist = distI;
                 bestP1 = a;
                 bestP2 = hull.get(j);
             }
 
-            double distSqI1 = b.distanceSquaredTo(hull.get(j));
-            if (distSqI1 > bestDistSq) {
-                bestDistSq = distSqI1;
+            double distI1 = b.distanceTo(hull.get(j));
+            if (distI1 > bestDist) {
+                bestDist = distI1;
                 bestP1 = b;
                 bestP2 = hull.get(j);
             }
