@@ -21,9 +21,7 @@ public class DivideConquerClosestBucket extends DivideConquerClosest {
     private static final int BUCKET_CAPACITY = 8;
 
     @Override
-    protected PointPair processStrip(Point[] strip, double dMin, PointPair best) {
-        int k = strip.length;
-
+    protected PointPair processStrip(Point[] strip, int k, double dMin, PointPair best) {
         // Compute bucket key for every strip point; track key range for offset indexing
         int[] keys   = new int[k];
         int minKey   = Integer.MAX_VALUE;
@@ -38,9 +36,7 @@ public class DivideConquerClosestBucket extends DivideConquerClosest {
         // Guard: if numBuckets > k the array would be sparser than O(1) per bucket,
         // hurting both allocation cost and cache locality. Fall back to sort-based scan.
         int numBuckets = maxKey - minKey + 1;
-        if (numBuckets > k) {
-            return super.processStrip(strip, dMin, best);
-        }
+        if (numBuckets > k) return super.processStrip(strip, k, dMin, best);
 
         // Flat bucket storage: buckets[b * BUCKET_CAPACITY + c] is the c-th point in bucket b.
         Point[] buckets = new Point[numBuckets * BUCKET_CAPACITY];
