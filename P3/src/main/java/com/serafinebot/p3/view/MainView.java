@@ -9,6 +9,11 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 
+/**
+ * Main application window. Contains the point-cloud controls, the point
+ * visualisation canvas, and the results panel. Fires events to the registered
+ * {@link ViewListener} rather than holding a direct reference to the controller.
+ */
 public class MainView extends JFrame {
 
     public static final double RANGE_MIN = 0;

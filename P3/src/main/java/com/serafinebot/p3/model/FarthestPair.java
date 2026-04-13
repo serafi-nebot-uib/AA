@@ -5,6 +5,13 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * Farthest pair via convex hull + rotating calipers in O(n log n).
+ *
+ * The farthest pair always lies on the convex hull, so the problem reduces to:
+ *   1. Compute the convex hull — Andrew's monotone chain, O(n log n).
+ *   2. Walk antipodal pairs around the hull — rotating calipers, O(h).
+ */
 public class FarthestPair implements PairFinder {
 
     @Override
@@ -52,6 +59,11 @@ public class FarthestPair implements PairFinder {
         return hull;
     }
 
+    /**
+     * 2-D cross product of vectors (o→a) and (o→b).
+     * Positive: left turn (b is to the left of o→a).
+     * Zero or negative: collinear or right turn — point removed from hull.
+     */
     private static double cross(Point o, Point a, Point b) {
         return (a.x() - o.x()) * (b.y() - o.y())
              - (a.y() - o.y()) * (b.x() - o.x());
@@ -101,6 +113,11 @@ public class FarthestPair implements PairFinder {
         return new PointPair(bestP1, bestP2);
     }
 
+    /**
+     * Twice the unsigned area of triangle (a, b, c), used as a proxy for the
+     * perpendicular distance from c to edge a→b. The calipers advance j while
+     * this distance is still increasing — the peak is the antipodal point.
+     */
     private static double triArea(Point a, Point b, Point c) {
         return Math.abs((b.x() - a.x()) * (c.y() - a.y())
                       - (b.y() - a.y()) * (c.x() - a.x()));

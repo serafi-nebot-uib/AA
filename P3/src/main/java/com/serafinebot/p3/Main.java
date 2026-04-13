@@ -6,6 +6,7 @@ import com.serafinebot.p3.view.MainView;
 
 import javax.swing.*;
 
+/** Application entry point. Builds the MVC triad on the Swing EDT. */
 public class Main {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {

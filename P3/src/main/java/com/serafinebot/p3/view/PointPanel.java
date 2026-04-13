@@ -6,6 +6,10 @@ import com.serafinebot.p3.model.PointPair;
 import javax.swing.*;
 import java.awt.*;
 
+/**
+ * Canvas that renders the current point cloud and highlights the closest pair
+ * (red) and farthest pair (blue) once the algorithm results are available.
+ */
 public class PointPanel extends JPanel {
 
     private Point[] points;
@@ -89,6 +93,7 @@ public class PointPanel extends JPanel {
     }
 
     private int toScreenY(double y, int h) {
+        // Subtract from (MARGIN + h) to flip Y: data origin is bottom-left, screen is top-left.
         return MARGIN + h - (int) ((y - rangeMin) / (rangeMax - rangeMin) * h);
     }
 }

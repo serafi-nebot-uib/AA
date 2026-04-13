@@ -13,6 +13,11 @@ import java.awt.event.ItemEvent;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Non-modal dialog for running the benchmark series and inspecting results.
+ * Contains the configuration controls, the cost graph, the data table, and
+ * the prediction panel. Benchmark execution is offloaded to a SwingWorker.
+ */
 public class BenchmarkWindow extends JDialog {
 
     private final Controller controller;

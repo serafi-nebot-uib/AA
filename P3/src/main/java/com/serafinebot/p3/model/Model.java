@@ -1,5 +1,9 @@
 package com.serafinebot.p3.model;
 
+/**
+ * Application model (MVC). Holds the current point cloud, the results of each
+ * algorithm run, and the benchmark series results.
+ */
 public class Model {
 
     private final PointCloud pointCloud = new PointCloud();

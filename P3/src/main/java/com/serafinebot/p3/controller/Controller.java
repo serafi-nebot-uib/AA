@@ -8,6 +8,10 @@ import com.serafinebot.p3.view.ViewListener;
 
 import javax.swing.*;
 
+/**
+ * MVC controller. Wires the view events to model operations and manages
+ * the background SwingWorker for algorithm execution.
+ */
 public class Controller implements ViewListener {
 
     private final Model model;

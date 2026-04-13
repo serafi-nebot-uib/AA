@@ -12,7 +12,9 @@ import java.util.Comparator;
  * immediately above — at most 8 candidates by the packing argument — giving an
  * O(k) strip step and reducing the overall recurrence from O(n log² n) to O(n log n).
  *
- * Falls back to sort-based scan when numBuckets > k (sparse bucket array).
+ * In practice the bucket path never activates: dMin is always tiny relative to the
+ * Y range, so numBuckets >> k and the sparse-array allocation dominates. The fallback
+ * guard is left commented out below to document the intended design.
  */
 public class DivideConquerClosestBucket extends DivideConquerClosest {
 
@@ -34,7 +36,9 @@ public class DivideConquerClosestBucket extends DivideConquerClosest {
         }
 
         // Guard: if numBuckets > k the array would be sparser than O(1) per bucket,
-        // hurting both allocation cost and cache locality. Fall back to sort-based scan.
+        // hurting both allocation cost and cache locality. The intended fallback is
+        // disabled here to observe the pure bucket path; in practice this branch would
+        // always be taken because dMin << Y range implies numBuckets >> k.
         int numBuckets = maxKey - minKey + 1;
 //        if (numBuckets > k) return super.processStrip(strip, k, dMin, best);
 

@@ -1,5 +1,6 @@
 package com.serafinebot.p3.model;
 
+/** An immutable 2-D point. */
 public record Point(double x, double y) {
 
     public double distanceTo(Point other) {

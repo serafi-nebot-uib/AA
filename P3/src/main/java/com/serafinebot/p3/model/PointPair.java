@@ -1,10 +1,13 @@
 package com.serafinebot.p3.model;
 
+/** An ordered pair of points with lazily-computed distance. */
 public class PointPair {
 
     public final Point p1;
     public final Point p2;
 
+    // Sentinel -1 means "not yet computed". Valid distances are always >= 0,
+    // so -1 is a safe uninitialized marker.
     private double distanceSq = -1;
     private double distance   = -1;
 

@@ -2,6 +2,11 @@ package com.serafinebot.p3.model;
 
 import java.util.Random;
 
+/**
+ * Generates 2-D point clouds under various statistical distributions.
+ * Each distribution is parameterised via the {@link ParamSpec} array declared
+ * on the corresponding {@link Distribution} enum constant.
+ */
 public class PointCloud {
 
     public enum Distribution {
@@ -94,6 +99,8 @@ public class PointCloud {
         Point[] points = new Point[n];
         for (int i = 0; i < n; i++) {
             double x, y;
+            // Inverse-CDF sampling with rejection to clamp to [min, max].
+            // Samples very rarely exceed max when factor is small (fast decay).
             do { x = min + (-Math.log(1 - rng.nextDouble()) / lambdaX); } while (x > max);
             do { y = min + (-Math.log(1 - rng.nextDouble()) / lambdaY); } while (y > max);
             points[i] = new Point(x, y);

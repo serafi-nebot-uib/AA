@@ -84,8 +84,7 @@ per \textit{buckets} $O(n \log n)$, i la parella més llunyana mitjançant
 \textit{convex hull} i \textit{rotating calipers} $O(n \log n)$.
 L'aplicació segueix el patró MVC, ofereix una interfície gràfica interactiva
 amb visualització dels punts i resultats, i incorpora una eina de benchmark
-amb gràfiques, predicció de temps i càlcul del punt de creuament
-(\textit{crossover}) entre força bruta i divideix i venceràs.
+amb gràfiques i predicció de temps.
 Es presenta una anàlisi experimental rigorosa que confirma les complexitats
 teòriques i revela que l'optimització per \textit{buckets} no aporta guany
 pràctic per al problema de la parella més propera.
@@ -107,18 +106,17 @@ El problema de la parella de punts més propera (\textit{closest pair problem})
 de $n$ punts en el pla, trobar la parella de punts amb la distància
 euclidiana mínima. La solució per força bruta examina totes les
 $\binom{n}{2}$ parelles amb cost $O(n^2)$, però l'algorisme de divideix
-i venceràs de Shamos i Hoey~\cite{ref_shamos} resol el problema en
-$O(n \log n)$, que és òptim per a models de comparació.
+i venceràs resol el problema en $O(n \log n)$.
 
-El problema dual, la parella més llunyana (\textit{farthest pair}),
+El problema complementari, la parella més llunyana (\textit{farthest pair}),
 té la mateixa complexitat òptima $O(n \log n)$ però utilitza una
-estratègia diferent: primer es construeix l'envolupant convexa
-(\textit{convex hull}) i després s'aplica la tècnica dels
-\textit{rotating calipers}~\cite{ref_calipers}.
+estratègia diferent: primer es construeix el polígon convex que envolta
+tots els punts del núvol (\textit{convex hull}) i després s'aplica la tècnica dels
+\textit{rotating calipers}.
 
 L'aplicació implementada permet generar núvols de punts amb quatre
-distribucions (uniforme, gaussiana, exponencial, agrupada), executar
-els quatre algorismes, visualitzar els resultats gràficament i
+distribucions (uniforme, gaussiana, exponencial, agrupada), modificar paràmetres d'aquestes,
+executar els quatre algorismes, visualitzar els resultats gràficament i
 realitzar benchmarks sistemàtics amb predicció de temps.
 
 %% ================================================================
@@ -132,7 +130,7 @@ la visualització de punts al centre i un panell de resultats a la dreta.
 
 \subsection{Generació de Punts}
 
-L'usuari configura el nombre de punts $n$ (mínim 2, màxim 10.000.000)
+L'usuari configura el nombre de punts $n$
 amb un \textit{spinner} i selecciona una de les quatre distribucions
 disponibles. Cada distribució té paràmetres configurables que es
 mostren dinàmicament:
@@ -197,16 +195,12 @@ inclou:
     \item \textbf{Gràfica:} visualització dels costos computacionals
           amb eixos, graella, llegenda i corbes ajustades. Permet
           escala logarítmica i visibilitat individual de cada sèrie.
-    \item \textbf{Taula de dades:} mostra els temps per a cada
-          algorisme i l'\textit{speedup} de D\&C respecte força bruta.
+    \item \textbf{Taula de dades:} mostra els temps per a cada algorisme.
     \item \textbf{Predicció:} ajusta constants multiplicatives als
           models teòrics ($a \cdot n^2$ per força bruta,
           $a \cdot n \log_2 n$ per D\&C i la parella llunyana) i permet
           predir temps per a valors de $n$ arbitraris.
-    \item \textbf{Crossover:} calcula el punt de creuament on D\&C
-          passa a ser més ràpid que força bruta, resolent
-          $a_{\text{brute}} \cdot n = a_{\text{dc}} \cdot \log_2 n$
-          per cerca binària.
+
 \end{itemize}
 
 % [IMATGE SUGGERIDA: Captura de la finestra de benchmark amb la gràfica,
@@ -506,9 +500,7 @@ a = \frac{\sum_i t_i \cdot f(n_i)}{\sum_i f(n_i)^2}
 \end{equation}
 
 Aquesta ponderació dóna més pes a les mesures amb $n$ gran, on el
-comportament asimptòtic domina sobre l'overhead de la JVM. El punt
-de creuament es calcula per cerca binària resolent
-$a_{\text{brute}} \cdot n^2 = a_{\text{dc}} \cdot n \log_2 n$.
+comportament asimptòtic domina sobre l'overhead de la JVM.
 
 \subsubsection{CLI de Benchmark}
 
@@ -616,9 +608,9 @@ S'observa que:
 \begin{itemize}
     \item Força bruta domina per a $n \leq 500$ degut a la menor
           constant multiplicativa (no requereix ordenació).
-    \item El \textit{crossover} es situa al voltant de $n \approx 1000$.
-    \item L'\textit{speedup} creix linealment amb $n$: a $n = 50\,000$,
-          D\&C és $\approx 58\times$ més ràpid.
+    \item D\&C supera força bruta a partir de $n \approx 1000$, on la
+          constant multiplicativa de l'ordenació queda compensada per
+          la creixença quadràtica de força bruta.
     \item D\&C i D\&C Bucket tenen rendiment pràcticament idèntic,
           confirmant que la variant amb \textit{buckets} sempre fa
           \textit{fallback} al processament clàssic.
@@ -748,25 +740,6 @@ comprovació de la guarda.
 
 % [IMATGE SUGGERIDA: Gràfica D&C vs D&C Bucket amb escala lineal,
 %  mostrant les dues corbes superposades fins a n = 500.000]
-
-\subsection{Anàlisi del Crossover}
-
-El punt de creuament és el valor de $n$ on D\&C passa a ser més
-ràpid que força bruta. Amb les constants ajustades:
-
-\begin{itemize}
-    \item $a_{\text{brute}} \cdot n^2 = a_{\text{dc}} \cdot n \log_2 n$
-    \item $a_{\text{brute}} \cdot n = a_{\text{dc}} \cdot \log_2 n$
-\end{itemize}
-
-De les dades experimentals (distribució uniforme), el crossover es
-situa al voltant de $n \approx 1000$. Per a $n < 1000$, la constant
-multiplicativa de D\&C (ordenació, recursió, cerca binària) domina
-sobre la complexitat inferior. Per a $n > 1000$, el terme $n^2$ de
-força bruta creix prou ràpid per superar l'overhead constant de D\&C.
-
-% [IMATGE SUGGERIDA: Gràfica zoom de la zona de crossover (n = 500..2000)
-%  amb escala lineal, mostrant les corbes de força bruta i D&C creuant-se]
 
 \subsection{Escalabilitat a N Grans}
 

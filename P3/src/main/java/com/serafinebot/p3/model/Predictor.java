@@ -7,12 +7,11 @@ package com.serafinebot.p3.model;
  *   Brute force:    f(n) = n²
  *   D&C / Farthest: f(n) = n · log₂(n)
  *
- * The constant a = mean(t_i / f(n_i)) over all measurements.
+ * The constant a is estimated via weighted least-squares (no intercept):
+ *   a = Σ(t_i · f(n_i)) / Σ(f(n_i)²)
+ * This weights large-N samples more heavily, so the fit reflects asymptotic
+ * behaviour rather than small-N JVM overhead.
  * Prediction: t(n) = a · f(n).
- *
- * Crossover: smallest n where bruteForce(n) > divideConquer(n), i.e.
- *   a_brute · n² = a_dc · n · log₂(n)  →  a_brute · n = a_dc · log₂(n)
- * Solved with binary search.
  */
 public class Predictor {
 
