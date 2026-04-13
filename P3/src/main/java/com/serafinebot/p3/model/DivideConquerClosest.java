@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 
 /**
- * Closest pair via Divide & Conquer in O(n log n).
+ * Closest pair via Divide & Conquer in O(n log^2 n) with strip sorting per level.
  *
  * Binary-search for strip boundaries (O(log k) vs O(k) scan), sort strip by Y,
  * then check at most 7 forward neighbors.

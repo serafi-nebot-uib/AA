@@ -1,7 +1,5 @@
 package com.serafinebot.p3.model;
 
-import java.util.Arrays;
-import java.util.Comparator;
 
 /**
  * Closest pair via Divide & Conquer with bucket optimisation for the strip merge step.
@@ -12,9 +10,8 @@ import java.util.Comparator;
  * immediately above — at most 8 candidates by the packing argument — giving an
  * O(k) strip step and reducing the overall recurrence from O(n log² n) to O(n log n).
  *
- * In practice the bucket path never activates: dMin is always tiny relative to the
- * Y range, so numBuckets >> k and the sparse-array allocation dominates. The fallback
- * guard is left commented out below to document the intended design.
+ * In practice the bucket path can be slower: dMin is tiny relative to the
+ * Y range, so numBuckets >> k and the sparse-array allocation dominates.
  */
 public class DivideConquerClosestBucket extends DivideConquerClosest {
 
@@ -24,6 +21,8 @@ public class DivideConquerClosestBucket extends DivideConquerClosest {
 
     @Override
     protected PointPair processStrip(Point[] strip, int k, double dMin, PointPair best) {
+        if (k < 2 || dMin <= 0) return best;
+
         // Compute bucket key for every strip point; track key range for offset indexing
         int[] keys   = new int[k];
         int minKey   = Integer.MAX_VALUE;
@@ -35,12 +34,7 @@ public class DivideConquerClosestBucket extends DivideConquerClosest {
             if (key > maxKey) maxKey = key;
         }
 
-        // Guard: if numBuckets > k the array would be sparser than O(1) per bucket,
-        // hurting both allocation cost and cache locality. The intended fallback is
-        // disabled here to observe the pure bucket path; in practice this branch would
-        // always be taken because dMin << Y range implies numBuckets >> k.
         int numBuckets = maxKey - minKey + 1;
-//        if (numBuckets > k) return super.processStrip(strip, k, dMin, best);
 
         // Flat bucket storage: buckets[b * BUCKET_CAPACITY + c] is the c-th point in bucket b.
         Point[] buckets = new Point[numBuckets * BUCKET_CAPACITY];

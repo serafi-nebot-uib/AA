@@ -7,7 +7,7 @@ import java.util.concurrent.Future;
 public class Benchmark {
 
     private static final int WARMUP_RUNS = 3;
-    private static final int MEASURED_RUNS = 5;
+    private static final int MEASURED_RUNS = 1;
     private static final int JIT_WARMUP_N = 500;
     private static final int JIT_WARMUP_ITERS = 10;
 
@@ -34,7 +34,7 @@ public class Benchmark {
             result = finder.find(points);
         }
 
-        // Measured runs: average of 5
+        // Measured runs: average of MEASURED_RUNS
         long totalNanos = 0;
         for (int i = 0; i < MEASURED_RUNS; i++) {
             if (Thread.currentThread().isInterrupted())
@@ -51,13 +51,12 @@ public class Benchmark {
 
     /**
      * Runs benchmarks for a range of N values using fine-grained parallelism:
-     * one task per (algorithm, N) pair — 3 × nValues.length tasks total.
+     * one task per (algorithm, N) pair — 4 × nValues.length tasks total.
      * This prevents the largest-N brute-force run from serialising D&C and farthest
      * on a single thread while other cores sit idle.
      *
-     * Point arrays are pre-generated on the main thread with deterministic per-slot
-     * seeds so results are reproducible. Arrays are read-only inside tasks — no
-     * synchronisation needed.
+     * Point arrays are pre-generated on the main thread. Arrays are read-only inside
+     * tasks — no synchronisation needed.
      */
     @SuppressWarnings("unchecked")
     public static BenchmarkEntry[] runSeries(int[] nValues, PointCloud.Distribution distribution,

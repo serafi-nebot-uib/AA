@@ -21,6 +21,8 @@
 \usepackage{wrapfig}
 \usepackage{multirow}
 \usepackage{siunitx}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
 
 % Catalan names for abstract and index terms
 \renewcommand{\abstractname}{Resum}
@@ -79,10 +81,10 @@ Aquesta memòria descriu el disseny i la implementació d'una aplicació Java
 que resol el problema de la parella de punts més propera (\textit{closest pair})
 i més llunyana (\textit{farthest pair}) sobre un conjunt de punts en el pla.
 S'implementen quatre algorismes: força bruta $O(n^2)$, divideix i
-venceràs $O(n \log n)$, una variant de divideix i venceràs amb optimització
-per \textit{buckets} $O(n \log n)$, i la parella més llunyana mitjançant
-\textit{convex hull} i \textit{rotating calipers} $O(n \log n)$.
-L'aplicació segueix el patró MVC, ofereix una interfície gràfica interactiva
+venceràs amb franja ordenada $O(n \log^2 n)$, una variant amb \textit{buckets},
+i la parella més llunyana mitjançant \textit{convex hull} i
+\textit{rotating calipers} $O(n \log n)$.
+L'aplicació separa la lògica, la interfície gràfica i el control en tres capes independents, ofereix una interfície gràfica interactiva
 amb visualització dels punts i resultats, i incorpora una eina de benchmark
 amb gràfiques i predicció de temps.
 Es presenta una anàlisi experimental rigorosa que confirma les complexitats
@@ -106,7 +108,8 @@ El problema de la parella de punts més propera (\textit{closest pair problem})
 de $n$ punts en el pla, trobar la parella de punts amb la distància
 euclidiana mínima. La solució per força bruta examina totes les
 $\binom{n}{2}$ parelles amb cost $O(n^2)$, però l'algorisme de divideix
-i venceràs resol el problema en $O(n \log n)$.
+i venceràs redueix el cost a quasi lineal; en aquesta implementació
+la franja s'ordena a cada nivell, donant $O(n \log^2 n)$.
 
 El problema complementari, la parella més llunyana (\textit{farthest pair}),
 té la mateixa complexitat òptima $O(n \log n)$ però utilitza una
@@ -149,81 +152,77 @@ mostren dinàmicament:
           distribuïts amb una gaussiana al voltant de cada centre.
 \end{itemize}
 
-Un temporitzador \textit{debounce} de 300~ms evita regenerar els punts
-a cada tecleig: només es llança la generació quan l'usuari ha deixat
-d'interactuar durant 300~ms.
 
-% [IMATGE SUGGERIDA: Captura de la interfície principal amb un núvol de
-%  punts gaussià, mostrant els controls superiors, la visualització central
-%  i el panell de resultats]
+\subsection{Visualització del Núvol de Punts}
 
-\subsection{Visualització}
+El panell central mostra el núvol de punts generat. Cada punt es
+representa com un cercle sòlid de 4~px en gris fosc. El domini de
+coordenades $[0, 1000]^2$ es transforma linealment a les coordenades
+de pantalla amb un marge de 30~px a cada costat.
 
-El panell central (\texttt{PointPanel}) renderitza els punts amb
-\texttt{Graphics2D} i \textit{antialiasing}. Les coordenades del
-domini es transformen a coordenades de pantalla amb un marge de 30~px.
-L'eix Y s'inverteix per respectar la convenció matemàtica (Y creix
-cap amunt). Quan s'han calculat els resultats, la parella més propera
-es ressalta en vermell i la més llunyana en blau, amb una línia que
-connecta els dos punts de cada parella.
+Quan s'executen els algorismes, les parelles resultants es ressalten
+sobre el núvol: la parella més propera en vermell i la més llunyana
+en blau. Cada ressaltat consisteix en una línia que connecta els dos
+punts i cercles de 8~px als extrems per destacar-los del núvol.
 
-% [IMATGE SUGGERIDA: Captura de la visualització amb un núvol de punts
-%  i les parelles propera (vermell) i llunyana (blau) ressaltades]
 
-\subsection{Execució dels Algorismes}
+\subsection{Execució i Resultats}
 
 El botó \textit{Executar} llança els quatre algorismes en un fil
-de fons (\texttt{SwingWorker}) per no bloquejar la interfície. Durant
-l'execució, els controls es deshabiliten i el cursor canvia a mode
-d'espera. El botó \textit{Aturar} permet cancel·lar l'execució
-cooperativament mitjançant \texttt{Thread.interrupt()}.
+de fons per no bloquejar la interfície. Durant l'execució, els controls
+es deshabiliten i el cursor canvia a mode d'espera. El botó
+\textit{Aturar} permet cancel·lar l'execució cooperativament.
 
-Cada algorisme s'executa amb el protocol de benchmark descrit a la
+El panell de resultats a la dreta de la finestra mostra, per a cada
+algorisme, les coordenades i distància de la parella trobada i el
+temps d'execució mesurat. Mentre no s'ha executat cap algorisme, tots
+els valors mostren «---».
+
+Cada algorisme s'executa amb el protocol per execució descrit a la
 Secció~\ref{sec:benchmark}: 3 execucions d'escalfament descartades,
-seguides de 5 execucions mesurades. El temps mostrat al panell de
-resultats és la mitjana de les 5 execucions mesurades.
+seguida d'1 execució mesurada. L'escalfament JIT global només s'aplica
+a les sèries de benchmark (finestra i CLI).
+
 
 \subsection{Finestra de Benchmark}
 
-El botó \textit{Benchmark} obre una finestra independent que permet
-executar benchmarks sistemàtics amb N valors configurables. La finestra
-inclou:
+El botó \textit{Benchmark} obre una finestra independent no modal per
+executar benchmarks sistemàtics. La finestra s'organitza en quatre zones:
 
 \begin{itemize}
-    \item \textbf{Configuració:} valors de $n$ separats per comes,
-          distribució i paràmetres.
-    \item \textbf{Gràfica:} visualització dels costos computacionals
-          amb eixos, graella, llegenda i corbes ajustades. Permet
-          escala logarítmica i visibilitat individual de cada sèrie.
-    \item \textbf{Taula de dades:} mostra els temps per a cada algorisme.
-    \item \textbf{Predicció:} ajusta constants multiplicatives als
-          models teòrics ($a \cdot n^2$ per força bruta,
-          $a \cdot n \log_2 n$ per D\&C i la parella llunyana) i permet
-          predir temps per a valors de $n$ arbitraris.
-
+    \item \textbf{Configuració (superior):} camps per introduir els valors
+          de $n$ separats per comes, un selector de distribució i els
+          paràmetres de la distribució triada.
+    \item \textbf{Gràfica (centre):} mostra les quatre corbes de temps en
+          funció de $n$. Permet activar escala logarítmica i amagar
+          series individuals. Superposa corbes ajustades (línia discontínua)
+          un cop finalitzat el benchmark.
+    \item \textbf{Predicció (dreta):} un cop finalitzat el benchmark,
+          ajusta les constants multiplicatives dels models teòrics i
+          permet introduir un valor de $n$ arbitrari per predir el
+          temps d'execució de cada algorisme.
+    \item \textbf{Taula de dades (inferior):} mostra els temps mesurats
+          per a cada $n$ i algorisme en format tabular.
 \end{itemize}
 
-% [IMATGE SUGGERIDA: Captura de la finestra de benchmark amb la gràfica,
-%  la taula de dades i el panell de predicció]
 
 %% ================================================================
 \section{Disseny i Implementació}
 
-\subsection{Patró MVC i Comunicació per Events}
+\subsection{Estructura de l'Aplicació}
 
-L'aplicació segueix el patró Model-Vista-Controlador amb comunicació
-per events semàntics:
+L'aplicació es divideix en tres capes amb responsabilitats ben separades,
+que es comuniquen per events:
 
 \begin{enumerate}
-    \item \textbf{Model} (\texttt{Model}): encapsula el núvol de punts,
+    \item \textbf{Model}: la classe \texttt{Model} encapsula el núvol de punts,
           els resultats de cada algorisme (parella i temps), i els
-          resultats del benchmark. No conté cap lògica d'algorisme;
-          només emmagatzema dades.
-    \item \textbf{Vista} (\texttt{MainView}, \texttt{PointPanel},
-          \texttt{BenchmarkWindow}, \texttt{BenchmarkGraphPanel},
-          \texttt{DistributionParamPanel}): presenta els controls,
-          la visualització i la gràfica. No manté estat de domini.
-    \item \textbf{Controlador} (\texttt{Controller}): implementa la
+          resultats del benchmark. Només emmagatzema dades; els
+          algorismes viuen en classes separades dins la mateixa capa.
+    \item \textbf{Vista}: conjunt de components Swing que presenten
+          els controls, la visualització i la gràfica. No contenen
+          lògica de negoci ni dades del problema.
+    \item \textbf{Controlador}: implementa la
           interfície \texttt{ViewListener} per rebre els events de
           la vista, gestiona el cicle de vida dels fils de fons i
           actualitza el model i la vista.
@@ -235,13 +234,240 @@ La interfície \texttt{ViewListener} defineix quatre events:
 els processa, i el controlador implementa la interfície sense
 conèixer els components gràfics interns de la vista.
 
-% [IMATGE SUGGERIDA: Diagrama de classes MVC simplificat, similar al
-%  de la P2, mostrant les relacions entre Model, MainView, Controller
-%  i ViewListener]
+Degut a que la vista actualitza automàticament el núvol de punts
+cada vegada que l'usuari modifica qualque dada de configuració,
+existeix un temporitzador \textit{debounce} de 300~ms evita emetre l'event
+\texttt{onGenerate} a cada tecleig: la vista només el llança quan
+l'usuari ha deixat d'interactuar durant 300~ms.
 
-\subsection{Interfície PairFinder i Patrons de Disseny}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{mvc}
+    \caption{Diagrama de classes de l'aplicació amb les relacions entre les tres capes.}
+    \label{fig:mvc}
+\end{figure}
 
-Tots els algorismes implementen la interfície \texttt{PairFinder}:
+\subsection{Capa del Model}
+
+La capa del model conté les classes de dades i els algorismes. No
+importa cap classe de la vista ni del controlador.
+
+\subsubsection{Model}
+
+La classe \texttt{Model} és el contenidor central d'estat de
+l'aplicació. Emmagatzema el núvol de punts actual (\texttt{Point[]}),
+la distribució i els paràmetres usats per generar-lo,
+els resultats de cada algorisme (\texttt{PointPair} i temps en ms)
+i els resultats del darrer benchmark (\texttt{BenchmarkEntry[]}).
+No conté cap lògica d'algorisme: és un magatzem de dades pur que el
+controlador escriu i la vista llegeix a través dels mètodes
+d'accés.
+
+\subsubsection{Point i PointPair}
+
+\texttt{Point} és un registre immutable amb dos camps \texttt{double}
+(x, y). Ofereix \texttt{distanceTo()} (amb arrel quadrada) i
+\texttt{distanceSquaredTo()} (sense) per als casos on l'ordre relatiu
+és suficient.
+
+\texttt{PointPair} encapsula una parella de punts i calcula la
+distància de forma mandrosa (\textit{lazy}): els camps
+\texttt{distance} i \texttt{distanceSq} s'inicialitzen a $-1$ com a
+sentinella i es calculen només la primera vegada que es demanen.
+Gràcies a això, els algorismes que construeixen molts \texttt{PointPair}
+intermedis no paguen el cost de l'arrel quadrada fins que realment
+cal comparar distàncies reals.
+
+\subsubsection{PointCloud, DistributionParams i ParamSpec}
+
+\texttt{PointCloud} implementa les quatre distribucions usant
+\texttt{java.util.Random}. Les distribucions gaussiana, exponencial i
+agrupada utilitzen mostreig per rebuig (\textit{rejection sampling})
+per garantir que tots els punts quedin dins del rang
+$[\texttt{min}, \texttt{max}]$.
+
+Els paràmetres de cada distribució es defineixen com a arrays de
+\texttt{ParamSpec} (registre amb nom i valor per defecte), i els
+valors actuals s'encapsulen en \texttt{DistributionParams} (registre
+immutable amb còpia defensiva al constructor). Aquest disseny permet
+que la vista construeixi els camps de configuració automàticament
+a partir de \texttt{ParamSpec[]}, sense conèixer quines distribucions
+existeixen ni quants paràmetres té cadascuna.
+
+\subsubsection{Benchmark i Predictor}
+\label{sec:benchmark}
+
+La classe \texttt{Benchmark} centralitza el protocol de mesura i
+l'execució paral·lela. El protocol té dues capes:
+
+\begin{enumerate}
+    \item \textbf{Escalfament JIT global:} s'executen tots els algorismes
+          10 vegades amb $n = 500$ abans d'iniciar una sèrie de benchmark
+          (finestra/CLI) per forçar la compilació JIT de totes les rutes de codi.
+    \item \textbf{Escalfament per execució:} les 3 primeres execucions
+          de cada algorisme sobre el mateix array es descarten per
+          eliminar efectes de cache fred.
+    \item \textbf{Mesura:} 1 execució mesurada amb
+          \texttt{System.nanoTime()}, convertida a mil·lisegons.
+\end{enumerate}
+Per a l'execució individual des de la interfície principal només
+s'apliquen les fases 2 i 3.
+
+Per al benchmark en sèrie, \texttt{Benchmark.runSeries} genera els
+arrays de punts una sola vegada al fil principal i després distribueix
+les tasques amb un \texttt{ExecutorService} de granularitat fina:
+una tasca per parella (algorisme, $n$), de manera que els quatre
+algorismes per al $n$ més gran s'executen en paral·lel en nuclis
+separats.
+
+La classe \texttt{Predictor} ajusta una constant multiplicativa $a$
+per a cada algorisme amb mínims quadrats ponderats (sense ordenada a
+l'origen):
+\begin{equation}
+a = \frac{\sum_i t_i \cdot f(n_i)}{\sum_i f(n_i)^2}
+\end{equation}
+on $f(n) = n^2$ per a força bruta, $f(n) = n (\log_2 n)^2$ per a D\&C
+(franja ordenada a cada nivell) i $f(n) = n \log_2 n$ per a la variant
+amb \textit{buckets} i la parella més llunyana. La ponderació dóna més pes
+a les mesures amb $n$ gran, on el comportament asimptòtic domina l'overhead
+de la JVM.
+
+\subsection{Capa de la Vista}
+
+La capa de la vista consta de cinc components Swing principals, cadascun
+amb una responsabilitat concreta.
+
+\subsubsection{MainView}
+
+La finestra principal usa \texttt{BorderLayout}: el panell de controls a
+dalt (\texttt{NORTH}), el \texttt{PointPanel} al centre i el panell de
+resultats a la dreta (\texttt{EAST}). El panell de controls combina
+dos subpanells amb \texttt{FlowLayout}: un a l'esquerra amb el
+\texttt{JSpinner} de $n$, el \texttt{JComboBox} de distribució i el
+\texttt{DistributionParamPanel}, i un a la dreta amb els botons
+\textit{Executar}, \textit{Aturar} i \textit{Benchmark}.
+
+La comunicació cap al controlador es fa exclusivament a través de
+\texttt{ViewListener}: el botó \textit{Executar} crida \texttt{onRun},
+\textit{Aturar} crida \texttt{onStop}, i \textit{Benchmark} crida
+\texttt{onOpenBenchmark}. La vista no coneix el controlador; simplement
+invoca l'event sobre el listener registrat.
+
+El panell de resultats organitza vuit etiquetes en vertical amb
+\texttt{BoxLayout}: quatre per a les parelles trobades (coordenades i
+distància) i quatre per als temps d'execució. Quan s'ha generat un
+núvol nou però encara no s'han executat algorismes, les etiquetes
+mostren «---» i el botó \textit{Executar} s'habilita per indicar que
+les dades estan llestes.
+
+\subsubsection{PointPanel}
+
+El renderitzat es fa directament a \texttt{paintComponent} amb tres
+capes seqüencials: primer tots els punts del núvol en gris, després la
+parella llunyana en blau (si disponible) i finalment la parella propera
+en vermell (si disponible). Renderitzar la parella propera en darrer
+lloc garanteix que sempre queda visible sobre la llunyana en cas que els
+extrems coincideixin.
+
+La transformació de domini a pantalla és:
+\begin{align}
+x_{\text{px}} &= \texttt{MARGIN} + \frac{x - x_{\min}}{x_{\max} - x_{\min}} \cdot w \\
+y_{\text{px}} &= \texttt{MARGIN} + h - \frac{y - y_{\min}}{y_{\max} - y_{\min}} \cdot h
+\end{align}
+on $w$ i $h$ són les dimensions útils del panell (descomptant els marges).
+La subtracció de $h$ a la fórmula de $y$ inverteix l'eix perquè la
+pantalla té l'origen a dalt i el domini matemàtic a baix.
+
+\subsubsection{DistributionParamPanel}
+
+Aquest panell genera els seus camps de text dinàmicament en el moment
+en què es canvia la distribució seleccionada. Recorre l'array
+\texttt{ParamSpec[]} de la distribució i crea un parell \texttt{JLabel}
++ \texttt{JTextField} per a cada paràmetre, inicialitzant-lo amb el valor
+per defecte de l'especificació. Cada camp té un \texttt{DocumentListener} que, quan el contingut canvia,
+reinicia el temporitzador de \textit{debounce} de \texttt{MainView}, el qual
+al seu torn emet l'event \texttt{onGenerate} al \texttt{ViewListener}
+un cop transcorreguts els 300~ms. Si l'usuari introdueix un valor no
+numèric, el mètode \texttt{read()} retorna silenciosament el valor per
+defecte sense mostrar cap error.
+
+Gràcies a aquest disseny, afegir una nova distribució o modificar els
+seus paràmetres no requereix cap canvi a la vista.
+
+\subsubsection{BenchmarkWindow}
+
+La finestra de benchmark és un \texttt{JDialog} no modal. Utilitza
+\texttt{BorderLayout} amb la configuració a dalt, la gràfica al centre,
+un panell d'opcions i predicció a la dreta, i la taula de dades a baix.
+
+De manera idèntica a \texttt{MainView}, \texttt{BenchmarkWindow} es
+comunica amb el controlador a través de \texttt{ViewListener}. El mètode
+\texttt{onRunBenchmark()} forma part de la mateixa interfície que
+\texttt{onRun}, \texttt{onStop}, etc., de manera que el controlador
+és l'únic punt d'implementació i la finestra no coneix en cap moment
+el seu tipus concret.
+
+L'execució del benchmark es delega a un \texttt{SwingWorker}: el fil EDT
+resta responent durant l'execució. Quan el \texttt{SwingWorker}
+acaba, el mètode \texttt{done()} s'executa a l'EDT, actualitza la gràfica,
+la taula i ajusta les constants del predictor, i habilita el botó de
+predicció.
+
+\subsubsection{BenchmarkGraphPanel}
+
+La gràfica es dibuixa completament a \texttt{paintComponent}, sense
+cap llibreria externa. El mètode \texttt{generateRoundTicks()} calcula
+etiquetes d'eixos arrodonides a potències de $10 \times \{1, 2, 5\}$
+per obtenir graelles netes independentment del rang de valors.
+
+En mode logarítmic, l'eix $y$ es transforma amb $\log_{10}$ i les
+divisions secundàries es col·loquen als múltiples $\times 2$ i $\times 5$
+de cada potència de $10$. En mode lineal, les divisions es calculen amb
+\texttt{generateRoundTicks}.
+
+Les corbes ajustades es dibuixen amb una línia discontínua
+(\texttt{BasicStroke} amb array de \textit{dash}) en un to lleugerament
+més fosc que la sèrie de dades corresponent, mostrant el model
+$a \cdot f(n)$ mostrejat a un píxel per columna.
+
+\subsection{Capa del Controlador}
+
+La capa del controlador consisteix en una sola classe,
+\texttt{Controller}, que implementa \texttt{ViewListener} i conté tota
+la lògica d'orquestració de l'aplicació.
+
+\subsubsection{Gestió dels Events de la Vista}
+
+Cada mètode de \texttt{ViewListener} correspon a una acció de l'usuari:
+
+\begin{itemize}
+    \item \textbf{\texttt{onGenerate}}: crida \texttt{model.generatePoints()}
+          amb els paràmetres rebuts, i seguidament
+          \texttt{view.showPoints()} per actualitzar la visualització i
+          \texttt{view.clearResults()} per esborrar els resultats anteriors.
+          Finalment habilita el botó \textit{Executar}.
+
+    \item \textbf{\texttt{onRun}}: crea un \texttt{SwingWorker} que
+          executa els quatre algorismes sobre el núvol actual al fil de
+          fons, desa els resultats al model amb \texttt{model.setResults()},
+          i en acabar crida \texttt{view.updateResults()} a l'EDT.
+          Durant l'execució, crida \texttt{view.setRunning(true)} per
+          deshabilitar els controls i activar el cursor d'espera.
+
+    \item \textbf{\texttt{onStop}}: crida \texttt{worker.cancel(true)},
+          que interromp el fil de fons. La cancel·lació és cooperativa:
+          \texttt{BruteForceClosest} comprova \texttt{Thread.isInterrupted()}
+          a cada iteració del bucle extern i llança una excepció si
+          detecta la interrupció.
+
+    \item \textbf{\texttt{onOpenBenchmark}}: crea la \texttt{BenchmarkWindow}
+          (si no existeix ja) passant-se a si mateix com a
+          \texttt{ViewListener}, i la fa visible.
+\end{itemize}
+
+\subsection{Interfície Comuna dels Algorismes}
+
+Tots els algorismes implementen la mateixa interfície \texttt{PairFinder}:
 
 \begin{lstlisting}[caption={Interfície comuna per a tots els algorismes.},label={lst:pairfinder}]
 public interface PairFinder {
@@ -249,19 +475,16 @@ public interface PairFinder {
 }
 \end{lstlisting}
 
-Aquesta interfície permet tractar tots els algorismes de manera
-uniforme al benchmark i al controlador, seguint el \textbf{patró
-Strategy}~\cite{ref_gof}. A més, la relació entre
-\texttt{DivideConquerClosest} i \texttt{DivideConquerClosestBucket}
-utilitza el \textbf{patró Template Method}: la classe base defineix
-l'esquelet de l'algorisme (ordenar per X, recursió, construir strip)
-i la subclasse només sobreescriu el mètode \texttt{processStrip()}
-per canviar la forma de processar la franja central.
+Això permet al benchmark i al controlador cridar qualsevol algorisme
+sense saber quin és concretament.
 
-Aquesta decisió de disseny elimina la duplicació de codi: les dues
-variants comparteixen la recursió, la cerca binària de límits de la
-franja, i el cas base per força bruta. Només el processament de la
-franja (125 línies de codi eliminades) difereix entre les dues variants.
+Pel que fa a les dues variants de D\&C, \texttt{DivideConquerClosest}
+implementa l'algorisme complet (ordenar per X, recursió, construir franja,
+processar franja). \texttt{DivideConquerClosestBucket} en reutilitza
+tot menys l'últim pas: sobreescriu només el mètode \texttt{processStrip()}
+per usar \textit{buckets} en lloc d'ordenar per Y. D'aquesta manera
+no es repeteix cap codi: tot el que és comú entre les dues variants
+viu en un sol lloc.
 
 \subsection{Algorisme de Força Bruta}
 
@@ -335,12 +558,11 @@ El buffer és segur perquè cada nivell de recursió l'omple amb
 on $k$ és el nombre de punts de la franja actual. Quan la crida
 retorna, el contingut anterior ja no és necessari.
 
-\subsubsection{Patró Template Method per a la Franja}
+\subsubsection{Reutilització de Codi entre les Dues Variants D\&C}
 
-El mètode \texttt{processStrip} és \texttt{protected} i virtual,
-permetent que la subclasse \texttt{DivideConquerClosestBucket} el
-sobreescrigui amb una estratègia diferent sense duplicar la resta
-de l'algorisme:
+El mètode \texttt{processStrip} és \texttt{protected}, de manera que
+\texttt{DivideConquerClosestBucket} el pot sobreescriure sense tocar
+la resta de l'algorisme:
 
 \begin{lstlisting}[caption={Mètode \texttt{processStrip} de la classe base.},label={lst:processstrip}]
 protected PointPair processStrip(
@@ -378,7 +600,7 @@ Això reduiria la recurrència de $T(n) = 2T(n/2) + O(k \log k)$ a
 $T(n) = 2T(n/2) + O(k)$. Com que $k \leq n$, el primer cas dóna
 $O(n \log^2 n)$ i el segon $O(n \log n)$.
 
-\subsubsection{Guarda: Fallback per a Buckets Dispersos}
+\subsubsection{Cost de Cubetes Disperses}
 
 L'optimització per \textit{buckets} requereix crear un array de
 cubetes indexat pel rang de coordenada $y$. El nombre de cubetes
@@ -387,34 +609,26 @@ cubetes indexat pel rang de coordenada $y$. El nombre de cubetes
 \texttt{numBuckets} = \left\lfloor \frac{y_{\max}}{d_{\min}} \right\rfloor - \left\lfloor \frac{y_{\min}}{d_{\min}} \right\rfloor + 1
 \end{equation}
 
-Quan $\texttt{numBuckets} > k$ (més cubetes que punts), l'array de
-cubetes seria excessivament dispers: el cost d'al·locació i la
-pèrdua de localitat de cache superen l'estalvi teòric. En aquest
-cas, l'algorisme fa \textit{fallback} al processament per ordenació
-de la classe base (\texttt{super.processStrip()}).
+Quan $\texttt{numBuckets} \gg k$ (molt més cubetes que punts), l'array
+és molt dispers i el cost d'al·locació passa a dominar. En aquesta
+implementació no s'utilitza cap guarda: l'objectiu és observar el
+cost real d'aquesta estratègia en la pràctica.
 
 \subsubsection{Limitació Pràctica Fonamental}
 \label{sec:bucket_limitation}
 
-Durant l'anàlisi experimental s'ha descobert que, per al problema
-de la parella més propera, la guarda $\texttt{numBuckets} > k$
-s'activa \textit{sistemàticament} per a totes les distribucions
-provades, fent que la variant amb \textit{buckets} sempre caigui
-al \textit{fallback} de la classe base.
+Durant l'anàlisi experimental s'ha observat que, per al problema
+de la parella més propera, $d_{\min}$ decreix ràpidament i el nombre
+de cubetes esdevé enorme. Per a un núvol de punts amb rang $R$ en
+l'eix $y$, el nombre de cubetes és $\texttt{numBuckets} \approx R / d_{\min}$,
+mentre que el nombre de punts a la franja és $k \leq n$. Com que
+$d_{\min} \ll R$, es té $\texttt{numBuckets} \gg k$.
 
-La raó és fonamental: la distància mínima $d_{\min}$ decreix
-ràpidament a mesura que avança la recursió. Per a un núvol de punts
-amb rang $R$ en l'eix $y$, el nombre de cubetes és
-$\texttt{numBuckets} \approx R / d_{\min}$, mentre que el nombre
-de punts a la franja és $k \leq n$. Com que $d_{\min} \ll R$
-(la distància mínima és molt petita comparada amb el rang total),
-es té $\texttt{numBuckets} \gg k$ i la guarda s'activa.
-
-Això significa que l'optimització per \textit{buckets} \textbf{no
-aporta cap guany pràctic} per al problema de la parella més propera
-amb distribucions convencionals. És un resultat important perquè
-demostra que una optimització teòricament vàlida pot ser inaplicable
-en la pràctica degut a les propietats geomètriques del problema.
+El resultat és que la variant amb \textit{buckets} \textbf{no aporta
+cap guany pràctic} i sovint és més lenta que D\&C: la creació d'un
+array dispers gran introdueix sobrecost d'al·locació i pressió sobre
+el \textit{garbage collector}. Aquesta limitació és estructural per a
+distribucions contínues habituals, i explica la degradació empírica.
 
 L'optimització per \textit{buckets} seria útil en contextos on
 $d_{\min}$ és comparable al rang de la franja, com ara problemes
@@ -446,63 +660,7 @@ Com que el \textit{convex hull} costa $O(n \log n)$ i els
 \textit{rotating calipers} costen $O(h)$, el cost total és
 $O(n \log n)$.
 
-\subsection{Generació de Núvols de Punts}
-
-La classe \texttt{PointCloud} implementa les quatre distribucions
-amb la classe \texttt{java.util.Random}. Les distribucions gaussiana,
-exponencial i agrupada utilitzen mostreig per rebuig (\textit{rejection
-sampling}) per garantir que tots els punts quedin dins del rang
-$[\texttt{min}, \texttt{max}]$.
-
-Els paràmetres de cada distribució es defineixen com a arrays de
-\texttt{ParamSpec} (registre amb nom i valor per defecte), i els
-valors actuals s'encapsulen en \texttt{DistributionParams} (registre
-immutable amb còpia defensiva). El panell \texttt{DistributionParamPanel}
-genera dinàmicament els camps de text a partir de \texttt{ParamSpec[]},
-de manera que afegir una nova distribució o un nou paràmetre no
-requereix canviar la vista.
-
-\subsection{Protocol de Benchmark}
-\label{sec:benchmark}
-
-El benchmark segueix la metodologia de la diapositiva~125 dels apunts:
-
-\begin{enumerate}
-    \item \textbf{Escalfament JIT:} abans del benchmark, s'executen
-          tots els algorismes 10 vegades amb $n = 500$ per forçar la
-          compilació JIT de totes les rutes de codi.
-    \item \textbf{Escalfament per execució:} les 3 primeres execucions
-          de cada mesura es descarten per eliminar efectes de cache
-          i compilació incremental.
-    \item \textbf{Mesura:} les 5 execucions següents es mesuren amb
-          \texttt{System.nanoTime()} i es calcula la mitjana.
-\end{enumerate}
-
-\subsubsection{Paral·lelisme de Gra Fi}
-
-La classe \texttt{Benchmark.runSeries} distribueix les tasques amb
-un \texttt{ExecutorService} amb tants fils com processadors disponibles.
-Les tasques es submeten amb granularitat fina: una tasca per cada
-parella (algorisme, $n$), en lloc d'una tasca per a cada $n$.
-
-Això evita el coll d'ampolla de la versió serial: quan força bruta
-amb el $n$ més gran triga centenars de mil·lisegons, els algorismes
-$O(n \log n)$ per al mateix $n$ ja estan executant-se en nuclis
-separats en lloc d'esperar.
-
-\subsubsection{Ajust de Constants i Predicció}
-
-La classe \texttt{Predictor} ajusta constants multiplicatives als
-models teòrics amb mínims quadrats ponderats: per al model
-$t = a \cdot f(n)$ sense ordenada a l'origen, la constant és:
-\begin{equation}
-a = \frac{\sum_i t_i \cdot f(n_i)}{\sum_i f(n_i)^2}
-\end{equation}
-
-Aquesta ponderació dóna més pes a les mesures amb $n$ gran, on el
-comportament asimptòtic domina sobre l'overhead de la JVM.
-
-\subsubsection{CLI de Benchmark}
+\subsection{CLI de Benchmark}
 
 A més de la interfície gràfica, s'ofereix una eina de línia de
 comandes (\texttt{BenchmarkCLI}) que permet executar benchmarks
@@ -555,12 +713,11 @@ T(n) = O(n \log^2 n)
 recurrència $T(n) = 2T(n/2) + O(n)$ dóna $T(n) = O(n \log n)$ pel
 cas 2 del Teorema Mestre.
 
-Com s'explica a la Secció~\ref{sec:bucket_limitation}, la variant
-amb \textit{buckets} no s'activa en la pràctica, de manera que el
-cost real és $O(n \log^2 n)$. No obstant això, la diferència entre
-$O(n \log n)$ i $O(n \log^2 n)$ és mínima en la pràctica: per a
-$n = 50\,000$, $\log_2 n \approx 15.6$, de manera que el factor
-addicional $\log n$ és petit comparat amb la constant multiplicativa.
+Com s'explica a la Secció~\ref{sec:bucket_limitation}, la variant amb
+\textit{buckets} pateix un cost d'al·locació elevat quan
+$\texttt{numBuckets} \gg k$. Tot i que la recurrència teòrica és
+$O(n \log n)$, en la pràctica el temps observat pot ser pitjor que el
+de D\&C per l'overhead de cubetes disperses.
 
 \subsection{Parella Més Llunyana}
 
@@ -576,205 +733,224 @@ on $h$ és el nombre de vèrtexs de l'envolupant convexa ($h \leq n$).
 \label{sec:experimental}
 
 Totes les mesures s'han realitzat amb el CLI de benchmark, amb
-3 execucions independents promitjades, en una màquina amb processador
-Apple M1 (8 nuclis), 16~GB RAM i JDK~17.
+3 execucions independents mitjanes, en una màquina amb processador
+Apple M1 (8 nuclis), 16~GB RAM i JDK~17. Els punts s'han generat en el
+rang $[0,1000]$, i s'han provat les distribucions uniforme, gaussiana
+($\mu=0.5$, $\sigma=1/6$), exponencial ($\lambda_x=\lambda_y=5$) i
+agrupada (5 clusters). L'execució del benchmark distribueix les tasques
+entre nuclis; això pot afegir soroll en temps molt petits però no afecta
+les tendències globals. Com a cas addicional s'ha provat una gaussiana
+estirada ($\sigma=0.05$, multiplicadors $\times4$ i $\times0.25$) per
+explorar un núvol anisotròpic. Els temps petits (\textless 0.1~ms)
+presenten variabilitat elevada; s'analitzen sobretot tendències i valors
+per a $n$ grans.
 
-\subsection{Rendiment Global: Distribució Uniforme}
+\subsection{Distribució Uniforme: Comparació Completa}
 
-La Taula~\ref{tab:uniform} mostra els temps d'execució per a la
-distribució uniforme amb rang $[0, 1000]$.
+La Taula~\ref{tab:uniform} recull els temps mitjans per a la distribució
+uniforme i la Figura~\ref{fig:uniform_plot} mostra el creixement en escala
+logarítmica.
 
 \begin{table}[H]
     \caption{Temps d'execució (ms) per a distribució uniforme.\label{tab:uniform}}
     \centering
     \footnotesize
-    \begin{tabular}{r S[table-format=4.4] S[table-format=2.4] S[table-format=2.4] S[table-format=2.4]}
+    \begin{tabular}{r S[table-format=4.3] S[table-format=2.3] S[table-format=2.3] S[table-format=2.3]}
         \toprule
         {$n$} & {Bruta} & {D\&C} & {D\&C Bkt.} & {Llunyana} \\
         \midrule
-        100    & 0.0049  & 0.0204 & 0.0149  & 0.0251 \\
-        500    & 0.0962  & 0.2750 & 0.1648  & 0.1770 \\
-        1000   & 0.3839  & 0.3764 & 0.4840  & 0.3931 \\
-        2000   & 1.7004  & 1.5858 & 1.3526  & 0.5068 \\
-        5000   & 10.3593 & 3.8483 & 3.7415  & 1.8985 \\
-        10000  & 38.8218 & 5.1295 & 4.1223  & 2.5650 \\
-        20000  & 142.5667 & 6.1267 & 6.1258 & 4.6799 \\
-        50000  & 871.9498 & 15.0320 & 15.4075 & 8.4644 \\
+        100    & 0.006 & 0.088 & 0.331 & 0.069 \\
+        500    & 0.148 & 1.855 & 1.044 & 0.791 \\
+        1000   & 0.576 & 1.805 & 1.834 & 0.540 \\
+        2000   & 3.020 & 3.983 & 3.192 & 1.733 \\
+        5000   & 19.964 & 5.379 & 5.790 & 5.763 \\
+        10000  & 64.357 & 12.072 & 12.096 & 2.981 \\
+        20000  & 233.536 & 10.711 & 13.280 & 7.388 \\
+        50000  & 1486.131 & 30.598 & 34.526 & 18.586 \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-S'observa que:
-\begin{itemize}
-    \item Força bruta domina per a $n \leq 500$ degut a la menor
-          constant multiplicativa (no requereix ordenació).
-    \item D\&C supera força bruta a partir de $n \approx 1000$, on la
-          constant multiplicativa de l'ordenació queda compensada per
-          la creixença quadràtica de força bruta.
-    \item D\&C i D\&C Bucket tenen rendiment pràcticament idèntic,
-          confirmant que la variant amb \textit{buckets} sempre fa
-          \textit{fallback} al processament clàssic.
-    \item La parella llunyana és la més ràpida per a $n$ grans,
-          degut a la menor constant multiplicativa del
-          \textit{convex hull} + \textit{rotating calipers}.
-\end{itemize}
+\begin{figure}[H]
+    \centering
+    \pgfplotstableread[col sep=comma]{
+n,brute,dc,bucket,farthest
+100,0.006333,0.088139,0.331333,0.069250
+500,0.148167,1.855417,1.043542,0.791459
+1000,0.575889,1.805028,1.833569,0.539750
+2000,3.020125,3.982514,3.191597,1.732875
+5000,19.963611,5.378514,5.790431,5.763375
+10000,64.357333,12.072028,12.095903,2.980598
+20000,233.535528,10.710611,13.279833,7.388264
+50000,1486.131209,30.597514,34.526403,18.585944
+    }\uniformdata
+    \begin{tikzpicture}
+    \begin{semilogyaxis}[
+        width=\linewidth,
+        height=6cm,
+        xlabel={$n$},
+        ylabel={Temps (ms)},
+        grid=both,
+        legend pos=north west,
+        mark size=1.8pt
+    ]
+        \addplot table[x=n,y=brute] {\uniformdata};
+        \addlegendentry{Bruta}
+        \addplot table[x=n,y=dc] {\uniformdata};
+        \addlegendentry{D\&C}
+        \addplot table[x=n,y=bucket] {\uniformdata};
+        \addlegendentry{D\&C Bucket}
+        \addplot table[x=n,y=farthest] {\uniformdata};
+        \addlegendentry{Llunyana}
+    \end{semilogyaxis}
+    \end{tikzpicture}
+    \caption{Distribució uniforme: temps vs $n$ (escala logarítmica).}
+    \label{fig:uniform_plot}
+\end{figure}
 
-% [IMATGE SUGGERIDA: Gràfica de la finestra de benchmark amb distribució
-%  uniforme, mostrant les quatre corbes amb escala logarítmica]
+Els resultats mostren el patró esperat: força bruta domina per a $n$ petits
+per la seva baixa constant, però queda ràpidament superada per D\&C i
+la parella llunyana. Per $n=50\,000$, D\&C és $\approx 49\times$ més ràpid
+que força bruta, mentre que la parella llunyana és la més ràpida dels algorismes
+quasi-lineals. La variant amb \textit{buckets} és sistemàticament més lenta
+que D\&C en la distribució uniforme (\textasciitilde 13\% a $n=50\,000$).
 
 \subsection{Comparació entre Distribucions}
 
-La Taula~\ref{tab:distributions} compara els temps de D\&C i la
-parella llunyana per a les quatre distribucions a $n = 50\,000$.
+La Taula~\ref{tab:distributions} resumeix els temps a $n = 50\,000$ per a
+totes les distribucions i el cas gaussià estirat. La Figura~\ref{fig:dist_bar}
+compara explícitament D\&C i la variant amb \textit{buckets}.
 
 \begin{table}[H]
     \caption{Temps (ms) per algorisme i distribució a $n = 50\,000$.\label{tab:distributions}}
     \centering
     \footnotesize
-    \begin{tabular}{l S[table-format=4.2] S[table-format=2.2] S[table-format=2.2] S[table-format=2.2]}
+    \begin{tabular}{l S[table-format=4.3] S[table-format=2.3] S[table-format=2.3] S[table-format=2.3]}
         \toprule
         {Distribució} & {Bruta} & {D\&C} & {D\&C Bkt.} & {Llunyana} \\
         \midrule
-        Uniforme     & 871.95 & 15.03 & 15.41 & 8.46 \\
-        Gaussiana    & 900.23 & 15.20 & 15.51 & 8.66 \\
-        Exponencial  & 989.26 & 14.96 & 14.95 & 8.52 \\
-        Agrupada (10) & 905.89 & 14.03 & 14.33 & 8.77 \\
+        Uniforme            & 1486.131 & 30.598 & 34.526 & 18.586 \\
+        Gaussiana           & 1466.164 & 30.296 & 38.160 & 18.004 \\
+        Exponencial         & 1508.508 & 27.184 & 40.977 & 16.277 \\
+        Agrupada (5)        & 1493.985 & 29.404 & 36.879 & 17.480 \\
+        Gaussiana estirada  & 1470.742 & 25.154 & 23.590 & 17.275 \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-Els temps de força bruta són pràcticament idèntics per a totes les
-distribucions, ja que l'algorisme sempre examina totes les parelles
-independentment de la geometria. D\&C i la parella llunyana mostren
-variacions mínimes entre distribucions, confirmant que el cost
-asimptòtic domina sobre les propietats geomètriques.
-
-\subsection{Anàlisi de Creixement}
-
-Per verificar les complexitats teòriques, s'analitza el creixement
-del temps amb $n$.
-
-\subsubsection{Força Bruta: Creixement Quadràtic}
-
-Si $T(n) = a \cdot n^2$, el ràtio $T(2n)/T(n)$ hauria de ser $\approx 4$.
-La Taula~\ref{tab:growth_brute} confirma aquest comportament.
-
-\begin{table}[H]
-    \caption{Ràtios de creixement de força bruta.\label{tab:growth_brute}}
+\begin{figure}[H]
     \centering
-    \begin{tabular}{r r c}
-        \toprule
-        $n$ & Temps (ms) & $T(2n)/T(n)$ \\
-        \midrule
-        1000  & 0.38  & --- \\
-        2000  & 1.70  & 4.43 \\
-        5000  & 10.36 & --- \\
-        10000 & 38.82 & 3.75 \\
-        20000 & 142.57 & 3.67 \\
-        50000 & 871.95 & --- \\
-        \bottomrule
-    \end{tabular}
-\end{table}
+    \pgfplotstableread[col sep=comma]{
+dist,dc,bucket
+Uniforme,30.598,34.526
+Gaussiana,30.296,38.160
+Exponencial,27.184,40.977
+Agrupada,29.404,36.879
+Gaussiana estirada,25.154,23.590
+    }\distdata
+    \begin{tikzpicture}
+    \begin{axis}[
+        ybar,
+        width=\linewidth,
+        height=6cm,
+        ylabel={Temps (ms)},
+        symbolic x coords={Uniforme,Gaussiana,Exponencial,Agrupada,Gaussiana estirada},
+        xtick=data,
+        x tick label style={rotate=20,anchor=east},
+        legend pos=north east,
+        bar width=8pt,
+        enlarge x limits=0.15,
+        grid=major
+    ]
+        \addplot table[x=dist,y=dc] {\distdata};
+        \addlegendentry{D\&C}
+        \addplot table[x=dist,y=bucket] {\distdata};
+        \addlegendentry{D\&C Bucket}
+    \end{axis}
+    \end{tikzpicture}
+    \caption{D\&C vs D\&C Bucket per distribució a $n=50\,000$.}
+    \label{fig:dist_bar}
+\end{figure}
 
-Els ràtios s'acosten a 4, confirmant el comportament $O(n^2)$.
-Les desviacions (4.43 a $n=2000$) es deuen a efectes de cache i JIT.
+Els temps varien poc entre distribucions: la geometria afecta sobretot
+constantes menors, però no canvia l'ordre de magnitud. D\&C es manté estable,
+mentre que la variant amb \textit{buckets} és més variable: en distribucions
+uniforme, gaussiana i exponencial és clarament més lenta, però en la gaussiana
+estirada esdevé lleugerament més ràpida perquè el rang efectiu en $y$ és més petit.
+La parella llunyana es manté estable perquè el cost depèn del \textit{convex hull},
+que és relativament petit en totes les distribucions provades.
 
-\subsubsection{D\&C: Creixement $O(n \log n)$}
+\subsection{Cas d'Estudi: Gaussiana Estirada}
 
-Si $T(n) = a \cdot n \log_2 n$, el ràtio $T(2n)/T(n)$ hauria de ser
-$\approx 2 \cdot \frac{\log_2(2n)}{\log_2(n)} = 2 \cdot (1 + 1/\log_2 n)$.
-Per exemple, a $n = 10\,000$: $2 \cdot (1 + 1/13.3) = 2.15$.
+La distribució gaussiana estirada (ell·líptica) serveix per comprovar si
+una geometria anisotròpica altera el comportament. En aquest cas el rang
+efectiu en l'eix $y$ és més petit i el nombre de cubetes baixa, de manera
+que la variant amb \textit{buckets} pot superar D\&C per a $n$ grans
+(23.59~ms vs 25.15~ms a $n=50\,000$). Tot i això, el comportament no és
+monòton per a tots els $n$, mostrant sensibilitat a la geometria i al soroll
+de mesura.
 
-\begin{table}[H]
-    \caption{Ràtios de creixement de D\&C.\label{tab:growth_dc}}
+\subsection{Problemes Pràctics de la Variant amb Buckets}
+
+La Figura~\ref{fig:ratio_bucket} mostra el ràtio Bucket/D\&C per a la
+distribució uniforme i la gaussiana estirada. En uniforme el ràtio és
+major que 1 per a $n$ grans, evidenciant el sobrecost d'al·locar cubetes
+disperses. En la gaussiana estirada el ràtio pot baixar per sota d'1
+quan el rang efectiu en $y$ és reduït, però el patró és irregular. Els
+valors erràtics per a $n$ petits reflecteixen l'overhead de construir
+les cubetes quan el temps absolut és molt baix i el soroll de mesura domina.
+
+\begin{figure}[H]
     \centering
-    \begin{tabular}{r r c c}
-        \toprule
-        $n$ & Temps (ms) & $T(2n)/T(n)$ & Teòric \\
-        \midrule
-        1000  & 0.38  & --- & --- \\
-        2000  & 1.59  & 4.21 & 2.10 \\
-        5000  & 3.85  & --- & --- \\
-        10000 & 5.13  & 1.33 & 2.15 \\
-        20000 & 6.13  & 1.19 & 2.08 \\
-        50000 & 15.03 & --- & --- \\
-        \bottomrule
-    \end{tabular}
-\end{table}
+    \pgfplotstableread[col sep=comma]{
+n,ratio_uniform,ratio_stretch
+100,3.759,3.477
+500,0.562,2.173
+1000,1.016,0.546
+2000,0.801,1.006
+5000,1.077,0.272
+10000,1.002,1.130
+20000,1.240,0.719
+50000,1.128,0.938
+    }\ratiodata
+    \begin{tikzpicture}
+    \begin{axis}[
+        width=\linewidth,
+        height=5.5cm,
+        xlabel={$n$},
+        ylabel={Bucket/D\&C},
+        ymin=0,
+        ymax=4.6,
+        grid=major,
+        legend pos=north east,
+        mark size=1.8pt
+    ]
+        \addplot table[x=n,y=ratio_uniform] {\ratiodata};
+        \addlegendentry{Uniforme}
+        \addplot table[x=n,y=ratio_stretch] {\ratiodata};
+        \addlegendentry{Gaussiana estirada}
+    \end{axis}
+    \end{tikzpicture}
+    \caption{Ràtio Bucket/D\&C per $n$.}
+    \label{fig:ratio_bucket}
+\end{figure}
 
-Els ràtios de D\&C són irregulars per a $n$ petits degut a l'overhead
-de la recursió i l'ordenació de la JVM, però s'estabilitzen per a
-$n$ grans. El ràtio $T(50000)/T(20000) = 15.03/6.13 = 2.45$ és
-coherent amb el ràtio teòric de $2.5 \cdot (1 + 1/\log_2(20000)) \approx 2.67$
-per a un factor de $50000/20000 = 2.5$.
-
-\subsection{D\&C vs D\&C Bucket: Rendiment Idèntic}
-
-La Taula~\ref{tab:dc_vs_bucket} compara les dues variants de D\&C
-amb valors de $n$ fins a $500\,000$, confirmant que la variant amb
-\textit{buckets} no aporta cap millora.
-
-\begin{table}[H]
-    \caption{Comparació D\&C vs D\&C Bucket (ms), distribució uniforme.\label{tab:dc_vs_bucket}}
-    \centering
-    \begin{tabular}{r S[table-format=3.2] S[table-format=3.2] c}
-        \toprule
-        {$n$} & {D\&C} & {D\&C Bkt.} & {Ràtio} \\
-        \midrule
-        1000     & 1.31  & 0.99  & 0.76 \\
-        5000     & 2.39  & 2.37  & 1.00 \\
-        10000    & 7.56  & 7.19  & 0.95 \\
-        50000    & 16.31 & 17.25 & 1.06 \\
-        100000   & 31.32 & 30.24 & 0.97 \\
-        200000   & 59.76 & 59.99 & 1.00 \\
-        500000   & 169.84 & 174.15 & 1.03 \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-El ràtio Bucket/D\&C oscil·la al voltant de $1.0$ per a tots els
-valors de $n$, confirmant que les dues variants executen exactament
-el mateix codi (la variant amb \textit{buckets} fa \textit{fallback}
-a \texttt{super.processStrip()}) més l'overhead menor de la
-comprovació de la guarda.
-
-% [IMATGE SUGGERIDA: Gràfica D&C vs D&C Bucket amb escala lineal,
-%  mostrant les dues corbes superposades fins a n = 500.000]
-
-\subsection{Escalabilitat a N Grans}
-
-Per demostrar l'escalabilitat dels algorismes $O(n \log n)$, la
-Taula~\ref{tab:dc_vs_bucket} mostra que D\&C processa $500\,000$ punts
-en $\approx 170$~ms, mentre que força bruta trigaria:
-\begin{equation}
-a_{\text{brute}} \cdot 500\,000^2 \approx 0.35 \cdot 10^{-6} \cdot 2.5 \cdot 10^{11} \approx 87\,500 \text{ ms} \approx 1.5 \text{ min}
-\end{equation}
-
-Això representa un \textit{speedup} de $\approx 515\times$.
-
-\subsection{Efectes de la Paral·lelització del Benchmark}
-
-Durant el desenvolupament s'ha observat que l'execució paral·lela
-del benchmark pot introduir interferència entre algorismes. Quan un
-algorisme genera excessiva pressió sobre el \textit{garbage collector}
-(p.~ex.\ la variant amb \textit{buckets} sense guarda, que al·loca
-arrays dispersos enormes), les pauses GC \textit{stop-the-world}
-afecten tots els fils, incloent els que executen altres algorismes.
-Això es manifesta com un alentiment espuri de D\&C quan s'executa
-en paral·lel amb una variant ineficient de \textit{buckets}.
-
-La solució adoptada (la guarda $\texttt{numBuckets} > k$ amb
-\textit{fallback}) elimina les al·locacions excessives i, per tant,
-la interferència entre algorismes.
+Aquest comportament és coherent amb la propietat clau del problema: a mesura
+que la recursió avança, $d_{\min}$ es fa molt petit i el nombre de cubetes
+\texttt{numBuckets} esdevé molt major que $k$. Sense guarda, això implica
+al·locacions disperses massives i pressió sobre el GC. Per tant, la variant
+amb \textit{buckets} és teòricament atractiva però pràcticament ineficaç en
+distribucions contínues estàndard, i només pot ser competitiva quan el rang
+efectiu en $y$ és prou reduït.
 
 %% ================================================================
 \section{Decisions de Disseny Notables}
 
-\subsection{Template Method vs Duplicació}
+\subsection{Herència vs Duplicació de Codi}
 
-La decisió d'usar herència (Template Method) per a les dues variants
-de D\&C té un compromís: el despatx virtual de \texttt{processStrip}
-afegeix un overhead mínim per crida. En la pràctica, el cost és
+La decisió de fer que \texttt{DivideConquerClosestBucket} hereti de
+\texttt{DivideConquerClosest} té un compromís: la crida al mètode
+sobreescrit \texttt{processStrip} afegeix un overhead mínim. En la pràctica, el cost és
 insignificant ($< 1$~ns per crida) comparat amb el cost de la franja
 ($> 1$~$\mu$s fins i tot per a franges petites), i s'estalvien
 $\approx 125$ línies de codi duplicat.
@@ -806,7 +982,24 @@ fraccions cada vegada més petites.
 %% ================================================================
 \section{Conclusió i Opinió Personal}
 
-% [NOTA: Aquesta secció es deixa per a l'autor]
+En aquesta pràctica s'ha implementat una aplicació completa per al problema
+de la parella de punts més propera i més llunyana, amb una arquitectura MVC
+clara, visualització gràfica i una eina de benchmark específica. El disseny
+ha permès separar la generació de punts, l'execució dels algorismes i la
+presentació de resultats sense acoblaments innecessaris.
+
+Els resultats experimentals confirmen la transició esperada entre força bruta
+i els algorismes quasi-lineals: la força bruta és competitiva per a $n$ petits
+ per la seva baixa constant, però D\&C domina a partir de valors moderats i la
+ parella llunyana és especialment eficient per a $n$ grans. La variant amb
+ \textit{buckets} mostra un sobrecost important en distribucions contínues,
+ degut a cubetes disperses i pressió sobre el GC, i només resulta competitiva
+ en casos anisotròpics molt concrets.
+
+Com a treball futur, seria interessant implementar la variant òptima $O(n \log n)$
+amb franja preordenada, incorporar mesures de variància i seeding determinista
+per reforçar la reproductibilitat, i explorar distribucions o rangs més extrems
+per estudiar casos límit.
 
 %% ================================================================
 
@@ -825,10 +1018,6 @@ G.~T.~Toussaint, ``Solving geometric problems with the rotating calipers,''
 A.~M.~Andrew, ``Another efficient algorithm for convex hulls in two dimensions,''
 \textit{Information Processing Letters}, vol.~9, no.~5, pp.~216--219, 1979.
 
-\bibitem{ref_gof}
-E.~Gamma, R.~Helm, R.~Johnson, i J.~Vlissides,
-\textit{Design Patterns: Elements of Reusable Object-Oriented Software}.
-Addison-Wesley, 1994.
 
 \end{thebibliography}
 

@@ -1,15 +1,25 @@
 package com.serafinebot.p3.view;
 
+import com.serafinebot.p3.model.Benchmark;
 import com.serafinebot.p3.model.DistributionParams;
 import com.serafinebot.p3.model.PointCloud;
 
 /**
- * Events that the view can emit. The controller implements this interface
- * so the view never needs to hold a reference to any controller type.
+ * All events that any view component can emit. The controller implements
+ * this interface so no view ever needs to hold a reference to a controller type.
  */
 public interface ViewListener {
     void onGenerate(int n, PointCloud.Distribution distribution, double rangeMin, double rangeMax, DistributionParams params);
     void onRun();
     void onStop();
     void onOpenBenchmark();
+
+    /**
+     * Run a full benchmark series and return the results.
+     * Called from a background thread (SwingWorker inside BenchmarkWindow).
+     */
+    Benchmark.BenchmarkEntry[] onRunBenchmark(int[] nValues,
+                                               PointCloud.Distribution distribution,
+                                               double rangeMin, double rangeMax,
+                                               DistributionParams params);
 }

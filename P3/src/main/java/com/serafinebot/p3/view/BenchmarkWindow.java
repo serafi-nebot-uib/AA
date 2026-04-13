@@ -1,6 +1,5 @@
 package com.serafinebot.p3.view;
 
-import com.serafinebot.p3.controller.Controller;
 import com.serafinebot.p3.model.Benchmark;
 import com.serafinebot.p3.model.DistributionParams;
 import com.serafinebot.p3.model.PointCloud;
@@ -20,7 +19,7 @@ import java.util.List;
  */
 public class BenchmarkWindow extends JDialog {
 
-    private final Controller controller;
+    private final ViewListener listener;
 
     private final JTextField nValuesField;
     private final JButton runButton;
@@ -43,9 +42,9 @@ public class BenchmarkWindow extends JDialog {
 
     private static final String DEFAULT_N_VALUES = "100,500,1000,2000,5000,10000,20000,50000";
 
-    public BenchmarkWindow(Frame owner, Controller controller) {
+    public BenchmarkWindow(Frame owner, ViewListener listener) {
         super(owner, "Benchmark — Comparació d'Algorismes", false);
-        this.controller = controller;
+        this.listener = listener;
 
         setLayout(new BorderLayout(5, 5));
 
@@ -175,8 +174,7 @@ public class BenchmarkWindow extends JDialog {
         SwingWorker<Benchmark.BenchmarkEntry[], Void> worker = new SwingWorker<>() {
             @Override
             protected Benchmark.BenchmarkEntry[] doInBackground() {
-                controller.runBenchmarkSeries(nValues, dist, MainView.RANGE_MIN, MainView.RANGE_MAX, params);
-                return controller.getBenchmarkResults();
+                return listener.onRunBenchmark(nValues, dist, MainView.RANGE_MIN, MainView.RANGE_MAX, params);
             }
 
             @Override
@@ -222,7 +220,7 @@ public class BenchmarkWindow extends JDialog {
             formatTime(Predictor.predictFarthest(fittedConstants.farthest(), n))));
         predDCBucketLabel.setText(String.format(
             "<html><b>D&C Bucket:</b> %s</html>",
-            formatTime(Predictor.predictDC(fittedConstants.divideConquerBucket(), n))));
+            formatTime(Predictor.predictBucket(fittedConstants.divideConquerBucket(), n))));
     }
 
     private int[] parseNValues() {

@@ -80,16 +80,15 @@ public class Controller implements ViewListener {
         benchmarkWindow.toFront();
     }
 
-    // ---- Called by BenchmarkWindow ----
+    // ---- ViewListener: benchmark ----
 
-    public void runBenchmarkSeries(int[] nValues, Distribution distribution,
-                                   double rangeMin, double rangeMax, DistributionParams params) {
+    @Override
+    public Benchmark.BenchmarkEntry[] onRunBenchmark(int[] nValues, Distribution distribution,
+                                                      double rangeMin, double rangeMax,
+                                                      DistributionParams params) {
         Benchmark.BenchmarkEntry[] results =
             Benchmark.runSeries(nValues, distribution, rangeMin, rangeMax, params);
         model.setBenchmarkResults(results);
-    }
-
-    public Benchmark.BenchmarkEntry[] getBenchmarkResults() {
-        return model.getBenchmarkResults();
+        return results;
     }
 }

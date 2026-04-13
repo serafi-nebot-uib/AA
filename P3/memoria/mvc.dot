@@ -1,0 +1,96 @@
+digraph MVC {
+    graph [
+        bgcolor="#ffffff"
+        fontname="Helvetica"
+        splines=polyline
+        nodesep=0.5
+        ranksep=0.9
+        pad=0.5
+        rankdir=TB
+    ]
+    node [
+        fontname="Helvetica"
+        fontsize=12
+        style="filled,rounded"
+        shape=box
+        margin="0.22,0.13"
+    ]
+    edge [
+        fontname="Helvetica"
+        fontsize=10
+    ]
+
+    // ── CONTROLLER ─────────────────────────────────────────
+    subgraph cluster_controller {
+        label="Controller"
+        fontsize=14
+        fontname="Helvetica Bold"
+        style="filled,rounded"
+        fillcolor="#f5f0dc"
+        color="#baa84a"
+        penwidth=2
+
+        Controller [label="Controller", fillcolor="#eae8a8", color="#baa84a"]
+    }
+
+    // ── MODEL ──────────────────────────────────────────────
+    subgraph cluster_model {
+        label="Model"
+        fontsize=14
+        fontname="Helvetica Bold"
+        style="filled,rounded"
+        fillcolor="#dce8f5"
+        color="#4a7eba"
+        penwidth=2
+
+        Model      [label="Model",                       fillcolor="#a8c8ea", color="#4a7eba"]
+        Benchmark  [label="Benchmark",                   fillcolor="#a8c8ea", color="#4a7eba"]
+        Predictor  [label="Predictor",                   fillcolor="#a8c8ea", color="#4a7eba"]
+        PairFinder [label="«interface»\nPairFinder",     fillcolor="#c8d8f0", color="#4a7eba", style="filled,rounded,dashed"]
+        Brute      [label="BruteForceClosest",           fillcolor="#a8c8ea", color="#4a7eba"]
+        DC         [label="DivideConquerClosest",        fillcolor="#a8c8ea", color="#4a7eba"]
+        DCBucket   [label="DivideConquerClosestBucket",  fillcolor="#a8c8ea", color="#4a7eba"]
+        Farthest   [label="FarthestPair",                fillcolor="#a8c8ea", color="#4a7eba"]
+    }
+
+    // ── VIEW ───────────────────────────────────────────────
+    subgraph cluster_view {
+        label="View"
+        fontsize=14
+        fontname="Helvetica Bold"
+        style="filled,rounded"
+        fillcolor="#dcf5dc"
+        color="#4aba4a"
+        penwidth=2
+
+        ViewListener      [label="«interface»\nViewListener",      fillcolor="#c8f0c8", color="#4aba4a", style="filled,rounded,dashed"]
+        MainView          [label="MainView",                       fillcolor="#a8eaa8", color="#4aba4a"]
+        PointPanel        [label="PointPanel",                     fillcolor="#a8eaa8", color="#4aba4a"]
+        BenchmarkWindow   [label="BenchmarkWindow",                fillcolor="#a8eaa8", color="#4aba4a"]
+        BenchmarkGraph    [label="BenchmarkGraphPanel",            fillcolor="#a8eaa8", color="#4aba4a"]
+        DistParam         [label="DistributionParamPanel",         fillcolor="#a8eaa8", color="#4aba4a"]
+    }
+
+    // ── EDGES: Controller ──────────────────────────────────
+    Controller -> ViewListener [label="  implements", color="#7a4aba", fontcolor="#7a4aba", penwidth=1.5, style=dashed]
+    Controller -> MainView     [label="  updates",    color="#7a4aba", fontcolor="#7a4aba", penwidth=1.5]
+    Controller -> BenchmarkWindow [label="  creates", color="#7a4aba", fontcolor="#7a4aba", penwidth=1.5]
+    Controller -> Model        [label="  updates",    color="#4a7eba", fontcolor="#4a7eba", penwidth=1.5]
+    Controller -> Benchmark    [label="  calls",      color="#4a7eba", fontcolor="#4a7eba", penwidth=1.5]
+
+    // ── EDGES: View ────────────────────────────────────────
+    MainView -> ViewListener [label="  fires",    color="#4aba4a", fontcolor="#4aba4a", penwidth=1.2]
+    MainView -> PointPanel   [label="  contains", color="#4aba4a", fontcolor="#4aba4a", penwidth=1.0, style=dashed]
+    MainView -> DistParam    [label="  contains", color="#4aba4a", fontcolor="#4aba4a", penwidth=1.0, style=dashed]
+    BenchmarkWindow -> BenchmarkGraph    [label="  contains", color="#4aba4a", fontcolor="#4aba4a", penwidth=1.0, style=dashed]
+    BenchmarkWindow -> ViewListener      [label="  fires",    color="#4aba4a", fontcolor="#4aba4a", penwidth=1.2]
+    BenchmarkWindow -> Predictor         [label="  uses",     color="#7a4aba", fontcolor="#7a4aba", penwidth=1.0, style=dashed]
+
+    // ── EDGES: Model ───────────────────────────────────────
+    Model     -> Benchmark  [label="  owns",     color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+    Benchmark -> PairFinder [label="  uses",     color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+    Brute     -> PairFinder [label="  impl.",    color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed, arrowhead=empty]
+    DC        -> PairFinder [label="  impl.",    color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed, arrowhead=empty]
+    Farthest  -> PairFinder [label="  impl.",    color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed, arrowhead=empty]
+    DCBucket  -> DC         [label="  extends",  color="#4a7eba", fontcolor="#4a7eba", penwidth=1.5, arrowhead=empty]
+}

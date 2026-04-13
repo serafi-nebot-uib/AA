@@ -3,9 +3,11 @@ package com.serafinebot.p3.model;
 /**
  * Fits multiplicative constants from benchmark data and predicts execution times.
  *
- * For each algorithm the theoretical cost function f(n) is known:
- *   Brute force:    f(n) = n²
- *   D&C / Farthest: f(n) = n · log₂(n)
+ * For each algorithm the cost model f(n) is:
+ *   Brute force:           f(n) = n²
+ *   D&C:                   f(n) = n · log₂(n)²  (strip sorted at each level)
+ *   D&C Bucket:            f(n) = n · log₂(n)
+ *   Farthest pair:         f(n) = n · log₂(n)
  *
  * The constant a is estimated via weighted least-squares (no intercept):
  *   a = Σ(t_i · f(n_i)) / Σ(f(n_i)²)
@@ -35,14 +37,16 @@ public class Predictor {
             double n = e.n();
             if (n < 2) continue;
 
-            double fQuad  = n * n;
-            double fNLogN = n * log2(n);
+            double fQuad    = n * n;
+            double logN     = log2(n);
+            double fNLogN   = n * logN;
+            double fNLog2N  = n * logN * logN;
 
             numBrute += e.bruteForce().averageTimeMs()            * fQuad;
             denBrute += fQuad  * fQuad;
 
-            numDC    += e.divideConquer().averageTimeMs()          * fNLogN;
-            denDC    += fNLogN * fNLogN;
+            numDC    += e.divideConquer().averageTimeMs()          * fNLog2N;
+            denDC    += fNLog2N * fNLog2N;
 
             numFar   += e.farthestPair().averageTimeMs()           * fNLogN;
             denFar   += fNLogN * fNLogN;
@@ -62,10 +66,15 @@ public class Predictor {
     }
 
     public static double predictDC(double a, long n) {
-        return a * n * log2(n);
+        double logN = log2(n);
+        return a * n * logN * logN;
     }
 
     public static double predictFarthest(double a, long n) {
+        return a * n * log2(n);
+    }
+
+    public static double predictBucket(double a, long n) {
         return a * n * log2(n);
     }
 
