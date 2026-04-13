@@ -34,8 +34,6 @@ public class BenchmarkWindow extends JDialog {
     private final JLabel predDCLabel;
     private final JLabel predFarthestLabel;
     private final JLabel predDCBucketLabel;
-    private final JLabel crossoverLabel;
-
     private Predictor.Constants fittedConstants;
 
     private static final String DEFAULT_N_VALUES = "100,500,1000,2000,5000,10000,20000,50000";
@@ -128,20 +126,17 @@ public class BenchmarkWindow extends JDialog {
         predDCLabel       = makePredLabel("D&C:        -");
         predFarthestLabel = makePredLabel("Lluny:      -");
         predDCBucketLabel = makePredLabel("D&C Bucket: -");
-        crossoverLabel    = makePredLabel("Crossover: -");
 
         predPanel.add(predBruteLabel);
         predPanel.add(predDCLabel);
         predPanel.add(predFarthestLabel);
         predPanel.add(predDCBucketLabel);
-        predPanel.add(Box.createVerticalStrut(6));
-        predPanel.add(crossoverLabel);
 
         rightPanel.add(predPanel, BorderLayout.CENTER);
         add(rightPanel, BorderLayout.EAST);
 
         // === Data table (bottom) ===
-        String[] cols = {"N", "Bruta (ms)", "D&C (ms)", "Mes lluny (ms)", "D&C Bucket (ms)", "Speedup (Bruta/D&C)"};
+        String[] cols = {"N", "Bruta (ms)", "D&C (ms)", "Mes lluny (ms)", "D&C Bucket (ms)"};
         tableModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
@@ -187,7 +182,6 @@ public class BenchmarkWindow extends JDialog {
                     graphPanel.setData(results);
                     graphPanel.setFittedConstants(fittedConstants);
                     updateTable(results);
-                    updateCrossover();
                     predictButton.setEnabled(true);
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(BenchmarkWindow.this,
@@ -226,17 +220,6 @@ public class BenchmarkWindow extends JDialog {
             formatTime(Predictor.predictDC(fittedConstants.divideConquerBucket(), n))));
     }
 
-    private void updateCrossover() {
-        if (fittedConstants == null) return;
-        long cross = Predictor.crossover(fittedConstants, 1_000_000_000L);
-        if (cross < 0) {
-            crossoverLabel.setText("<html><b>Crossover:</b> no trobat</html>");
-        } else {
-            crossoverLabel.setText(String.format(
-                "<html><b>Crossover:</b> n ≈ %,d</html>", cross));
-        }
-    }
-
     private int[] parseNValues() {
         String text = nValuesField.getText().trim();
         try {
@@ -260,18 +243,12 @@ public class BenchmarkWindow extends JDialog {
     private void updateTable(Benchmark.BenchmarkEntry[] entries) {
         tableModel.setRowCount(0);
         for (Benchmark.BenchmarkEntry e : entries) {
-            double brute    = e.bruteForce().averageTimeMs();
-            double dc       = e.divideConquer().averageTimeMs();
-            double farthest = e.farthestPair().averageTimeMs();
-            double dcBucket = e.divideConquerBucket().averageTimeMs();
-            double speedup  = dc > 0 ? brute / dc : 0;
             tableModel.addRow(new Object[]{
                 e.n(),
-                String.format("%.4f", brute),
-                String.format("%.4f", dc),
-                String.format("%.4f", farthest),
-                String.format("%.4f", dcBucket),
-                String.format("%.2fx", speedup)
+                String.format("%.4f", e.bruteForce().averageTimeMs()),
+                String.format("%.4f", e.divideConquer().averageTimeMs()),
+                String.format("%.4f", e.farthestPair().averageTimeMs()),
+                String.format("%.4f", e.divideConquerBucket().averageTimeMs())
             });
         }
     }

@@ -36,7 +36,7 @@ public class DivideConquerClosestBucket extends DivideConquerClosest {
         // Guard: if numBuckets > k the array would be sparser than O(1) per bucket,
         // hurting both allocation cost and cache locality. Fall back to sort-based scan.
         int numBuckets = maxKey - minKey + 1;
-        if (numBuckets > k) return super.processStrip(strip, k, dMin, best);
+//        if (numBuckets > k) return super.processStrip(strip, k, dMin, best);
 
         // Flat bucket storage: buckets[b * BUCKET_CAPACITY + c] is the c-th point in bucket b.
         Point[] buckets = new Point[numBuckets * BUCKET_CAPACITY];

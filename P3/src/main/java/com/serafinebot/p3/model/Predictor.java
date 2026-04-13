@@ -70,28 +70,6 @@ public class Predictor {
         return a * n * log2(n);
     }
 
-    /**
-     * Returns the crossover point: smallest integer n where brute force becomes
-     * slower than D&C. Returns -1 if D&C is never faster in [2, maxN].
-     */
-    public static long crossover(Constants c, long maxN) {
-        // At small n brute force is faster (smaller constant); find where D&C wins.
-        // Binary search for smallest n where predictBrute(n) > predictDC(n).
-        if (predictBrute(c.bruteForce(), maxN) <= predictDC(c.divideConquer(), maxN))
-            return -1; // D&C never wins up to maxN
-
-        long lo = 2, hi = maxN;
-        while (lo < hi) {
-            long mid = lo + (hi - lo) / 2;
-            if (predictBrute(c.bruteForce(), mid) > predictDC(c.divideConquer(), mid)) {
-                hi = mid;
-            } else {
-                lo = mid + 1;
-            }
-        }
-        return lo;
-    }
-
     private static double log2(double n) {
         return Math.log(n) / Math.log(2);
     }
