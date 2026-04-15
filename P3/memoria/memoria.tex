@@ -20,6 +20,7 @@
 \usepackage{cuted}
 \usepackage{wrapfig}
 \usepackage{multirow}
+\usepackage{microtype}
 \usepackage{siunitx}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
@@ -110,13 +111,13 @@ de $n$ punts en el pla, trobar la parella de punts amb la distància
 euclidiana mínima. La solució per força bruta examina totes les
 $\binom{n}{2}$ parelles amb cost $O(n^2)$, però l'algorisme de divideix
 i venceràs redueix el cost a quasi lineal; en aquesta implementació
-la franja s'ordena a cada nivell, donant $O(n \log^2 n)$.
+la franja s'ordena a cada nivell, donant $O(n \log^2 n)$ \cite{ref_gfg_closest}.
 
 El problema complementari, la parella més llunyana (\textit{farthest pair}),
 té la mateixa complexitat òptima $O(n \log n)$ però utilitza una
 estratègia diferent: primer es construeix el polígon convex que envolta
 tots els punts del núvol (\textit{convex hull}) i després s'aplica la tècnica dels
-\textit{rotating calipers}.
+\textit{rotating calipers} \cite{ref_gfg_convex}.
 
 L'aplicació implementada permet generar núvols de punts amb quatre
 distribucions (uniforme, gaussiana, exponencial, agrupada), modificar paràmetres d'aquestes,
@@ -236,7 +237,7 @@ conèixer els components gràfics interns de la vista.
 
 Degut a que la vista actualitza automàticament el núvol de punts
 cada vegada que l'usuari modifica qualque dada de configuració,
-existeix un temporitzador \textit{debounce} de 300~ms evita emetre l'event
+existeix un temporitzador \textit{debounce} de 300~ms que evita emetre l'event
 \texttt{onGenerate} a cada tecleig: la vista només el llança quan
 l'usuari ha deixat d'interactuar durant 300~ms.
 
@@ -412,6 +413,8 @@ $d_{\min}/2$, obtenim 8 cel·les; no hi pot haver dos punts a la mateixa
 cel·la perquè estarien a distància menor que $d_{\min}$ (contradicció).
 Per tant, hi ha com a màxim 8 punts rellevants en aquesta zona i,
 ordenant per $y$, n'hi ha prou de comparar cada punt amb els 7 següents.
+Aquest límit constant (6--8 segons la formulació geomètrica) és la clau
+del cost lineal de la franja \cite{ref_gfg_closest}.
 
 \textbf{Cost temporal.}
 Podem expressar el cost de la funció recursiva de la següent forma:
@@ -515,7 +518,8 @@ només s'omplen $k$ posicions útils. Això implica dos efectes pràctics:
 (2) pitjor localitat espacial, perquè es recorren moltes cubetes buides
 entre poques cubetes amb dades. En conseqüència augmenten les fallades
 de cache i la pressió de memòria, i el guany teòric del pas lineal queda
-neutralitzat o superat.
+neutralitzat o superat. Aquest patró també apareix en índexs espacials
+basats en graella i \textit{spatial hashing}.
 
 Per a evitar aquest problema, es podria afegir una guarda
 (p.~ex.\ \texttt{if (numBuckets > k)}) per fer \textit{fallback} al
@@ -528,7 +532,7 @@ introduït cap guarda per a mantenir el comportament de la variant de \textit{bu
 
 L'algorisme de la parella més llunyana (\texttt{FarthestPair})
 combina dues tècniques: \textit{convex hull} i
-\textit{rotating calipers}.
+\textit{rotating calipers} \cite{ref_gfg_convex}.
 
 \textbf{Fase 1 -- \textit{Convex hull} (envolupant convexa).}
 Primer s'ordenen els punts per coordenada $x$ i es construeix la
@@ -747,6 +751,25 @@ Paràmetres principals:
     \item \texttt{--csv}: sortida en format CSV (si no, taula textual).
 \end{itemize}
 
+Per evitar ambigüitats, la Taula~\ref{tab:cli_param_order} resumeix
+l'ordre exacte dels valors a \texttt{-p/--params} per a cada distribució.
+
+\begin{table}[H]
+    \caption{Ordre de paràmetres per a \texttt{-p/--params}.\label{tab:cli_param_order}}
+    \centering
+    \scriptsize
+    \begin{tabular}{ll}
+        \toprule
+        Distribució & Ordre de paràmetres a \texttt{-p} \\
+        \midrule
+        \texttt{UNIFORM} & \texttt{min,max} \\
+        \texttt{GAUSSIAN} & \texttt{mean,sigma,mulX,mulY} \\
+        \texttt{EXPONENTIAL} & \texttt{lambdaX,lambdaY} \\
+        \texttt{CLUSTERED} & \texttt{clusters,spread} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
 \begin{lstlisting}[caption={Exemples d'ús del CLI.},label={lst:cli},language=bash]
 # Tots els algorismes, distribucio uniforme
 java -cp target/classes \
@@ -773,9 +796,15 @@ agrupada (5 clusters). L'execució del benchmark distribueix les tasques
 entre nuclis; això pot afegir soroll en temps molt petits però no afecta
 les tendències globals. Com a cas addicional s'ha provat una gaussiana
 estirada ($\sigma=0.05$, multiplicadors $\times4$ i $\times0.25$).
+Els valors analitzats cobreixen des de $n=500$ fins a $n=300\,000$,
+amb més densitat de mostres a valors petits i intermedis.
 Els temps petits (\textless 0.1~ms)
 presenten variabilitat elevada; s'analitzen sobretot tendències i valors
 per a $n$ grans.
+Cal remarcar que la generació de núvols és aleatòria i, en aquesta versió,
+no es fixa una llavor (\textit{seed}) global; per tant, dues execucions amb els mateixos paràmetres
+produeixen mostres diferents. Per això es realitzen 3 execucions seguides per a cada configuració
+de cada algorisme i es fa feina damunt la seva mitja.
 
 \subsection{Distribució Uniforme: Comparació Completa}
 
@@ -787,18 +816,20 @@ logarítmica.
     \caption{Temps d'execució (ms) per a distribució uniforme.\label{tab:uniform}}
     \centering
     \footnotesize
-    \begin{tabular}{r S[table-format=4.3] S[table-format=2.3] S[table-format=2.3] S[table-format=2.3]}
+    \begin{tabular}{r S[table-format=6.3] S[table-format=4.3] S[table-format=4.3] S[table-format=4.3]}
         \toprule
         {$n$} & {Bruta} & {D\&C} & {D\&C Bkt.} & {Llunyana} \\
         \midrule
-        100    & 0.006 & 0.088 & 0.331 & 0.069 \\
-        500    & 0.148 & 1.855 & 1.044 & 0.791 \\
-        1000   & 0.576 & 1.805 & 1.834 & 0.540 \\
-        2000   & 3.020 & 3.983 & 3.192 & 1.733 \\
-        5000   & 19.964 & 5.379 & 5.790 & 5.763 \\
-        10000  & 64.357 & 12.072 & 12.096 & 2.981 \\
-        20000  & 233.536 & 10.711 & 13.280 & 7.388 \\
-        50000  & 1486.131 & 30.598 & 34.526 & 18.586 \\
+        500    & 0.178 & 0.472 & 1.324 & 0.848 \\
+        1000   & 0.685 & 0.889 & 1.137 & 2.331 \\
+        5000   & 27.263 & 7.542 & 51.043 & 50.777 \\
+        10000  & 171.028 & 18.215 & 28.158 & 28.750 \\
+        50000  & 9180.847 & 90.739 & 274.017 & 135.219 \\
+        100000 & 36675.313 & 345.969 & 493.501 & 394.892 \\
+        150000 & 87350.465 & 596.639 & 1008.263 & 491.157 \\
+        200000 & 143702.082 & 878.369 & 1692.344 & 868.165 \\
+        250000 & 175852.252 & 1260.477 & 2369.061 & 987.417 \\
+        300000 & 209233.170 & 1701.369 & 2783.924 & 1046.394 \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -807,18 +838,20 @@ logarítmica.
     \centering
     \pgfplotstableread[col sep=comma]{
 n,brute,dc,bucket,farthest
-100,0.006333,0.088139,0.331333,0.069250
-500,0.148167,1.855417,1.043542,0.791459
-1000,0.575889,1.805028,1.833569,0.539750
-2000,3.020125,3.982514,3.191597,1.732875
-5000,19.963611,5.378514,5.790431,5.763375
-10000,64.357333,12.072028,12.095903,2.980598
-20000,233.535528,10.710611,13.279833,7.388264
-50000,1486.131209,30.597514,34.526403,18.585944
+500,0.177889,0.472306,1.324319,0.847569
+1000,0.685319,0.888819,1.137444,2.330833
+5000,27.263055,7.542277,51.043292,50.776959
+10000,171.027805,18.214708,28.157959,28.750347
+50000,9180.846833,90.739125,274.016875,135.218764
+100000,36675.313222,345.969319,493.500875,394.892486
+150000,87350.464944,596.638889,1008.262986,491.156903
+200000,143702.081945,878.368680,1692.344375,868.165195
+250000,175852.252195,1260.476556,2369.060861,987.417194
+300000,209233.170278,1701.368972,2783.924319,1046.394500
     }\uniformdata
     \begin{tikzpicture}
     \begin{semilogyaxis}[
-        width=\linewidth,
+        width=0.98\linewidth,
         height=6cm,
         xlabel={$n$},
         ylabel={Temps (ms)},
@@ -843,30 +876,30 @@ n,brute,dc,bucket,farthest
 
 Els resultats mostren el patró esperat: força bruta domina per a $n$ petits
 per la seva baixa constant, però queda ràpidament superada per D\&C i
-la parella llunyana. Per $n=50\,000$, D\&C és $\approx 49\times$ més ràpid
+la parella llunyana. Per $n=300\,000$, D\&C és $\approx 123\times$ més ràpid
 que força bruta, mentre que la parella llunyana és la més ràpida dels algorismes
 quasi-lineals. La variant amb \textit{buckets} és sistemàticament més lenta
-que D\&C en la distribució uniforme (\textasciitilde 13\% a $n=50\,000$).
+que D\&C en la distribució uniforme (\textasciitilde 64\% a $n=300\,000$).
 
 \subsection{Comparació entre Distribucions}
 
-La Taula~\ref{tab:distributions} resumeix els temps a $n = 50\,000$ per a
+La Taula~\ref{tab:distributions} resumeix els temps a $n = 300\,000$ per a
 totes les distribucions i el cas gaussià estirat. La Figura~\ref{fig:dist_bar}
-compara explícitament D\&C i la variant amb \textit{buckets}.
+mostra la comparativa completa dels quatre algorismes.
 
 \begin{table}[H]
-    \caption{Temps (ms) per algorisme i distribució a $n = 50\,000$.\label{tab:distributions}}
+    \caption{Temps (ms) per algorisme i distribució a $n = 300\,000$.\label{tab:distributions}}
     \centering
-    \footnotesize
-    \begin{tabular}{l S[table-format=4.3] S[table-format=2.3] S[table-format=2.3] S[table-format=2.3]}
+    \scriptsize
+    \begin{tabular}{l S[table-format=6.1] S[table-format=4.1] S[table-format=4.1] S[table-format=4.1]}
         \toprule
         {Distribució} & {Bruta} & {D\&C} & {D\&C Bkt.} & {Llunyana} \\
         \midrule
-        Uniforme            & 1486.131 & 30.598 & 34.526 & 18.586 \\
-        Gaussiana           & 1466.164 & 30.296 & 38.160 & 18.004 \\
-        Exponencial         & 1508.508 & 27.184 & 40.977 & 16.277 \\
-        Agrupada (5)        & 1493.985 & 29.404 & 36.879 & 17.480 \\
-        Gaussiana estirada  & 1470.742 & 25.154 & 23.590 & 17.275 \\
+        Uniforme            & 209233.2 & 1701.4 & 2783.9 & 1046.4 \\
+        Gaussiana           & 215653.4 & 1662.1 & 3101.5 & 1195.7 \\
+        Exponencial         & 210040.3 & 2021.5 & 4125.5 & 1338.5 \\
+        Agrupada (5)        & 209850.6 & 1721.2 & 3322.0 & 1102.0 \\
+        Gaussiana est.      & 212501.2 & 1372.6 & 1702.7 & 925.6 \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -874,55 +907,57 @@ compara explícitament D\&C i la variant amb \textit{buckets}.
 \begin{figure}[H]
     \centering
     \pgfplotstableread[col sep=comma]{
-dist,dc,bucket
-Uniforme,30.598,34.526
-Gaussiana,30.296,38.160
-Exponencial,27.184,40.977
-Agrupada,29.404,36.879
-Gaussiana estirada,25.154,23.590
+dist,brute,dc,bucket,farthest
+Uniforme,209233.170,1701.369,2783.924,1046.394
+Gaussiana,215653.420,1662.071,3101.464,1195.714
+Exponencial,210040.300,2021.532,4125.456,1338.470
+Agrupada,209850.600,1721.162,3321.970,1101.980
+Gauss. estirada,212501.200,1372.550,1702.714,925.640
     }\distdata
     \begin{tikzpicture}
     \begin{axis}[
         ybar,
-        width=\linewidth,
+        width=0.94\linewidth,
         height=6cm,
         ylabel={Temps (ms)},
-        symbolic x coords={Uniforme,Gaussiana,Exponencial,Agrupada,Gaussiana estirada},
+        ymode=log,
+        log basis y={10},
+        symbolic x coords={Uniforme,Gaussiana,Exponencial,Agrupada,Gauss. estirada},
         xtick=data,
         x tick label style={rotate=20,anchor=east},
         legend pos=north east,
         legend style={font=\footnotesize, fill=white, fill opacity=0.85, draw opacity=1},
-        bar width=8pt,
-        enlarge x limits=0.15,
+        bar width=6pt,
+        enlarge x limits=0.12,
         grid=major
     ]
+        \addplot table[x=dist,y=brute] {\distdata};
+        \addlegendentry{Bruta}
         \addplot table[x=dist,y=dc] {\distdata};
         \addlegendentry{D\&C}
         \addplot table[x=dist,y=bucket] {\distdata};
         \addlegendentry{D\&C Bucket}
+        \addplot table[x=dist,y=farthest] {\distdata};
+        \addlegendentry{Llunyana}
     \end{axis}
     \end{tikzpicture}
-    \caption{D\&C vs D\&C Bucket per distribució a $n=50\,000$.}
+    \caption{Comparativa per distribució i algorisme a $n=300\,000$ (escala logarítmica).}
     \label{fig:dist_bar}
 \end{figure}
 
-Els temps varien poc entre distribucions: la geometria afecta sobretot
-constantes menors, però no canvia l'ordre de magnitud. D\&C es manté estable,
-mentre que la variant amb \textit{buckets} és més variable: en distribucions
-uniforme, gaussiana i exponencial és clarament més lenta, però en la gaussiana
-estirada esdevé lleugerament més ràpida perquè el rang efectiu en $y$ és més petit.
-La parella llunyana es manté estable perquè el cost depèn del \textit{convex hull},
-que és relativament petit en totes les distribucions provades.
-
-\subsection{Cas d'Estudi: Gaussiana Estirada}
+Amb aquesta comparativa completa es veu més clarament que la distribució
+exponencial és la més costosa en els tres algorismes quasi-lineals
+(D\&C, D\&C Bucket i Llunyana). En força bruta, en canvi,
+la variació entre distribucions és pràcticament nul·la perque
+comprova tots els punts de la mateixa forma independentment de la distribució.
 
 La distribució gaussiana estirada (ell·líptica) serveix per comprovar si
-una geometria anisotròpica altera el comportament. En aquest cas el rang
+aquesta geometria altera el comportament. En aquest cas el rang
 efectiu en l'eix $y$ és més petit i el nombre de cubetes baixa, de manera
-que la variant amb \textit{buckets} pot superar D\&C per a $n$ grans
-(23.59~ms vs 25.15~ms a $n=50\,000$). Tot i això, el comportament no és
-monòton per a tots els $n$, mostrant sensibilitat a la geometria i al soroll
-de mesura.
+que la variant amb \textit{buckets} s'apropa més a D\&C que en la resta de
+distribucions. Tot i això, per al rang analitzat continua sent més lenta
+(1702.71~ms vs 1372.55~ms a $n=300\,000$). El comportament no és monòton
+per a tots els $n$, mostrant sensibilitat a la geometria i al soroll de mesura.
 
 \subsection{Problemes Pràctics de la Variant amb Buckets}
 
@@ -934,18 +969,30 @@ quan el rang efectiu en $y$ és reduït, però el patró és irregular. Els
 valors erràtics per a $n$ petits reflecteixen l'overhead de construir
 les cubetes quan el temps absolut és molt baix i el soroll de mesura domina.
 
+En proves addicionals sobre gaussiana no estirada amb
+\texttt{mitjana=0.5}, \texttt{desv.=0.15}, \texttt{mulX=10} i
+\texttt{mulY=0.5} (paràmetres passats com
+\texttt{-p 0.5,0.15,10,0.5}) i mides fins a $n=1\,000\,000$
+(comparant només \texttt{dc} i \texttt{bucket}), s'observa que en alguns
+casos puntuals la variant bucket pot tenir un rendiment lleugerament per damunt de D\&C.
+Això és compatible amb la naturalesa aleatòria del mostreig: petites
+variacions en la disposició dels punts poden alterar la geometria de
+franja i el cost efectiu de cubetes.
+
 \begin{figure}[H]
     \centering
     \pgfplotstableread[col sep=comma]{
 n,ratio_uniform,ratio_stretch
-100,3.759,3.477
-500,0.562,2.173
-1000,1.016,0.546
-2000,0.801,1.006
-5000,1.077,0.272
-10000,1.002,1.130
-20000,1.240,0.719
-50000,1.128,0.938
+500,2.804,0.592
+1000,1.280,0.857
+5000,6.768,3.086
+10000,1.546,1.172
+50000,3.020,1.338
+100000,1.426,2.168
+150000,1.690,1.324
+200000,1.927,1.126
+250000,1.879,1.385
+300000,1.636,1.241
     }\ratiodata
     \begin{tikzpicture}
     \begin{axis}[
@@ -954,12 +1001,14 @@ n,ratio_uniform,ratio_stretch
         xlabel={$n$},
         ylabel={Bucket/D\&C},
         ymin=0,
-        ymax=4.6,
+        ymax=7.2,
         grid=major,
         legend pos=north east,
         legend style={font=\footnotesize, fill=white, fill opacity=0.85, draw opacity=1},
         mark size=1.8pt
     ]
+        \addplot[dashed, thick, black] coordinates {(500,1) (300000,1)};
+        \addlegendentry{Llindar 1}
         \addplot table[x=n,y=ratio_uniform] {\ratiodata};
         \addlegendentry{Uniforme}
         \addplot table[x=n,y=ratio_stretch] {\ratiodata};
@@ -969,44 +1018,6 @@ n,ratio_uniform,ratio_stretch
     \caption{Ràtio Bucket/D\&C per $n$.}
     \label{fig:ratio_bucket}
 \end{figure}
-
-Aquest comportament és coherent amb la propietat clau del problema: a mesura
-que la recursió avança, $d_{\min}$ es fa molt petit i el nombre de cubetes
-\texttt{numBuckets} esdevé molt major que $k$. Sense guarda, això implica
-al·locacions disperses massives i pressió sobre el GC. Per tant, la variant
-amb \textit{buckets} és teòricament atractiva però pràcticament ineficaç en
-distribucions contínues estàndard, i només pot ser competitiva quan el rang
-efectiu en $y$ és prou reduït.
-
-%% ================================================================
-\section{Decisions de Disseny Notables}
-
-\subsection{Herència vs Duplicació de Codi}
-
-La decisió de fer que \texttt{DivideConquerClosestBucket} hereti de
-\texttt{DivideConquerClosest} té un compromís: la crida al mètode
-sobreescrit \texttt{processStrip} afegeix un overhead mínim. En la pràctica, el cost és
-insignificant ($< 1$~ns per crida) comparat amb el cost de la franja
-($> 1$~$\mu$s fins i tot per a franges petites), i s'estalvien
-$\approx 125$ línies de codi duplicat.
-
-\subsection{Càlcul de distància simplificat}
-
-S'ha optat per una API mínima de distància: \texttt{Point} només exposa
-\texttt{distanceTo()}, i \texttt{PointPair} calcula i memoritza aquesta
-distància en una sola passada. Aquest enfocament evita mantenir dos camins
-paral·lels (distància real i distància al quadrat), redueix superfície
-d'API i simplifica la lectura del codi sense impacte rellevant en el
-rendiment observat.
-
-\subsection{Buffer Preallocat vs Al·locació per Nivell}
-
-El buffer preallocat \texttt{Point[n]} per a la franja elimina
-$O(\log n)$ al·locacions per crida a \texttt{find()}, reduint la
-pressió sobre el GC i millorant la localitat de cache. El compromís
-és que el buffer té mida $n$ (la mida màxima possible de la franja
-és $n$ al nivell arrel) tot i que els nivells inferiors utilitzen
-fraccions cada vegada més petites.
 
 %% ================================================================
 \section{Conclusió i Opinió Personal}
@@ -1022,31 +1033,38 @@ i els algorismes quasi-lineals: la força bruta és competitiva per a $n$ petits
  per la seva baixa constant, però D\&C domina a partir de valors moderats i la
  parella llunyana és especialment eficient per a $n$ grans. La variant amb
  \textit{buckets} mostra un sobrecost important en distribucions contínues,
- degut a cubetes disperses i pressió sobre el GC, i només resulta competitiva
- en casos anisotròpics molt concrets.
+ degut a cubetes disperses i pressió sobre el GC; només en configuracions
+ específiques arriba a apropar-se a D\&C.
 
-Com a treball futur, seria interessant implementar la variant òptima $O(n \log n)$
-amb franja preordenada, incorporar mesures de variància i seeding determinista
-per reforçar la reproductibilitat, i explorar distribucions o rangs més extrems
-per estudiar casos límit.
+Des d'un punt de vista personal, la part més útil del projecte ha estat
+disposar d'un CLI de benchmark reproduïble amb sortida CSV. Aquesta eina ha
+reduït molt el temps d'anàlisi respecte a mesurar des de la GUI, perquè ha
+permès repetir sèries completes de proves, comparar distribucions amb la
+mateixa configuració i actualitzar les figures de la memòria de forma ràpida.
+També ha facilitat detectar que la variant bucket no falla per teoria, sinó
+per costos pràctics de memòria i localitat.
+
+Durant el desenvolupament del programa es va
+iniciar una implementació de la variant D\&C amb \textit{KD-tree}. Però,
+en dedicar una part important del temps a l'anàlisi i a la millora de la
+variant amb \textit{buckets}, finalment es va optar per descartar-la.
+Com a treball futur, seria interessant reprendre aquesta variant,
+avaluar-la amb el mateix protocol experimental i identificar en quins escenaris
+pot oferir un millor rendiment.
 
 %% ================================================================
 
 \begin{thebibliography}{9}
 
-\bibitem{ref_shamos}
-M.~I.~Shamos i D.~Hoey, ``Closest-point problems,''
-\textit{Proc.\ 16th Annual Symposium on Foundations of Computer Science
-(FOCS)}, pp.~151--162, 1975.
+\bibitem{ref_gfg_closest}
+GeeksforGeeks, ``Closest Pair of Points using Divide and Conquer algorithm,''
+2025. [Online]. Available:
+\url{https://www.geeksforgeeks.org/closest-pair-of-points-onlogn-implementation/}
 
-\bibitem{ref_calipers}
-G.~T.~Toussaint, ``Solving geometric problems with the rotating calipers,''
-\textit{Proc.\ IEEE MELECON}, pp.~A10.02/1--4, 1983.
-
-\bibitem{ref_andrew}
-A.~M.~Andrew, ``Another efficient algorithm for convex hulls in two dimensions,''
-\textit{Information Processing Letters}, vol.~9, no.~5, pp.~216--219, 1979.
-
+\bibitem{ref_gfg_convex}
+GeeksforGeeks, ``Convex Hull using Graham Scan,''
+2025. [Online]. Available:
+\url{https://www.geeksforgeeks.org/convex-hull-using-graham-scan/}
 
 \end{thebibliography}
 
