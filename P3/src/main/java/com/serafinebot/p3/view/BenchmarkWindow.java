@@ -1,8 +1,8 @@
 package com.serafinebot.p3.view;
 
 import com.serafinebot.p3.model.Benchmark;
+import com.serafinebot.p3.model.Distribution;
 import com.serafinebot.p3.model.DistributionParams;
-import com.serafinebot.p3.model.PointCloud;
 import com.serafinebot.p3.model.Predictor;
 
 import javax.swing.*;
@@ -23,7 +23,7 @@ public class BenchmarkWindow extends JDialog {
 
     private final JTextField nValuesField;
     private final JButton runButton;
-    private final JComboBox<PointCloud.Distribution> distributionCombo;
+    private final JComboBox<Distribution> distributionCombo;
     private final DistributionParamPanel paramPanel;
     private final JCheckBox logScaleCheck;
     private final JCheckBox[] seriesChecks;
@@ -65,16 +65,16 @@ public class BenchmarkWindow extends JDialog {
         // Row 2: distribution + params (variable width — isolated from row 1)
         JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
         row2.add(new JLabel("Distribució:"));
-        distributionCombo = new JComboBox<>(PointCloud.Distribution.values());
+        distributionCombo = new JComboBox<>(Distribution.values());
         row2.add(distributionCombo);
         paramPanel = new DistributionParamPanel();
-        paramPanel.setDistribution((PointCloud.Distribution) distributionCombo.getSelectedItem());
+        paramPanel.setDistribution((Distribution) distributionCombo.getSelectedItem());
         row2.add(paramPanel);
         configWrapper.add(row2);
 
         distributionCombo.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED)
-                paramPanel.setDistribution((PointCloud.Distribution) e.getItem());
+                paramPanel.setDistribution((Distribution) e.getItem());
         });
 
         add(configWrapper, BorderLayout.NORTH);
@@ -164,7 +164,7 @@ public class BenchmarkWindow extends JDialog {
         int[] nValues = parseNValues();
         if (nValues == null) return;
 
-        PointCloud.Distribution dist = (PointCloud.Distribution) distributionCombo.getSelectedItem();
+        Distribution dist = (Distribution) distributionCombo.getSelectedItem();
         DistributionParams params = paramPanel.read();
 
         runButton.setEnabled(false);

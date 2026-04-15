@@ -8,7 +8,6 @@ public class PointPair {
 
     // Sentinel -1 means "not yet computed". Valid distances are always >= 0,
     // so -1 is a safe uninitialized marker.
-    private double distanceSq = -1;
     private double distance   = -1;
 
     public PointPair(Point p1, Point p2) {
@@ -19,13 +18,12 @@ public class PointPair {
     public Point p1() { return p1; }
     public Point p2() { return p2; }
 
-    public double distanceSq() {
-        if (distanceSq < 0) distanceSq = p1.distanceSquaredTo(p2);
-        return distanceSq;
-    }
-
     public double distance() {
-        if (distance < 0) distance = Math.sqrt(distanceSq());
+        if (distance < 0) {
+            double dx = p1.x() - p2.x();
+            double dy = p1.y() - p2.y();
+            distance = Math.sqrt(dx * dx + dy * dy);
+        }
         return distance;
     }
 

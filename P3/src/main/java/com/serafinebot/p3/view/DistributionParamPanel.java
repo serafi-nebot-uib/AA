@@ -1,8 +1,8 @@
 package com.serafinebot.p3.view;
 
+import com.serafinebot.p3.model.Distribution;
 import com.serafinebot.p3.model.DistributionParams;
 import com.serafinebot.p3.model.ParamSpec;
-import com.serafinebot.p3.model.PointCloud;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -20,7 +20,7 @@ import java.util.List;
 public class DistributionParamPanel extends JPanel {
 
     private final List<JTextField> fields = new ArrayList<>();
-    private PointCloud.Distribution current;
+    private Distribution current;
     private Runnable onChange;
 
     public DistributionParamPanel() {
@@ -32,7 +32,7 @@ public class DistributionParamPanel extends JPanel {
     }
 
     /** Rebuilds the fields whenever the selected distribution changes. */
-    public void setDistribution(PointCloud.Distribution dist) {
+    public void setDistribution(Distribution dist) {
         if (dist == current) return;
         current = dist;
 

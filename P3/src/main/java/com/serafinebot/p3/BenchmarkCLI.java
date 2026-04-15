@@ -1,7 +1,6 @@
 package com.serafinebot.p3;
 
 import com.serafinebot.p3.model.*;
-import com.serafinebot.p3.model.PointCloud.Distribution;
 
 import java.util.*;
 import java.util.concurrent.*;

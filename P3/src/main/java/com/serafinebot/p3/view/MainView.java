@@ -1,8 +1,8 @@
 package com.serafinebot.p3.view;
 
+import com.serafinebot.p3.model.Distribution;
 import com.serafinebot.p3.model.DistributionParams;
 import com.serafinebot.p3.model.Model;
-import com.serafinebot.p3.model.PointCloud;
 import com.serafinebot.p3.model.PointPair;
 
 import javax.swing.*;
@@ -23,7 +23,7 @@ public class MainView extends JFrame {
     private ViewListener listener;
 
     private final JSpinner nSpinner;
-    private final JComboBox<PointCloud.Distribution> distributionCombo;
+    private final JComboBox<Distribution> distributionCombo;
     private final DistributionParamPanel paramPanel;
     private final JButton runButton;
     private final JButton stopButton;
@@ -62,11 +62,11 @@ public class MainView extends JFrame {
         nSpinner.setPreferredSize(new Dimension(100, 25));
         leftSide.add(nSpinner);
 
-        distributionCombo = new JComboBox<>(PointCloud.Distribution.values());
+        distributionCombo = new JComboBox<>(Distribution.values());
         leftSide.add(distributionCombo);
 
         paramPanel = new DistributionParamPanel();
-        paramPanel.setDistribution((PointCloud.Distribution) distributionCombo.getSelectedItem());
+        paramPanel.setDistribution((Distribution) distributionCombo.getSelectedItem());
         leftSide.add(paramPanel);
 
         controlPanel.add(leftSide, BorderLayout.CENTER);
@@ -123,7 +123,7 @@ public class MainView extends JFrame {
 
         distributionCombo.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
-                paramPanel.setDistribution((PointCloud.Distribution) e.getItem());
+                paramPanel.setDistribution((Distribution) e.getItem());
                 scheduleGenerate();
             }
         });
@@ -157,7 +157,7 @@ public class MainView extends JFrame {
     private void triggerGenerate() {
         if (listener != null) listener.onGenerate(
             (int) nSpinner.getValue(),
-            (PointCloud.Distribution) distributionCombo.getSelectedItem(),
+            (Distribution) distributionCombo.getSelectedItem(),
             RANGE_MIN, RANGE_MAX,
             paramPanel.read()
         );

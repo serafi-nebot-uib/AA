@@ -6,7 +6,6 @@ import java.util.concurrent.Future;
 
 public class Benchmark {
 
-    private static final int WARMUP_RUNS = 3;
     private static final int MEASURED_RUNS = 1;
     private static final int JIT_WARMUP_N = 500;
     private static final int JIT_WARMUP_ITERS = 10;
@@ -21,18 +20,11 @@ public class Benchmark {
 
     /**
      * Benchmarks a closest/farthest pair algorithm.
-     * Discards the first WARMUP_RUNS executions, then averages MEASURED_RUNS.
+     * Averages MEASURED_RUNS executions.
      * Follows the methodology from the class notes (slide 125).
      */
     public static Result run(PairFinder finder, Point[] points) {
         PointPair result = null;
-
-        // Warmup: discard first 3 runs (cache, JIT)
-        for (int i = 0; i < WARMUP_RUNS; i++) {
-            if (Thread.currentThread().isInterrupted())
-                throw new RuntimeException(new InterruptedException("Cancelled"));
-            result = finder.find(points);
-        }
 
         // Measured runs: average of MEASURED_RUNS
         long totalNanos = 0;
@@ -59,8 +51,8 @@ public class Benchmark {
      * tasks — no synchronisation needed.
      */
     @SuppressWarnings("unchecked")
-    public static BenchmarkEntry[] runSeries(int[] nValues, PointCloud.Distribution distribution,
-                                              double rangeMin, double rangeMax, DistributionParams params) {
+    public static BenchmarkEntry[] runSeries(int[] nValues, Distribution distribution,
+                                               double rangeMin, double rangeMax, DistributionParams params) {
         jitWarmup(distribution, rangeMin, rangeMax, params);
 
         // Pre-generate all point arrays
@@ -111,7 +103,7 @@ public class Benchmark {
      * Uses the same distribution as the actual benchmark so the same code paths
      * (e.g. rejection-sampling branches in PointCloud) are compiled too.
      */
-    private static void jitWarmup(PointCloud.Distribution distribution, double rangeMin, double rangeMax, DistributionParams params) {
+    private static void jitWarmup(Distribution distribution, double rangeMin, double rangeMax, DistributionParams params) {
         Point[] pts = new PointCloud().generate(JIT_WARMUP_N, distribution, rangeMin, rangeMax, params);
         for (int i = 0; i < JIT_WARMUP_ITERS; i++) {
             BRUTE.find(pts);

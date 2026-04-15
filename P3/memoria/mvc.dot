@@ -43,14 +43,22 @@ digraph MVC {
         color="#4a7eba"
         penwidth=2
 
-        Model      [label="Model",                       fillcolor="#a8c8ea", color="#4a7eba"]
-        Benchmark  [label="Benchmark",                   fillcolor="#a8c8ea", color="#4a7eba"]
-        Predictor  [label="Predictor",                   fillcolor="#a8c8ea", color="#4a7eba"]
-        PairFinder [label="«interface»\nPairFinder",     fillcolor="#c8d8f0", color="#4a7eba", style="filled,rounded,dashed"]
-        Brute      [label="BruteForceClosest",           fillcolor="#a8c8ea", color="#4a7eba"]
-        DC         [label="DivideConquerClosest",        fillcolor="#a8c8ea", color="#4a7eba"]
-        DCBucket   [label="DivideConquerClosestBucket",  fillcolor="#a8c8ea", color="#4a7eba"]
-        Farthest   [label="FarthestPair",                fillcolor="#a8c8ea", color="#4a7eba"]
+        Model       [label="Model",                       fillcolor="#a8c8ea", color="#4a7eba"]
+        PointCloud  [label="PointCloud",                  fillcolor="#a8c8ea", color="#4a7eba"]
+        Dist        [label="Distribution",                fillcolor="#a8c8ea", color="#4a7eba"]
+        DistParams  [label="DistributionParams",          fillcolor="#a8c8ea", color="#4a7eba"]
+        ParamSpec   [label="ParamSpec",                   fillcolor="#a8c8ea", color="#4a7eba"]
+        Point       [label="Point",                       fillcolor="#a8c8ea", color="#4a7eba"]
+        PointPair   [label="PointPair",                   fillcolor="#a8c8ea", color="#4a7eba"]
+
+        Benchmark   [label="Benchmark",                   fillcolor="#a8c8ea", color="#4a7eba"]
+        Predictor   [label="Predictor",                   fillcolor="#a8c8ea", color="#4a7eba"]
+        PairFinder  [label="«interface»\nPairFinder",     fillcolor="#c8d8f0", color="#4a7eba", style="filled,rounded,dashed"]
+        Brute       [label="BruteForceClosest",           fillcolor="#a8c8ea", color="#4a7eba"]
+        DC          [label="DivideConquerClosest",        fillcolor="#a8c8ea", color="#4a7eba"]
+        DCBucket    [label="DivideConquerClosestBucket",  fillcolor="#a8c8ea", color="#4a7eba"]
+        Farthest    [label="FarthestPair",                fillcolor="#a8c8ea", color="#4a7eba"]
+
     }
 
     // ── VIEW ───────────────────────────────────────────────
@@ -87,10 +95,25 @@ digraph MVC {
     BenchmarkWindow -> Predictor         [label="  uses",     color="#7a4aba", fontcolor="#7a4aba", penwidth=1.0, style=dashed]
 
     // ── EDGES: Model ───────────────────────────────────────
-    Model     -> Benchmark  [label="  owns",     color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
-    Benchmark -> PairFinder [label="  uses",     color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
-    Brute     -> PairFinder [label="  impl.",    color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed, arrowhead=empty]
-    DC        -> PairFinder [label="  impl.",    color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed, arrowhead=empty]
-    Farthest  -> PairFinder [label="  impl.",    color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed, arrowhead=empty]
-    DCBucket  -> DC         [label="  extends",  color="#4a7eba", fontcolor="#4a7eba", penwidth=1.5, arrowhead=empty]
+    Model      -> PointCloud [label="  owns",     color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+    Model      -> Dist       [label="  stores",   color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+    Model      -> DistParams [label="  stores",   color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+    Model      -> Point      [label="  stores[]", color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+    Model      -> PointPair  [label="  stores",   color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+    Model      -> Benchmark  [label="  stores",   color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+
+    PointCloud -> Dist       [label="  generates by", color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+    PointCloud -> DistParams [label="  reads",        color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+    Dist       -> ParamSpec  [label="  defines[]",    color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+    DistParams -> Dist       [label="  defaults from",color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+
+    Benchmark  -> PairFinder [label="  uses",     color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+    Benchmark  -> Point      [label="  input[]",  color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+    Benchmark  -> PointPair  [label="  output",   color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+    Predictor  -> Benchmark  [label="  fits",     color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed]
+
+    Brute      -> PairFinder [label="  impl.",    color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed, arrowhead=empty]
+    DC         -> PairFinder [label="  impl.",    color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed, arrowhead=empty]
+    Farthest   -> PairFinder [label="  impl.",    color="#4a7eba", fontcolor="#4a7eba", penwidth=1.0, style=dashed, arrowhead=empty]
+    DCBucket   -> DC         [label="  extends",  color="#4a7eba", fontcolor="#4a7eba", penwidth=1.5, arrowhead=empty]
 }

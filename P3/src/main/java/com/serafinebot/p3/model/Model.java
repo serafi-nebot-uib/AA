@@ -9,7 +9,7 @@ public class Model {
     private final PointCloud pointCloud = new PointCloud();
 
     private Point[] points;
-    private PointCloud.Distribution currentDistribution;
+    private Distribution currentDistribution;
     private DistributionParams currentParams;
     private PointPair closestBrute;
     private PointPair closestDC;
@@ -21,7 +21,7 @@ public class Model {
     private double timeFarthestMs;
     private Benchmark.BenchmarkEntry[] benchmarkResults;
 
-    public void generatePoints(int n, PointCloud.Distribution distribution,
+    public void generatePoints(int n, Distribution distribution,
                                double rangeMin, double rangeMax, DistributionParams params) {
         this.currentDistribution = distribution;
         this.currentParams       = params;
@@ -51,7 +51,7 @@ public class Model {
     }
 
     public Point[]                     getPoints()              { return points; }
-    public PointCloud.Distribution     getCurrentDistribution() { return currentDistribution; }
+    public Distribution                getCurrentDistribution() { return currentDistribution; }
     public DistributionParams          getCurrentParams()       { return currentParams; }
     public PointPair getClosestBrute()                        { return closestBrute; }
     public PointPair getClosestDC()                           { return closestDC; }

@@ -14,7 +14,7 @@ public record DistributionParams(double[] values) {
     public double get(int i) { return values[i]; }
 
     /** Build a DistributionParams filled with each spec's default value. */
-    public static DistributionParams defaults(PointCloud.Distribution dist) {
+    public static DistributionParams defaults(Distribution dist) {
         ParamSpec[] specs = dist.params();
         double[] vals = new double[specs.length];
         for (int i = 0; i < specs.length; i++) vals[i] = specs[i].defaultValue();

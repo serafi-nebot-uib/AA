@@ -178,10 +178,9 @@ algorisme, les coordenades i distància de la parella trobada i el
 temps d'execució mesurat. Mentre no s'ha executat cap algorisme, tots
 els valors mostren «---».
 
-Cada algorisme s'executa amb el protocol per execució descrit a la
-Secció~\ref{sec:benchmark}: 3 execucions d'escalfament descartades,
-seguida d'1 execució mesurada. L'escalfament JIT global només s'aplica
-a les sèries de benchmark (finestra i CLI).
+Cada algorisme s'executa amb el protocol de la Secció~\ref{sec:benchmark}:
+escalfament JIT global al principi de la sèrie i, després, 1 execució
+mesurada per cas (algorisme, $n$).
 
 
 \subsection{Finestra de Benchmark}
@@ -256,7 +255,8 @@ importa cap classe de la vista ni del controlador.
 
 La classe \texttt{Model} és el contenidor central d'estat de
 l'aplicació. Emmagatzema el núvol de punts actual (\texttt{Point[]}),
-la distribució i els paràmetres usats per generar-lo,
+la distribució i els paràmetres usats per generar-lo
+(\texttt{Distribution}, \texttt{ParamSpec}/\texttt{DistributionParams}),
 els resultats de cada algorisme (\texttt{PointPair} i temps en ms)
 i els resultats del darrer benchmark (\texttt{BenchmarkEntry[]}).
 No conté cap lògica d'algorisme: és un magatzem de dades pur que el
@@ -266,25 +266,22 @@ d'accés.
 \subsubsection{Point i PointPair}
 
 \texttt{Point} és un registre immutable amb dos camps \texttt{double}
-(x, y). Ofereix \texttt{distanceTo()} (amb arrel quadrada) i
-\texttt{distanceSquaredTo()} (sense) per als casos on l'ordre relatiu
-és suficient.
+(x, y). Ofereix \texttt{distanceTo()} que calcula la distància
+euclidiana entre dos punts.
 
 \texttt{PointPair} encapsula una parella de punts i calcula la
-distància de forma mandrosa (\textit{lazy}): els camps
-\texttt{distance} i \texttt{distanceSq} s'inicialitzen a $-1$ com a
-sentinella i es calculen només la primera vegada que es demanen.
-Gràcies a això, els algorismes que construeixen molts \texttt{PointPair}
-intermedis no paguen el cost de l'arrel quadrada fins que realment
-cal comparar distàncies reals.
+distància de forma \textit{lazy}: el camp
+\texttt{distance} s'inicialitza a $-1$ com a sentinella i es calcula
+només la primera vegada que es demana. Gràcies a això, els algorismes
+que construeixen molts \texttt{PointPair} intermedis només paguen el
+cost de l'arrel quadrada quan realment es necessita la distància.
 
-\subsubsection{PointCloud, DistributionParams i ParamSpec}
+\subsubsection{Distribution, PointCloud, DistributionParams i ParamSpec}
 
-\texttt{PointCloud} implementa les quatre distribucions usant
-\texttt{java.util.Random}. Les distribucions gaussiana, exponencial i
-agrupada utilitzen mostreig per rebuig (\textit{rejection sampling})
-per garantir que tots els punts quedin dins del rang
-$[\texttt{min}, \texttt{max}]$.
+L'enumeració \texttt{Distribution} defineix les distribucions disponibles
+(uniforme, gaussiana, exponencial i agrupada) i el seu nom de presentació.
+\texttt{PointCloud} implementa aquestes distribucions usant
+\texttt{java.util.Random}.
 
 Els paràmetres de cada distribució es defineixen com a arrays de
 \texttt{ParamSpec} (registre amb nom i valor per defecte), i els
@@ -292,26 +289,26 @@ valors actuals s'encapsulen en \texttt{DistributionParams} (registre
 immutable amb còpia defensiva al constructor). Aquest disseny permet
 que la vista construeixi els camps de configuració automàticament
 a partir de \texttt{ParamSpec[]}, sense conèixer quines distribucions
-existeixen ni quants paràmetres té cadascuna.
+existeixen ni quants paràmetres té cadascuna. D'aquesta forma, si en el
+futur s'afageix, elimina o es modifica qualque distribució o paràmetre
+no fa falta modificar la vista, aquesta mostrarà totes les opcions automàticament.
 
 \subsubsection{Benchmark i Predictor}
 \label{sec:benchmark}
 
 La classe \texttt{Benchmark} centralitza el protocol de mesura i
-l'execució paral·lela. El protocol té dues capes:
+l'execució paral·lela. El protocol és:
 
 \begin{enumerate}
     \item \textbf{Escalfament JIT global:} s'executen tots els algorismes
           10 vegades amb $n = 500$ abans d'iniciar una sèrie de benchmark
-          (finestra/CLI) per forçar la compilació JIT de totes les rutes de codi.
-    \item \textbf{Escalfament per execució:} les 3 primeres execucions
-          de cada algorisme sobre el mateix array es descarten per
-          eliminar efectes de cache fred.
-    \item \textbf{Mesura:} 1 execució mesurada amb
+          (finestra/CLI) per forçar la compilació JIT i així descartar possibles
+          interferències amb el temps d'execució mesurat.
+    \item \textbf{Mesura:} una execució mesurada amb
           \texttt{System.nanoTime()}, convertida a mil·lisegons.
 \end{enumerate}
-Per a l'execució individual des de la interfície principal només
-s'apliquen les fases 2 i 3.
+Per a l'execució individual des de la interfície principal s'aplica
+directament la fase de mesura.
 
 Per al benchmark en sèrie, \texttt{Benchmark.runSeries} genera els
 arrays de punts una sola vegada al fil principal i després distribueix
@@ -326,11 +323,229 @@ l'origen):
 \begin{equation}
 a = \frac{\sum_i t_i \cdot f(n_i)}{\sum_i f(n_i)^2}
 \end{equation}
-on $f(n) = n^2$ per a força bruta, $f(n) = n (\log_2 n)^2$ per a D\&C
-(franja ordenada a cada nivell) i $f(n) = n \log_2 n$ per a la variant
-amb \textit{buckets} i la parella més llunyana. La ponderació dóna més pes
-a les mesures amb $n$ gran, on el comportament asimptòtic domina l'overhead
+on $n_i$ i $t_i$ són la quantitat de punts del núvol i el temps d'execució mesurat
+per a l'execució $i$ del benchmark. La funció $f(n_i)$ equival al temps teòric
+per a cada un dels algorismes. La ponderació dóna més pes
+a les mesures amb $n$ gran, on el comportament asimptòtic domina la sobrecàrrega
 de la JVM.
+
+\subsubsection{Interfície Comuna dels Algorismes}
+
+Tots els algorismes implementen la mateixa interfície \texttt{PairFinder}:
+
+\begin{lstlisting}[caption={Interfície comuna per a tots els algorismes.},label={lst:pairfinder}]
+public interface PairFinder {
+    PointPair find(Point[] points);
+}
+\end{lstlisting}
+
+Això permet al benchmark i al controlador cridar qualsevol algorisme
+sense saber quin és concretament.
+
+Pel que fa a les dues variants de D\&C, \texttt{DivideConquerClosest}
+implementa l'algorisme complet (ordenar per X, recursió, construir franja,
+processar franja). \texttt{DivideConquerClosestBucket} en reutilitza
+tot menys l'últim pas: sobreescriu només el mètode \texttt{processStrip()}
+per usar \textit{buckets} en lloc d'ordenar per Y. D'aquesta manera
+no es repeteix cap codi: tot el que és comú entre les dues variants
+viu en un sol lloc.
+
+\subsubsection{Algorisme de Força Bruta}
+
+L'algorisme de força bruta (\texttt{BruteForceClosest}) examina totes
+les $\binom{n}{2} = \frac{n(n-1)}{2}$ parelles de punts i retorna
+la de distància mínima.
+
+\begin{lstlisting}[caption={Nucli de l'algorisme de força bruta.},label={lst:brute}]
+for (int i = 0; i < n - 1; i++) {
+    for (int j = i + 1; j < n; j++) {
+        double dist = points[i].distanceTo(points[j]);
+        if (dist < bestDist) {
+            bestDist = dist;
+            bestP1 = points[i];
+            bestP2 = points[j];
+        }
+    }
+}
+\end{lstlisting}
+
+\textbf{Cost temporal.} L'algorisme avalua totes les
+$\binom{n}{2}=\frac{n(n-1)}{2}$ parelles, per tant
+$T(n)\in O(n^2)$.
+
+\textbf{Cost espacial.} L'espai addicional és constant, ja que només
+es mantenen variables auxiliars i la millor parella:
+$O(1)$.
+
+\textbf{Notes pràctiques.} La implementació comprova
+\texttt{Thread.interrupted()} a cada iteració del bucle extern per
+permetre la cancel·lació cooperativa des de la interfície.
+
+\subsubsection{Algorisme de Divideix i Venceràs}
+\label{sec:dc}
+
+L'algorisme de divideix i venceràs (\texttt{DivideConquerClosest})
+segueix les següents passes:
+
+\begin{enumerate}
+    \item Ordenar els punts per coordenada $x$ una sola vegada ($O(n \log n)$).
+    \item Recursivament trobar la parella més propera a la meitat
+          esquerra i la meitat dreta.
+    \item Construir la franja central de punts amb $|x - x_{\text{mid}}| < d_{\min}$.
+    \item Processar la franja: ordenar per $y$ i per a cada punt,
+          comparar amb els 7 veïns següents (argument de l'empaquetament).
+\end{enumerate}
+
+El cas base s'activa quan el subproblema té 3 o menys punts, resolent-se
+per força bruta amb cost $O(1)$.
+
+\textbf{Argument d'empaquetament (per què 7 veïns).}
+Després de resoldre les dues meitats, $d_{\min}$ és la millor distància
+dins de cada costat. En la franja central (amplada $2d_{\min}$), per a un
+punt fixat només poden ser candidats els punts amb diferència en $y$ menor
+que $d_{\min}$. Això defineix un rectangle de mida
+$2d_{\min} \times d_{\min}$. Si el subdividim en cel·les de costat
+$d_{\min}/2$, obtenim 8 cel·les; no hi pot haver dos punts a la mateixa
+cel·la perquè estarien a distància menor que $d_{\min}$ (contradicció).
+Per tant, hi ha com a màxim 8 punts rellevants en aquesta zona i,
+ordenant per $y$, n'hi ha prou de comparar cada punt amb els 7 següents.
+
+\textbf{Cost temporal.}
+\begin{equation}
+T(n)=2T(n/2)+f(n)
+\end{equation}
+on $f(n) \in O(n\log n)$ prové del processament de la franja a cada nivell:
+ordenació per $y$ ($O(k\log k)$ amb $k \leq n$) i comparacions acotades entre veïns
+a la franja (cost lineal sobre $k$, amb un màxim constant de comparacions
+per punt).
+
+Podem resoldre la recurrència amb el \textit{Teorema Mestre}:
+\[
+T(n)=a\,T\!\left(\frac{n}{b}\right)+f(n)
+\]
+on $a$ és el nombre de subproblemes, $n/b$ la mida de cada subproblema,
+i $f(n)$ el cost de combinar resultats.
+
+En el nostre cas:
+\begin{itemize}
+    \item $a=2$ (dues meitats),
+    \item $b=2$ (cada meitat té mida $n/2$),
+    \item $f(n)=n\log n$ (cost de processar la franja).
+\end{itemize}
+
+Com que el treball recursiu pur és d'ordre $n$ (ja que
+$n^{\log_b a}=n^{\log_2 2}=n$) i aquí la combinació és un factor
+$\log n$ més gran ($n\log n$), la forma generalitzada del Teorema
+Mestre dona:
+\[
+T(n)\in O(n\log^2 n)
+\]
+
+\textbf{Cost espacial.} L'espai és
+$O(n)$ (buffer de franja preallocat + pila recursiva).
+
+\textbf{Notes pràctiques.} Les optimitzacions següents no canvien
+l'ordre asimptòtic, però redueixen constants i milloren el rendiment
+real de l'algorisme.
+
+\textbf{Optimització 1 -- Cerca binària per als límits de la franja.}
+
+En lloc d'un escaneig lineal $O(k)$ per trobar els punts dins de la
+franja, s'utilitza cerca binària $O(\log k)$ amb els mètodes
+\texttt{lowerBound} i \texttt{upperBound}, aprofitant que els punts
+ja estan ordenats per $x$. Això no millora la complexitat
+asimptòtica (el pas dominant segueix sent l'ordenació de la franja)
+però redueix el treball constant.
+
+\textbf{Optimització 2 -- Buffer preallocat per a la franja.}
+
+A cada nivell de recursió, l'algorisme necessita copiar els punts
+de la franja central a un buffer temporal per ordenar-los per $y$.
+La implementació ingènua crearia un nou array a cada crida recursiva,
+generant $O(\log n)$ al·locacions (una per nivell).
+
+Per eliminar la pressió sobre el \textit{garbage collector} i millorar
+la localitat de cache, s'al·loca un únic array \texttt{Point[n]} al
+mètode \texttt{find()} i es reutilitza a tots els nivells de recursió.
+El buffer és segur perquè cada nivell de recursió l'omple amb
+\texttt{System.arraycopy} i només accedeix als índexos $[0, k)$
+on $k$ és el nombre de punts de la franja actual. Els nivells de
+recursió no es trepitgen perquè l'execució és seqüencial (un sol fil):
+un nivell pare copia la seva franja, fa la crida al nivell fill i queda
+aturat fins que el fill retorna. Si el fill sobreescriu el buffer, no
+passa res: el pare ja no necessita les dades antigues.
+
+\subsubsection{Variant amb Buckets}
+\label{sec:bucket}
+
+La variant amb \textit{buckets} (\texttt{DivideConquerClosestBucket})
+intenta millorar el pas de processament de la franja. En lloc
+d'ordenar la franja per $y$ amb cost $O(k \log k)$, distribueix els
+punts en cubetes (\textit{buckets}) d'alçada $d_{\min}$ i comprova
+només la cubeta actual i la immediatament superior. Per l'argument de
+l'empaquetament explicat abans, cada cubeta conté com a màxim 8 punts, de manera
+que el cost per punt és $O(1)$ i el cost total de la franja és $O(k)$.
+
+\textbf{Cost temporal.} La millora damunt del D&C la recurrència es redueix de
+$T(n) = 2T(n/2) + k \log k$ a $T(n) = 2T(n/2) + k$.
+Com que $k \leq n$, llavors $T(n)\in O(n \log n)$.
+
+\textbf{Cost espacial.} El consum addicional és lineal en el pitjor cas
+($O(n)$ per al buffer i estructures de franja), però amb constants més
+altes que D\&C per la gestió de cubetes.
+
+\textbf{Notes pràctiques.}Cost de Cubetes Disperses.
+L'optimització per \textit{buckets} requereix crear un array de
+cubetes indexat pel rang de coordenada $y$. El nombre de cubetes
+és:
+\begin{equation}
+\texttt{numBuckets} = \left\lfloor \frac{y_{\max}}{d_{\min}} \right\rfloor - \left\lfloor \frac{y_{\min}}{d_{\min}} \right\rfloor + 1
+\end{equation}
+
+Quan $\texttt{numBuckets} \gg k$ (molt més cubetes que punts), l'array
+és molt dispers i el cost d'al·locació passa a dominar. En aquesta
+implementació no s'utilitza cap guarda: l'objectiu és observar el
+cost real d'aquesta estratègia en la pràctica.
+
+\paragraph{Limitació Pràctica Fonamental}
+\label{sec:bucket_limitation}
+
+Durant l'anàlisi experimental s'ha observat que, per al problema
+de la parella més propera, $d_{\min}$ decreix ràpidament i el nombre
+de cubetes esdevé enorme. Per a un núvol de punts amb rang $R$ en
+l'eix $y$, el nombre de cubetes és $\texttt{numBuckets} \approx R / d_{\min}$,
+mentre que el nombre de punts a la franja és $k \leq n$. Com que
+$d_{\min} \ll R$, es té $\texttt{numBuckets} \gg k$.
+
+El resultat és que la variant amb \textit{buckets} \textbf{no aporta
+cap guany pràctic} i sovint és més lenta que D\&C: la creació d'un
+array dispers gran introdueix sobrecost d'al·locació i pressió sobre
+el \textit{garbage collector}. Aquesta limitació és estructural per a
+distribucions contínues habituals, i explica la degradació empírica.
+
+L'optimització per \textit{buckets} seria útil en contextos on
+$d_{\min}$ és comparable al rang de la franja, com ara problemes
+on la distància mínima és gran (p.~ex.\ conjunts de punts en
+graelles regulars) o problemes de \textit{range searching}.
+
+\subsubsection{Parella Més Llunyana}
+
+L'algorisme de la parella més llunyana (\texttt{FarthestPair})
+combina dues fases: (1) càlcul de l'envolupant convexa amb la cadena
+monòtona d'Andrew~\cite{ref_andrew}, i (2) cerca del parell antipodal
+màxim amb \textit{rotating calipers}~\cite{ref_calipers}.
+
+\textbf{Cost temporal.} Com que el \textit{convex hull} costa
+$O(n \log n)$ i els \textit{rotating calipers} costen $O(h)$,
+el cost total és $T(n)\in O(n \log n)$.
+
+\textbf{Cost espacial.} L'espai addicional és lineal per
+emmagatzemar l'envolupant convexa i estructures auxiliars:
+$O(n)$.
+
+\textbf{Notes pràctiques.} La fase de \textit{rotating calipers}
+és molt lleugera; en la pràctica el temps queda dominat pel càlcul
+de l'envolupant convexa.
 
 \subsection{Capa de la Vista}
 
@@ -465,201 +680,6 @@ Cada mètode de \texttt{ViewListener} correspon a una acció de l'usuari:
           \texttt{ViewListener}, i la fa visible.
 \end{itemize}
 
-\subsection{Interfície Comuna dels Algorismes}
-
-Tots els algorismes implementen la mateixa interfície \texttt{PairFinder}:
-
-\begin{lstlisting}[caption={Interfície comuna per a tots els algorismes.},label={lst:pairfinder}]
-public interface PairFinder {
-    PointPair find(Point[] points);
-}
-\end{lstlisting}
-
-Això permet al benchmark i al controlador cridar qualsevol algorisme
-sense saber quin és concretament.
-
-Pel que fa a les dues variants de D\&C, \texttt{DivideConquerClosest}
-implementa l'algorisme complet (ordenar per X, recursió, construir franja,
-processar franja). \texttt{DivideConquerClosestBucket} en reutilitza
-tot menys l'últim pas: sobreescriu només el mètode \texttt{processStrip()}
-per usar \textit{buckets} en lloc d'ordenar per Y. D'aquesta manera
-no es repeteix cap codi: tot el que és comú entre les dues variants
-viu en un sol lloc.
-
-\subsection{Algorisme de Força Bruta}
-
-L'algorisme de força bruta (\texttt{BruteForceClosest}) examina totes
-les $\binom{n}{2} = \frac{n(n-1)}{2}$ parelles de punts i retorna
-la de distància mínima. Comprova \texttt{Thread.interrupted()} a cada
-iteració del bucle extern per permetre la cancel·lació cooperativa.
-
-\begin{lstlisting}[caption={Nucli de l'algorisme de força bruta.},label={lst:brute}]
-for (int i = 0; i < n - 1; i++) {
-    for (int j = i + 1; j < n; j++) {
-        double dist = points[i].distanceTo(points[j]);
-        if (dist < bestDist) {
-            bestDist = dist;
-            bestP1 = points[i];
-            bestP2 = points[j];
-        }
-    }
-}
-\end{lstlisting}
-
-\subsection{Algorisme de Divideix i Venceràs}
-\label{sec:dc}
-
-L'algorisme de divideix i venceràs (\texttt{DivideConquerClosest})
-segueix l'esquema clàssic de Shamos i Hoey~\cite{ref_shamos}:
-
-\begin{enumerate}
-    \item Ordenar els punts per coordenada $x$ una sola vegada ($O(n \log n)$).
-    \item Recursivament trobar la parella més propera a la meitat
-          esquerra i la meitat dreta.
-    \item Construir la franja central de punts amb $|x - x_{\text{mid}}| < d_{\min}$.
-    \item Processar la franja: ordenar per $y$ i per a cada punt,
-          comparar amb els 7 veïns següents (argument de l'empaquetament).
-\end{enumerate}
-
-El cas base s'activa quan el subproblema té 3 o menys punts, resolent-se
-per força bruta amb cost $O(1)$.
-
-\subsubsection{Optimització: Cerca Binària per als Límits de la Franja}
-
-En lloc d'un escaneig lineal $O(k)$ per trobar els punts dins de la
-franja, s'utilitza cerca binària $O(\log k)$ amb els mètodes
-\texttt{lowerBound} i \texttt{upperBound}, aprofitant que els punts
-ja estan ordenats per $x$. Això no millora la complexitat
-asimptòtica (el pas dominant segueix sent l'ordenació de la franja)
-però redueix el treball constant.
-
-\subsubsection{Optimització: Buffer Preallocat per a la Franja}
-
-A cada nivell de recursió, l'algorisme necessita copiar els punts
-de la franja central a un buffer temporal per ordenar-los per $y$.
-La implementació ingènua crearia un nou array a cada crida recursiva,
-generant $O(\log n)$ al·locacions (una per nivell).
-
-Per eliminar la pressió sobre el \textit{garbage collector} i millorar
-la localitat de cache, s'al·loca un únic array \texttt{Point[n]} al
-mètode \texttt{find()} i es reutilitza a tots els nivells de recursió
-mitjançant \texttt{System.arraycopy}:
-
-\begin{lstlisting}[caption={Preallocació del buffer de la franja.},label={lst:strip}]
-public PointPair find(Point[] points) {
-    // ...
-    Point[] strip = new Point[n]; // unica allocacio
-    return closestRec(sortedByX, 0, n - 1, strip);
-}
-\end{lstlisting}
-
-El buffer és segur perquè cada nivell de recursió l'omple amb
-\texttt{System.arraycopy} i només accedeix als índexos $[0, k)$
-on $k$ és el nombre de punts de la franja actual. Quan la crida
-retorna, el contingut anterior ja no és necessari.
-
-\subsubsection{Reutilització de Codi entre les Dues Variants D\&C}
-
-El mètode \texttt{processStrip} és \texttt{protected}, de manera que
-\texttt{DivideConquerClosestBucket} el pot sobreescriure sense tocar
-la resta de l'algorisme:
-
-\begin{lstlisting}[caption={Mètode \texttt{processStrip} de la classe base.},label={lst:processstrip}]
-protected PointPair processStrip(
-        Point[] strip, int k,
-        double dMin, PointPair best) {
-    Arrays.sort(strip, 0, k,
-        Comparator.comparingDouble(Point::y));
-    for (int i = 0; i < k; i++) {
-        for (int j = i + 1; j < k
-                && (strip[j].y() - strip[i].y()) < dMin;
-             j++) {
-            double dist = strip[i].distanceTo(strip[j]);
-            if (dist < dMin) {
-                dMin = dist;
-                best = new PointPair(strip[i], strip[j]);
-            }
-        }
-    }
-    return best;
-}
-\end{lstlisting}
-
-\subsection{Variant amb Buckets}
-\label{sec:bucket}
-
-La variant amb \textit{buckets} (\texttt{DivideConquerClosestBucket})
-intenta millorar el pas de processament de la franja. En lloc
-d'ordenar la franja per $y$ amb cost $O(k \log k)$, distribueix els
-punts en cubetes (\textit{buckets}) d'alçada $d_{\min}$ i comprova
-només la cubeta actual i la immediatament superior. Per l'argument de
-l'empaquetament, cada cubeta conté com a màxim 8 punts, de manera
-que el cost per punt és $O(1)$ i el cost total de la franja és $O(k)$.
-
-Això reduiria la recurrència de $T(n) = 2T(n/2) + O(k \log k)$ a
-$T(n) = 2T(n/2) + O(k)$. Com que $k \leq n$, el primer cas dóna
-$O(n \log^2 n)$ i el segon $O(n \log n)$.
-
-\subsubsection{Cost de Cubetes Disperses}
-
-L'optimització per \textit{buckets} requereix crear un array de
-cubetes indexat pel rang de coordenada $y$. El nombre de cubetes
-és:
-\begin{equation}
-\texttt{numBuckets} = \left\lfloor \frac{y_{\max}}{d_{\min}} \right\rfloor - \left\lfloor \frac{y_{\min}}{d_{\min}} \right\rfloor + 1
-\end{equation}
-
-Quan $\texttt{numBuckets} \gg k$ (molt més cubetes que punts), l'array
-és molt dispers i el cost d'al·locació passa a dominar. En aquesta
-implementació no s'utilitza cap guarda: l'objectiu és observar el
-cost real d'aquesta estratègia en la pràctica.
-
-\subsubsection{Limitació Pràctica Fonamental}
-\label{sec:bucket_limitation}
-
-Durant l'anàlisi experimental s'ha observat que, per al problema
-de la parella més propera, $d_{\min}$ decreix ràpidament i el nombre
-de cubetes esdevé enorme. Per a un núvol de punts amb rang $R$ en
-l'eix $y$, el nombre de cubetes és $\texttt{numBuckets} \approx R / d_{\min}$,
-mentre que el nombre de punts a la franja és $k \leq n$. Com que
-$d_{\min} \ll R$, es té $\texttt{numBuckets} \gg k$.
-
-El resultat és que la variant amb \textit{buckets} \textbf{no aporta
-cap guany pràctic} i sovint és més lenta que D\&C: la creació d'un
-array dispers gran introdueix sobrecost d'al·locació i pressió sobre
-el \textit{garbage collector}. Aquesta limitació és estructural per a
-distribucions contínues habituals, i explica la degradació empírica.
-
-L'optimització per \textit{buckets} seria útil en contextos on
-$d_{\min}$ és comparable al rang de la franja, com ara problemes
-on la distància mínima és gran (p.~ex.\ conjunts de punts en
-graelles regulars) o problemes de \textit{range searching}.
-
-\subsection{Parella Més Llunyana}
-
-L'algorisme de la parella més llunyana (\texttt{FarthestPair})
-combina dues tècniques:
-
-\subsubsection{Convex Hull: Algorisme d'Andrew}
-
-L'envolupant convexa es calcula amb l'algorisme de cadena
-monòtona d'Andrew~\cite{ref_andrew}, que construeix per separat
-les meitats inferior i superior de l'envolupant amb dos escaneigs
-lineals després d'ordenar per $x$. El cost total és $O(n \log n)$.
-
-\subsubsection{Rotating Calipers}
-
-Un cop obtinguda l'envolupant convexa amb $h$ vèrtexs, la parella
-més llunyana és necessàriament un parell de vèrtexs
-antipodals~\cite{ref_calipers}. L'algorisme dels
-\textit{rotating calipers} recorre l'envolupant amb dos punters
-(un per cada línia de suport paral·lela) en temps $O(h)$, on
-$h \leq n$.
-
-Com que el \textit{convex hull} costa $O(n \log n)$ i els
-\textit{rotating calipers} costen $O(h)$, el cost total és
-$O(n \log n)$.
-
 \subsection{CLI de Benchmark}
 
 A més de la interfície gràfica, s'ofereix una eina de línia de
@@ -680,53 +700,6 @@ java -cp target/classes \
 java -cp target/classes \
   com.serafinebot.p3.BenchmarkCLI -r 3
 \end{lstlisting}
-
-%% ================================================================
-\section{Anàlisi de Complexitat Teòrica}
-
-\subsection{Força Bruta}
-
-L'algorisme examina totes les $\binom{n}{2}$ parelles:
-\begin{equation}
-T_{\text{brute}}(n) = \frac{n(n-1)}{2} \in O(n^2)
-\end{equation}
-
-\subsection{Divideix i Venceràs}
-
-La recurrència és:
-\begin{equation}
-T(n) = 2T(n/2) + C_{\text{strip}}(n)
-\end{equation}
-
-Amb el processament clàssic de la franja (ordenació per $y$), el cost
-de la franja és $O(k \log k)$ on $k \leq n$, donant $C_{\text{strip}} = O(n \log n)$.
-Pel Teorema Mestre, amb $a = 2$, $b = 2$, $f(n) = n \log n$:
-com que $f(n) = \Theta(n \log n)$ i $n^{\log_b a} = n^1 = n$, es
-té $f(n) = \Omega(n^{1+\epsilon})$ només per $\epsilon = 0$, que
-no satisfà la condició del cas 3. Aplicant l'extensió del Teorema
-Mestre per al cas $f(n) = \Theta(n^c \log^k n)$ amb $c = 1$ i $k = 1$:
-\begin{equation}
-T(n) = O(n \log^2 n)
-\end{equation}
-
-\noindent Amb \textit{buckets} ($C_{\text{strip}} = O(k) = O(n)$), la
-recurrència $T(n) = 2T(n/2) + O(n)$ dóna $T(n) = O(n \log n)$ pel
-cas 2 del Teorema Mestre.
-
-Com s'explica a la Secció~\ref{sec:bucket_limitation}, la variant amb
-\textit{buckets} pateix un cost d'al·locació elevat quan
-$\texttt{numBuckets} \gg k$. Tot i que la recurrència teòrica és
-$O(n \log n)$, en la pràctica el temps observat pot ser pitjor que el
-de D\&C per l'overhead de cubetes disperses.
-
-\subsection{Parella Més Llunyana}
-
-El cost total és la suma del \textit{convex hull} i els
-\textit{rotating calipers}:
-\begin{equation}
-T_{\text{farthest}}(n) = O(n \log n) + O(h) = O(n \log n)
-\end{equation}
-on $h$ és el nombre de vèrtexs de l'envolupant convexa ($h \leq n$).
 
 %% ================================================================
 \section{Anàlisi Experimental}
@@ -792,6 +765,7 @@ n,brute,dc,bucket,farthest
         ylabel={Temps (ms)},
         grid=both,
         legend pos=north west,
+        legend style={font=\footnotesize, fill=white, fill opacity=0.85, draw opacity=1},
         mark size=1.8pt
     ]
         \addplot table[x=n,y=brute] {\uniformdata};
@@ -858,6 +832,7 @@ Gaussiana estirada,25.154,23.590
         xtick=data,
         x tick label style={rotate=20,anchor=east},
         legend pos=north east,
+        legend style={font=\footnotesize, fill=white, fill opacity=0.85, draw opacity=1},
         bar width=8pt,
         enlarge x limits=0.15,
         grid=major
@@ -923,6 +898,7 @@ n,ratio_uniform,ratio_stretch
         ymax=4.6,
         grid=major,
         legend pos=north east,
+        legend style={font=\footnotesize, fill=white, fill opacity=0.85, draw opacity=1},
         mark size=1.8pt
     ]
         \addplot table[x=n,y=ratio_uniform] {\ratiodata};
@@ -955,20 +931,14 @@ insignificant ($< 1$~ns per crida) comparat amb el cost de la franja
 ($> 1$~$\mu$s fins i tot per a franges petites), i s'estalvien
 $\approx 125$ línies de codi duplicat.
 
-\subsection{distanceTo vs distanceSquaredTo}
+\subsection{Càlcul de distància simplificat}
 
-S'ha optat per utilitzar \texttt{distanceTo} (amb \texttt{Math.sqrt})
-a tots els algorismes en lloc de \texttt{distanceSquaredTo} (sense arrel
-quadrada). Tot i que \texttt{distanceSquaredTo} evita el cost de
-\texttt{sqrt}, això complicaria el codi: caldria mantenir \texttt{dMin}
-i \texttt{dMinSq} en paral·lel, ja que les comparacions de distància
-es poden fer amb quadrats però les comparacions geomètriques de la
-franja ($|x - x_{\text{mid}}| < d_{\min}$ i $y_j - y_i < d_{\min}$)
-requereixen la distància real.
-
-En la pràctica, la diferència de rendiment és negligible perquè
-\texttt{Math.sqrt} és una instrucció nativa del processador (FSQRT
-en x86, FSQRT en ARM) que s'executa en pocs cicles.
+S'ha optat per una API mínima de distància: \texttt{Point} només exposa
+\texttt{distanceTo()}, i \texttt{PointPair} calcula i memoritza aquesta
+distància en una sola passada. Aquest enfocament evita mantenir dos camins
+paral·lels (distància real i distància al quadrat), redueix superfície
+d'API i simplifica la lectura del codi sense impacte rellevant en el
+rendiment observat.
 
 \subsection{Buffer Preallocat vs Al·locació per Nivell}
 

@@ -1,7 +1,6 @@
 package com.serafinebot.p3.controller;
 
 import com.serafinebot.p3.model.*;
-import com.serafinebot.p3.model.PointCloud.Distribution;
 import com.serafinebot.p3.view.BenchmarkWindow;
 import com.serafinebot.p3.view.MainView;
 import com.serafinebot.p3.view.ViewListener;
