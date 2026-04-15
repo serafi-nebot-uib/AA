@@ -23,6 +23,7 @@
 \usepackage{siunitx}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
+\graphicspath{{./}{P3/memoria/}}
 
 % Catalan names for abstract and index terms
 \renewcommand{\abstractname}{Resum}
@@ -411,6 +412,7 @@ Per tant, hi ha com a màxim 8 punts rellevants en aquesta zona i,
 ordenant per $y$, n'hi ha prou de comparar cada punt amb els 7 següents.
 
 \textbf{Cost temporal.}
+Podem expressar el cost de la funció recursiva de la següent forma:
 \begin{equation}
 T(n)=2T(n/2)+f(n)
 \end{equation}
@@ -486,7 +488,7 @@ només la cubeta actual i la immediatament superior. Per l'argument de
 l'empaquetament explicat abans, cada cubeta conté com a màxim 8 punts, de manera
 que el cost per punt és $O(1)$ i el cost total de la franja és $O(k)$.
 
-\textbf{Cost temporal.} La millora damunt del D&C la recurrència es redueix de
+\textbf{Cost temporal.} La millora damunt del D\&C fa que la recurrència es redueixi de
 $T(n) = 2T(n/2) + k \log k$ a $T(n) = 2T(n/2) + k$.
 Com que $k \leq n$, llavors $T(n)\in O(n \log n)$.
 
@@ -502,38 +504,57 @@ cubetes indexat pel rang de coordenada $y$. El nombre de cubetes
 \texttt{numBuckets} = \left\lfloor \frac{y_{\max}}{d_{\min}} \right\rfloor - \left\lfloor \frac{y_{\min}}{d_{\min}} \right\rfloor + 1
 \end{equation}
 
-Quan $\texttt{numBuckets} \gg k$ (molt més cubetes que punts), l'array
-és molt dispers i el cost d'al·locació passa a dominar. En aquesta
-implementació no s'utilitza cap guarda: l'objectiu és observar el
-cost real d'aquesta estratègia en la pràctica.
+Quan $\texttt{numBuckets} \gg k$ (molt més cubetes que punts), la
+representació en memòria esdevé molt dispersa: es creen vectors de
+grandària proporcional a \texttt{numBuckets} (p.~ex.\
+\texttt{buckets[numBuckets * 8]} i \texttt{counts[numBuckets]}), però
+només s'omplen $k$ posicions útils. Això implica dos efectes pràctics:
+(1) sobrecost d'al·locació/inicialització d'estructures grans i
+(2) pitjor localitat espacial, perquè es recorren moltes cubetes buides
+entre poques cubetes amb dades. En conseqüència augmenten les fallades
+de cache i la pressió de memòria, i el guany teòric del pas lineal queda
+neutralitzat o superat.
 
-\paragraph{Limitació Pràctica Fonamental}
-\label{sec:bucket_limitation}
-
-Durant l'anàlisi experimental s'ha observat que, per al problema
-de la parella més propera, $d_{\min}$ decreix ràpidament i el nombre
-de cubetes esdevé enorme. Per a un núvol de punts amb rang $R$ en
-l'eix $y$, el nombre de cubetes és $\texttt{numBuckets} \approx R / d_{\min}$,
-mentre que el nombre de punts a la franja és $k \leq n$. Com que
-$d_{\min} \ll R$, es té $\texttt{numBuckets} \gg k$.
-
-El resultat és que la variant amb \textit{buckets} \textbf{no aporta
-cap guany pràctic} i sovint és més lenta que D\&C: la creació d'un
-array dispers gran introdueix sobrecost d'al·locació i pressió sobre
-el \textit{garbage collector}. Aquesta limitació és estructural per a
-distribucions contínues habituals, i explica la degradació empírica.
-
-L'optimització per \textit{buckets} seria útil en contextos on
-$d_{\min}$ és comparable al rang de la franja, com ara problemes
-on la distància mínima és gran (p.~ex.\ conjunts de punts en
-graelles regulars) o problemes de \textit{range searching}.
+Per a evitar aquest problema, es podria afegir una guarda
+(p.~ex.\ \texttt{if (numBuckets > k)}) per fer \textit{fallback} al
+processament clàssic de franja. Aquesta decisió reduiria el sobrecost
+de memòria, però també faria que la variant bucket es comporti com el
+D\&C normal en la majoria de casos pràctics. A n'aquesta implementació no s'ha
+introduït cap guarda per a mantenir el comportament de la variant de \textit{buckets}.
 
 \subsubsection{Parella Més Llunyana}
 
 L'algorisme de la parella més llunyana (\texttt{FarthestPair})
-combina dues fases: (1) càlcul de l'envolupant convexa amb la cadena
-monòtona d'Andrew~\cite{ref_andrew}, i (2) cerca del parell antipodal
-màxim amb \textit{rotating calipers}~\cite{ref_calipers}.
+combina dues tècniques: \textit{convex hull} i
+\textit{rotating calipers}.
+
+\textbf{Fase 1 -- \textit{Convex hull} (envolupant convexa).}
+Primer s'ordenen els punts per coordenada $x$ i es construeix la
+frontera exterior del núvol: polígon convex que conté la resta de punts al seu interior.
+El codi ho fa en dues
+passades (cadena inferior i cadena superior), eliminant els punts que
+fan gir no convex. El resultat és una llista ordenada de vèrtexs de la
+frontera; tots els punts interiors queden descartats perquè no poden ser
+extrems de la distància màxima. L'ordenació inicial domina el cost
+amb $O(n\log n)$; la construcció de les dues cadenes és lineal. Per tant,
+el cost de la fase és $O(n\log n)$.
+
+\textbf{Fase 2 -- \textit{Rotating calipers}.}
+Sobre la frontera convexa, es mantenen dos índexs (dos ``calipers'') i
+es recorren els vèrtexs buscant parelles antipodals. A cada pas es
+compara l'àrea orientada del costat actual amb el següent per decidir
+quin punter avançar. Això evita provar totes les parelles de vèrtexs:
+cada punter fa una volta com a màxim, de manera que la cerca sobre
+l'envolupant és lineal. Si $h$ és el nombre de vèrtexs de
+l'envolupant convexa, cada punter avança com a màxim $h$ posicions i el
+cost és $O(h)$ (amb $h\leq n$).
+
+En resum funcional, el procés és:
+\begin{enumerate}
+    \item Reduir el problema als vèrtexs de la frontera (\textit{convex hull}).
+    \item Cercar la millor parella només entre aquests vèrtexs
+          (\textit{rotating calipers}).
+\end{enumerate}
 
 \textbf{Cost temporal.} Com que el \textit{convex hull} costa
 $O(n \log n)$ i els \textit{rotating calipers} costen $O(h)$,
@@ -541,11 +562,11 @@ el cost total és $T(n)\in O(n \log n)$.
 
 \textbf{Cost espacial.} L'espai addicional és lineal per
 emmagatzemar l'envolupant convexa i estructures auxiliars:
-$O(n)$.
-
-\textbf{Notes pràctiques.} La fase de \textit{rotating calipers}
-és molt lleugera; en la pràctica el temps queda dominat pel càlcul
-de l'envolupant convexa.
+$O(n)$. La raó és que, en el pitjor cas, tots els punts poden formar
+part de l'envolupant (per exemple, si ja estan sobre una frontera
+convexa), de manera que cal guardar fins a $n$ vèrtexs. A més, les
+estructures temporals de construcció (cadenes inferior/superior) també
+contenen com a màxim una quantitat proporcional a $n$ punts.
 
 \subsection{Capa de la Vista}
 
