@@ -380,7 +380,9 @@ $O(1)$.
 
 \textbf{Notes pràctiques.} La implementació comprova
 \texttt{Thread.interrupted()} a cada iteració del bucle extern per
-permetre la cancel·lació cooperativa des de la interfície.
+permetre la cancel·lació cooperativa des de la interfície. La mateixa
+estratègia (amb punts de comprovació adaptats a cada bucle/recursió)
+s'aplica també a D\&C, D\&C Bucket i parella llunyana.
 
 \subsubsection{Algorisme de Divideix i Venceràs}
 \label{sec:dc}
@@ -598,12 +600,12 @@ les dades estan llestes.
 
 \subsubsection{PointPanel}
 
+El panell on es mostra el núvol de punts generat i la solució trobada
+per a la distància mínima i màxima.
 El renderitzat es fa directament a \texttt{paintComponent} amb tres
 capes seqüencials: primer tots els punts del núvol en gris, després la
 parella llunyana en blau (si disponible) i finalment la parella propera
-en vermell (si disponible). Renderitzar la parella propera en darrer
-lloc garanteix que sempre queda visible sobre la llunyana en cas que els
-extrems coincideixin.
+en vermell (si disponible).
 
 La transformació de domini a pantalla és:
 \begin{align}
@@ -611,10 +613,16 @@ x_{\text{px}} &= \texttt{MARGIN} + \frac{x - x_{\min}}{x_{\max} - x_{\min}} \cdo
 y_{\text{px}} &= \texttt{MARGIN} + h - \frac{y - y_{\min}}{y_{\max} - y_{\min}} \cdot h
 \end{align}
 on $w$ i $h$ són les dimensions útils del panell (descomptant els marges).
-La subtracció de $h$ a la fórmula de $y$ inverteix l'eix perquè la
+Els valors $x_{\min}, x_{\max}, y_{\min}, y_{\max}$ representen els límits
+del domini de dades (mínim i màxim de cada eix) utilitzats per normalitzar
+les coordenades abans de pintar-les.
+La resta de $h$ a la fórmula de $y$ inverteix l'eix perquè la
 pantalla té l'origen a dalt i el domini matemàtic a baix.
 
 \subsubsection{DistributionParamPanel}
+
+Panell auxiliar encarregat de mostrar i editar els paràmetres de la
+distribució seleccionada.
 
 Aquest panell genera els seus camps de text dinàmicament en el moment
 en què es canvia la distribució seleccionada. Recorre l'array
@@ -632,6 +640,9 @@ seus paràmetres no requereix cap canvi a la vista.
 
 \subsubsection{BenchmarkWindow}
 
+Finestra secundària on es configura i s'executa el benchmark, i on es
+visualitzen els resultats agregats.
+
 La finestra de benchmark és un \texttt{JDialog} no modal. Utilitza
 \texttt{BorderLayout} amb la configuració a dalt, la gràfica al centre,
 un panell d'opcions i predicció a la dreta, i la taula de dades a baix.
@@ -643,13 +654,15 @@ comunica amb el controlador a través de \texttt{ViewListener}. El mètode
 és l'únic punt d'implementació i la finestra no coneix en cap moment
 el seu tipus concret.
 
-L'execució del benchmark es delega a un \texttt{SwingWorker}: el fil EDT
-resta responent durant l'execució. Quan el \texttt{SwingWorker}
+L'execució del benchmark es delega a un \texttt{SwingWorker}. Quan el \texttt{SwingWorker}
 acaba, el mètode \texttt{done()} s'executa a l'EDT, actualitza la gràfica,
 la taula i ajusta les constants del predictor, i habilita el botó de
 predicció.
 
 \subsubsection{BenchmarkGraphPanel}
+
+Component de dibuix encarregat de representar les corbes de temps
+mesurat i les corbes ajustades pel predictor.
 
 La gràfica es dibuixa completament a \texttt{paintComponent}, sense
 cap llibreria externa. El mètode \texttt{generateRoundTicks()} calcula
@@ -692,9 +705,10 @@ Cada mètode de \texttt{ViewListener} correspon a una acció de l'usuari:
 
     \item \textbf{\texttt{onStop}}: crida \texttt{worker.cancel(true)},
           que interromp el fil de fons. La cancel·lació és cooperativa:
-          \texttt{BruteForceClosest} comprova \texttt{Thread.isInterrupted()}
-          a cada iteració del bucle extern i llança una excepció si
-          detecta la interrupció.
+          tots els algorismes comproven periòdicament
+          \texttt{Thread.isInterrupted()} en punts de control
+          (bucles principals i entrades recursives) i llancen una
+          excepció quan detecten la interrupció.
 
     \item \textbf{\texttt{onOpenBenchmark}}: crea la \texttt{BenchmarkWindow}
           (si no existeix ja) passant-se a si mateix com a
@@ -706,6 +720,32 @@ Cada mètode de \texttt{ViewListener} correspon a una acció de l'usuari:
 A més de la interfície gràfica, s'ofereix una eina de línia de
 comandes (\texttt{BenchmarkCLI}) que permet executar benchmarks
 amb paràmetres configurables i sortida en format taula o CSV:
+
+El flux d'execució del CLI és el següent:
+\begin{enumerate}
+    \item Llegeix els paràmetres de consola (distribució, valors de $n$,
+          algorismes, nombre de repeticions i format de sortida).
+    \item Mostra la configuració seleccionada i fa un escalfament JIT
+          inicial amb un conjunt petit de punts.
+    \item Per a cada repetició, genera els núvols de punts per a tots els
+          valors de $n$ i llança en paral·lel les tasques
+          \texttt{(algorisme, n)}.
+    \item Recull els temps, en calcula la mitjana entre repeticions i
+          imprimeix el resultat final en taula o CSV.
+\end{enumerate}
+
+Paràmetres principals:
+\begin{itemize}
+    \item \texttt{-d/--dist}: distribució (
+          \texttt{UNIFORM}, \texttt{GAUSSIAN}, \texttt{EXPONENTIAL}, \texttt{CLUSTERED}).
+    \item \texttt{-p/--params}: paràmetres numèrics de la distribució
+          (en l'ordre definit per cada distribució).
+    \item \texttt{-n/--nvals}: llista de mides de problema separades per comes.
+    \item \texttt{-a/--algos}: subconjunt d'algorismes
+          (\texttt{brute}, \texttt{dc}, \texttt{bucket}, \texttt{farthest}).
+    \item \texttt{-r/--runs}: nombre d'execucions independents per fer mitjana.
+    \item \texttt{--csv}: sortida en format CSV (si no, taula textual).
+\end{itemize}
 
 \begin{lstlisting}[caption={Exemples d'ús del CLI.},label={lst:cli},language=bash]
 # Tots els algorismes, distribucio uniforme
@@ -727,15 +767,13 @@ java -cp target/classes \
 \label{sec:experimental}
 
 Totes les mesures s'han realitzat amb el CLI de benchmark, amb
-3 execucions independents mitjanes, en una màquina amb processador
-Apple M1 (8 nuclis), 16~GB RAM i JDK~17. Els punts s'han generat en el
-rang $[0,1000]$, i s'han provat les distribucions uniforme, gaussiana
+3 execucions independents mitjanes. S'han provat les distribucions uniforme, gaussiana
 ($\mu=0.5$, $\sigma=1/6$), exponencial ($\lambda_x=\lambda_y=5$) i
 agrupada (5 clusters). L'execució del benchmark distribueix les tasques
 entre nuclis; això pot afegir soroll en temps molt petits però no afecta
 les tendències globals. Com a cas addicional s'ha provat una gaussiana
-estirada ($\sigma=0.05$, multiplicadors $\times4$ i $\times0.25$) per
-explorar un núvol anisotròpic. Els temps petits (\textless 0.1~ms)
+estirada ($\sigma=0.05$, multiplicadors $\times4$ i $\times0.25$).
+Els temps petits (\textless 0.1~ms)
 presenten variabilitat elevada; s'analitzen sobretot tendències i valors
 per a $n$ grans.
 

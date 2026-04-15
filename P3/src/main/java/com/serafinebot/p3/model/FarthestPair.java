@@ -16,6 +16,7 @@ public class FarthestPair implements PairFinder {
 
     @Override
     public PointPair find(Point[] points) {
+        checkInterrupted();
         int n = points.length;
         if (n < 2) throw new IllegalArgumentException("Es necessiten almenys 2 punts");
         if (n == 2) return new PointPair(points[0], points[1]);
@@ -28,6 +29,7 @@ public class FarthestPair implements PairFinder {
      * Andrew's monotone chain algorithm for convex hull. O(n log n)
      */
     private static List<Point> convexHull(Point[] points) {
+        checkInterrupted();
         Point[] sorted = points.clone();
         Arrays.sort(sorted, Comparator.comparingDouble(Point::x)
                 .thenComparingDouble(Point::y));
@@ -39,6 +41,7 @@ public class FarthestPair implements PairFinder {
 
         // Lower hull
         for (Point p : sorted) {
+            if ((hull.size() & 127) == 0) checkInterrupted();
             while (hull.size() >= 2 && cross(hull.get(hull.size() - 2), hull.get(hull.size() - 1), p) <= 0) {
                 hull.remove(hull.size() - 1);
             }
@@ -48,6 +51,7 @@ public class FarthestPair implements PairFinder {
         // Upper hull
         int lowerSize = hull.size() + 1;
         for (int i = n - 2; i >= 0; i--) {
+            if ((i & 127) == 0) checkInterrupted();
             Point p = sorted[i];
             while (hull.size() >= lowerSize && cross(hull.get(hull.size() - 2), hull.get(hull.size() - 1), p) <= 0) {
                 hull.remove(hull.size() - 1);
@@ -73,6 +77,7 @@ public class FarthestPair implements PairFinder {
      * Rotating calipers on convex hull to find the farthest pair. O(h) where h = hull size.
      */
     private static PointPair rotatingCalipers(List<Point> hull) {
+        checkInterrupted();
         int h = hull.size();
         if (h == 1) throw new IllegalArgumentException("El convex hull necessita almenys 2 punts");
         if (h == 2) return new PointPair(hull.get(0), hull.get(1));
@@ -81,6 +86,7 @@ public class FarthestPair implements PairFinder {
         int j = 1;
         while (triArea(hull.get(0), hull.get(1), hull.get((j + 1) % h))
              > triArea(hull.get(0), hull.get(1), hull.get(j))) {
+            checkInterrupted();
             j++;
         }
 
@@ -88,10 +94,12 @@ public class FarthestPair implements PairFinder {
         Point bestP1 = null, bestP2 = null;
 
         for (int i = 0; i < h; i++) {
+            if ((i & 63) == 0) checkInterrupted();
             Point a = hull.get(i);
             Point b = hull.get((i + 1) % h);
 
             while (triArea(a, b, hull.get((j + 1) % h)) > triArea(a, b, hull.get(j))) {
+                checkInterrupted();
                 j = (j + 1) % h;
             }
 
@@ -121,5 +129,11 @@ public class FarthestPair implements PairFinder {
     private static double triArea(Point a, Point b, Point c) {
         return Math.abs((b.x() - a.x()) * (c.y() - a.y())
                       - (b.y() - a.y()) * (c.x() - a.x()));
+    }
+
+    private static void checkInterrupted() {
+        if (Thread.currentThread().isInterrupted()) {
+            throw new RuntimeException(new InterruptedException("Cancelled"));
+        }
     }
 }

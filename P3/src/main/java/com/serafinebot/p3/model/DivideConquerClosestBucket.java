@@ -21,6 +21,7 @@ public class DivideConquerClosestBucket extends DivideConquerClosest {
 
     @Override
     protected PointPair processStrip(Point[] strip, int k, double dMin, PointPair best) {
+        checkInterrupted();
         if (k < 2 || dMin <= 0) return best;
 
         // Compute bucket key for every strip point; track key range for offset indexing
@@ -28,6 +29,7 @@ public class DivideConquerClosestBucket extends DivideConquerClosest {
         int minKey   = Integer.MAX_VALUE;
         int maxKey   = Integer.MIN_VALUE;
         for (int i = 0; i < k; i++) {
+            if ((i & 255) == 0) checkInterrupted();
             int key = (int) Math.floor(strip[i].y() / dMin);
             keys[i] = key;
             if (key < minKey) minKey = key;
@@ -41,12 +43,14 @@ public class DivideConquerClosestBucket extends DivideConquerClosest {
         int[]   counts  = new int[numBuckets];
 
         for (int i = 0; i < k; i++) {
+            if ((i & 255) == 0) checkInterrupted();
             int b = keys[i] - minKey;
             buckets[b * BUCKET_CAPACITY + counts[b]++] = strip[i];
         }
 
         // For each point p check its bucket and the one above.
         for (int i = 0; i < k; i++) {
+            if ((i & 255) == 0) checkInterrupted();
             Point p = strip[i];
             int   b = keys[i] - minKey;
             for (int dk = 0; dk <= 1; dk++) {

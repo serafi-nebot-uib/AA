@@ -21,6 +21,7 @@ public class DivideConquerClosest implements PairFinder {
 
     @Override
     public PointPair find(Point[] points) {
+        checkInterrupted();
         int n = points.length;
         if (n < 2) throw new IllegalArgumentException("Es necessiten almenys 2 punts");
 
@@ -32,6 +33,7 @@ public class DivideConquerClosest implements PairFinder {
     }
 
     private PointPair closestRec(Point[] px, int left, int right, Point[] strip) {
+        checkInterrupted();
         int size = right - left + 1;
 
         if (size <= BRUTE_FORCE_THRESHOLD)
@@ -65,9 +67,11 @@ public class DivideConquerClosest implements PairFinder {
      * @param best   current best pair
      */
     protected PointPair processStrip(Point[] strip, int k, double dMin, PointPair best) {
+        checkInterrupted();
         Arrays.sort(strip, 0, k, Comparator.comparingDouble(Point::y));
 
         for (int i = 0; i < k; i++) {
+            if ((i & 63) == 0) checkInterrupted();
             for (int j = i + 1; j < k && (strip[j].y() - strip[i].y()) < dMin; j++) {
                 double dist = strip[i].distanceTo(strip[j]);
                 if (dist < dMin) {
@@ -101,10 +105,12 @@ public class DivideConquerClosest implements PairFinder {
     }
 
     protected static PointPair bruteForceRange(Point[] points, int left, int right) {
+        checkInterrupted();
         PointPair best = new PointPair(points[left], points[left + 1]);
         double bestDist = points[left].distanceTo(points[left + 1]);
 
         for (int i = left; i <= right; i++) {
+            if ((i & 63) == 0) checkInterrupted();
             for (int j = i + 1; j <= right; j++) {
                 double dist = points[i].distanceTo(points[j]);
                 if (dist < bestDist) {
@@ -114,5 +120,11 @@ public class DivideConquerClosest implements PairFinder {
             }
         }
         return best;
+    }
+
+    protected static void checkInterrupted() {
+        if (Thread.currentThread().isInterrupted()) {
+            throw new RuntimeException(new InterruptedException("Cancelled"));
+        }
     }
 }
