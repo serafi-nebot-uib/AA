@@ -17,3 +17,6 @@
 *.nav
 *.snm
 *.vrb
+
+# project
+P[0-9]*/video
