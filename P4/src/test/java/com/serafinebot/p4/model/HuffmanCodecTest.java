@@ -1,0 +1,242 @@
+package com.serafinebot.p4.model;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class HuffmanCodecTest {
+
+    @TempDir
+    Path tempDir;
+
+    private final HuffmanCodec codec = new HuffmanCodec();
+
+    @Test
+    void roundTripEmptyFile() throws IOException {
+        RoundTrip roundTrip = roundTrip("empty", new byte[0]);
+        byte[] archive = Files.readAllBytes(roundTrip.archivePath);
+
+        assertEquals(CompressionMode.STORED, roundTrip.compressionResult.mode());
+        assertEquals(0L, roundTrip.compressionResult.originalSize());
+        assertEquals(15, archive.length);
+        assertEquals(2, archive[5]);
+        assertEquals(0, archive[14]);
+        assertArrayEquals(new byte[0], Files.readAllBytes(roundTrip.restoredPath));
+    }
+
+    @Test
+    void roundTripRepeatedByteFileUsesHuffman() throws IOException {
+        byte[] data = new byte[4096];
+        Arrays.fill(data, (byte) 0x5A);
+
+        RoundTrip roundTrip = roundTrip("repeated", data);
+        byte[] archive = Files.readAllBytes(roundTrip.archivePath);
+
+        assertEquals(CompressionMode.HUFFMAN, roundTrip.compressionResult.mode());
+        assertEquals(1, roundTrip.compressionResult.distinctSymbolCount());
+        assertEquals(0.0, roundTrip.compressionResult.entropy(), 1.0e-9);
+        assertEquals(0.0, roundTrip.compressionResult.averageHuffmanCodeLength(), 1.0e-9);
+        assertEquals(1, archive[5]);
+        assertEquals(0, archive[14]);
+    }
+
+    @Test
+    void roundTripAllByteValues() throws IOException {
+        byte[] data = new byte[4096];
+        for (int i = 0; i < data.length; i++) {
+            data[i] = (byte) i;
+        }
+
+        RoundTrip roundTrip = roundTrip("all-bytes", data);
+
+        assertEquals(256, roundTrip.compressionResult.distinctSymbolCount());
+    }
+
+    @Test
+    void roundTripTextData() throws IOException {
+        String text = "Huffman coding works best when symbols repeat. ".repeat(200);
+        byte[] data = text.getBytes(StandardCharsets.UTF_8);
+
+        RoundTrip roundTrip = roundTrip("text", data);
+
+        assertEquals(CompressionMode.HUFFMAN, roundTrip.compressionResult.mode());
+        assertTrue(roundTrip.compressionResult.averageHuffmanCodeLength() >= roundTrip.compressionResult.entropy());
+        assertTrue(roundTrip.compressionResult.averageHuffmanCodeLength() < roundTrip.compressionResult.entropy() + 1.0);
+    }
+
+    @Test
+    void roundTripRandomBinaryFiles() throws IOException {
+        int[] sizes = {1, 2, 7, 8, 31, 255, 1024, 8192};
+        Random random = new Random(20260416L);
+
+        for (int size : sizes) {
+            byte[] data = new byte[size];
+            random.nextBytes(data);
+            roundTrip("random-" + size, data);
+        }
+    }
+
+    @Test
+    void compressorFallsBackToStoredModeWhenHuffmanWouldBeWorse() throws IOException {
+        byte[] data = {0, 1, 2, 3, 4, 5};
+        RoundTrip roundTrip = roundTrip("stored", data);
+
+        assertEquals(CompressionMode.STORED, roundTrip.compressionResult.mode());
+        assertEquals(data.length + 15L, roundTrip.compressionResult.archiveSize());
+    }
+
+    @Test
+    void compressionIsDeterministicForEqualFrequencyInputs() throws IOException {
+        byte[] data = new byte[4096];
+        for (int i = 0; i < data.length; i++) {
+            data[i] = (byte) ((i % 4) + 10);
+        }
+
+        Path inputPath = writeInput("deterministic-input", data);
+        Path archivePath1 = tempDir.resolve("deterministic-1.hff");
+        Path archivePath2 = tempDir.resolve("deterministic-2.hff");
+
+        codec.compress(inputPath, archivePath1);
+        codec.compress(inputPath, archivePath2);
+
+        assertArrayEquals(Files.readAllBytes(archivePath1), Files.readAllBytes(archivePath2));
+    }
+
+    @Test
+    void progressListenerReceivesAllPhases() throws IOException {
+        byte[] data = "progress-test ".repeat(512).getBytes(StandardCharsets.UTF_8);
+        Path inputPath = writeInput("progress-input", data);
+        Path archivePath = tempDir.resolve("progress.hff");
+        Path restoredPath = tempDir.resolve("progress-restored.bin");
+
+        List<ProgressSnapshot> compressionSnapshots = new ArrayList<>();
+        List<ProgressSnapshot> decompressionSnapshots = new ArrayList<>();
+
+        codec.compress(inputPath, archivePath, compressionSnapshots::add);
+        codec.decompress(archivePath, restoredPath, decompressionSnapshots::add);
+
+        assertFalse(compressionSnapshots.isEmpty());
+        assertFalse(decompressionSnapshots.isEmpty());
+        assertTrue(compressionSnapshots.stream().anyMatch(snapshot -> snapshot.phase() == ProgressPhase.ANALYZING));
+        assertTrue(compressionSnapshots.stream().anyMatch(snapshot -> snapshot.phase() == ProgressPhase.COMPRESSING));
+        assertTrue(decompressionSnapshots.stream().allMatch(snapshot -> snapshot.phase() == ProgressPhase.DECOMPRESSING));
+        assertEquals(1.0, compressionSnapshots.get(compressionSnapshots.size() - 1).completion(), 1.0e-9);
+        assertEquals(1.0, decompressionSnapshots.get(decompressionSnapshots.size() - 1).completion(), 1.0e-9);
+        assertArrayEquals(data, Files.readAllBytes(restoredPath));
+    }
+
+    @Test
+    void decompressRejectsInvalidMagic() throws IOException {
+        Path archivePath = tempDir.resolve("invalid-magic.hff");
+        Files.write(archivePath, new byte[] {'N', 'O', 'P', 'E'});
+
+        assertThrows(ArchiveFormatException.class,
+            () -> codec.decompress(archivePath, tempDir.resolve("invalid-magic.bin")));
+    }
+
+    @Test
+    void decompressRejectsUnsupportedVersion() throws IOException {
+        RoundTrip roundTrip = roundTrip("version", "version test".getBytes(StandardCharsets.UTF_8));
+        byte[] archive = Files.readAllBytes(roundTrip.archivePath);
+        archive[4] = 99;
+
+        Path mutatedArchive = tempDir.resolve("bad-version.hff");
+        Files.write(mutatedArchive, archive);
+
+        assertThrows(ArchiveFormatException.class,
+            () -> codec.decompress(mutatedArchive, tempDir.resolve("bad-version.bin")));
+    }
+
+    @Test
+    void decompressRejectsTruncatedStoredArchive() throws IOException {
+        byte[] data = {1, 2, 3, 4, 5, 6};
+        RoundTrip roundTrip = roundTrip("truncated-stored", data);
+
+        byte[] archive = Files.readAllBytes(roundTrip.archivePath);
+        Path truncatedArchive = tempDir.resolve("truncated-stored-copy.hff");
+        Files.write(truncatedArchive, Arrays.copyOf(archive, archive.length - 1));
+
+        assertThrows(ArchiveFormatException.class,
+            () -> codec.decompress(truncatedArchive, tempDir.resolve("truncated-stored.bin")));
+    }
+
+    @Test
+    void decompressRejectsTruncatedHuffmanArchive() throws IOException {
+        byte[] data = new byte[4096];
+        for (int i = 0; i < data.length; i++) {
+            data[i] = (byte) (i % 2 == 0 ? 'A' : 'B');
+        }
+
+        RoundTrip roundTrip = roundTrip("truncated-huffman", data);
+        assertEquals(CompressionMode.HUFFMAN, roundTrip.compressionResult.mode());
+
+        byte[] archive = Files.readAllBytes(roundTrip.archivePath);
+        Path truncatedArchive = tempDir.resolve("truncated-huffman-copy.hff");
+        Files.write(truncatedArchive, Arrays.copyOf(archive, archive.length - 1));
+
+        assertThrows(ArchiveFormatException.class,
+            () -> codec.decompress(truncatedArchive, tempDir.resolve("truncated-huffman.bin")));
+    }
+
+    @Test
+    void decompressRejectsFrequencyTableWithWrongTotal() throws IOException {
+        Path archivePath = tempDir.resolve("bad-total.hff");
+        try (DataOutputStream output = new DataOutputStream(Files.newOutputStream(archivePath))) {
+            output.write(new byte[] {'H', 'U', 'F', 'F'});
+            output.writeByte(1);
+            output.writeByte(CompressionMode.HUFFMAN.flag());
+            output.writeLong(10L);
+            output.writeByte(0);
+            output.writeByte(65);
+            output.writeLong(9L);
+        }
+
+        assertThrows(ArchiveFormatException.class,
+            () -> codec.decompress(archivePath, tempDir.resolve("bad-total.bin")));
+    }
+
+    private RoundTrip roundTrip(String baseName, byte[] data) throws IOException {
+        Path inputPath = writeInput(baseName + "-input", data);
+        Path archivePath = tempDir.resolve(baseName + ".hff");
+        Path restoredPath = tempDir.resolve(baseName + "-restored.bin");
+
+        CompressionResult compressionResult = codec.compress(inputPath, archivePath);
+        DecompressionResult decompressionResult = codec.decompress(archivePath, restoredPath);
+
+        assertEquals(compressionResult.mode(), decompressionResult.mode());
+        assertEquals(data.length, decompressionResult.restoredSize());
+        assertArrayEquals(data, Files.readAllBytes(restoredPath));
+
+        return new RoundTrip(inputPath, archivePath, restoredPath, compressionResult, decompressionResult);
+    }
+
+    private Path writeInput(String fileName, byte[] data) throws IOException {
+        Path inputPath = tempDir.resolve(fileName + ".bin");
+        Files.write(inputPath, data);
+        return inputPath;
+    }
+
+    private record RoundTrip(
+        Path inputPath,
+        Path archivePath,
+        Path restoredPath,
+        CompressionResult compressionResult,
+        DecompressionResult decompressionResult
+    ) {
+    }
+}
