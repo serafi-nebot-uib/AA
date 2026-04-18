@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class MainTest {
+class CLITest {
 
     @TempDir
     Path tempDir;
@@ -30,13 +30,13 @@ class MainTest {
         ByteArrayOutputStream stdout = new ByteArrayOutputStream();
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 
-        int compressExit = Main.run(
+        int compressExit = CLI.run(
             new String[] {"compress", inputPath.toString(), archivePath.toString()},
             new PrintStream(stdout),
             new PrintStream(stderr)
         );
 
-        int decompressExit = Main.run(
+        int decompressExit = CLI.run(
             new String[] {"decompress", archivePath.toString(), restoredPath.toString()},
             new PrintStream(stdout),
             new PrintStream(stderr)
@@ -53,7 +53,7 @@ class MainTest {
         ByteArrayOutputStream stdout = new ByteArrayOutputStream();
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 
-        int exitCode = Main.run(new String[] {"compress"}, new PrintStream(stdout), new PrintStream(stderr));
+        int exitCode = CLI.run(new String[] {"compress"}, new PrintStream(stdout), new PrintStream(stderr));
 
         assertEquals(1, exitCode);
         assertTrue(stderr.toString(StandardCharsets.UTF_8).contains("Usage:"));

@@ -1,4 +1,6 @@
-package com.serafinebot.p4.model;
+package com.serafinebot.p4.model.report;
+
+import com.serafinebot.p4.model.archive.CompressionMode;
 
 /**
  * Statistics collected after decompressing a file.

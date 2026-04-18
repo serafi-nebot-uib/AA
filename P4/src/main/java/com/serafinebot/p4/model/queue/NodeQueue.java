@@ -1,11 +1,11 @@
-package com.serafinebot.p4.model;
+package com.serafinebot.p4.model.queue;
 
 /**
  * Minimal abstraction over the priority queue used by Huffman.
  *
  * @param <T> element type stored in the queue
  */
-interface NodeQueue<T> {
+public interface NodeQueue<T> {
     /**
      * Inserts one element into the queue.
      */

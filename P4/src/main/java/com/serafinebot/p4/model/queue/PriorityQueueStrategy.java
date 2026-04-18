@@ -1,4 +1,4 @@
-package com.serafinebot.p4.model;
+package com.serafinebot.p4.model.queue;
 
 /**
  * Strategy used to build the Huffman tree.

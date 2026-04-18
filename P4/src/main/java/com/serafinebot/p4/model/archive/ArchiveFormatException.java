@@ -1,4 +1,4 @@
-package com.serafinebot.p4.model;
+package com.serafinebot.p4.model.archive;
 
 import java.io.IOException;
 

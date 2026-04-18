@@ -1,4 +1,4 @@
-package com.serafinebot.p4.model;
+package com.serafinebot.p4.model.queue;
 
 import java.util.Comparator;
 import java.util.PriorityQueue;
@@ -8,21 +8,21 @@ import java.util.PriorityQueue;
  *
  * @param <T> element type stored in the queue
  */
-final class BinaryHeapNodeQueue<T> implements NodeQueue<T> {
+public final class BinaryHeapNodeQueue<T> implements NodeQueue<T> {
 
     private final PriorityQueue<T> queue;
 
     /**
      * Creates a queue that expects naturally comparable elements.
      */
-    BinaryHeapNodeQueue() {
+    public BinaryHeapNodeQueue() {
         this.queue = new PriorityQueue<>();
     }
 
     /**
      * Creates a queue that orders elements through the provided comparator.
      */
-    BinaryHeapNodeQueue(Comparator<? super T> comparator) {
+    public BinaryHeapNodeQueue(Comparator<? super T> comparator) {
         this.queue = new PriorityQueue<>(comparator);
     }
 

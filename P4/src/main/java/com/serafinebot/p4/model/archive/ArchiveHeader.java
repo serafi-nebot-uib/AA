@@ -1,4 +1,4 @@
-package com.serafinebot.p4.model;
+package com.serafinebot.p4.model.archive;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -13,10 +13,10 @@ import java.util.Arrays;
  * original file size plus a sparse frequency table. For stored or empty archives it stores only the
  * mode flags and the original size.</p>
  */
-final class ArchiveHeader {
+public final class ArchiveHeader {
 
-    static final int BASE_SIZE = 15;
-    static final int FREQUENCY_ENTRY_SIZE = 9;
+    public static final int BASE_SIZE = 15;
+    public static final int FREQUENCY_ENTRY_SIZE = 9;
 
     private static final byte[] MAGIC = {'H', 'U', 'F', 'F'};
     private static final int VERSION = 1;
@@ -39,14 +39,14 @@ final class ArchiveHeader {
     /**
      * Creates the header used for an empty archive.
      */
-    static ArchiveHeader empty() {
+    public static ArchiveHeader empty() {
         return new ArchiveHeader(CompressionMode.STORED, 0L, new long[256], true);
     }
 
     /**
      * Creates a stored-mode header.
      */
-    static ArchiveHeader stored(long originalSize) {
+    public static ArchiveHeader stored(long originalSize) {
         if (originalSize == 0L) {
             return empty();
         }
@@ -56,9 +56,9 @@ final class ArchiveHeader {
     /**
      * Creates a Huffman-mode header with a sparse frequency table.
      */
-    static ArchiveHeader huffman(long originalSize, long[] frequencies) {
+    public static ArchiveHeader huffman(long originalSize, long[] frequencies) {
         if (originalSize <= 0L) {
-            throw new IllegalArgumentException("Huffman archives require a positive original size.");
+            throw new IllegalArgumentException("Els arxius Huffman requereixen una mida original positiva.");
         }
         return new ArchiveHeader(CompressionMode.HUFFMAN, originalSize, frequencies, false);
     }
@@ -66,35 +66,35 @@ final class ArchiveHeader {
     /**
      * Returns the logical archive mode.
      */
-    CompressionMode mode() {
+    public CompressionMode mode() {
         return mode;
     }
 
     /**
      * Returns the size of the original, uncompressed file in bytes.
      */
-    long originalSize() {
+    public long originalSize() {
         return originalSize;
     }
 
     /**
      * Returns a defensive copy of the stored frequency table.
      */
-    long[] frequencies() {
+    public long[] frequencies() {
         return Arrays.copyOf(frequencies, frequencies.length);
     }
 
     /**
      * Returns whether the archive represents an empty file.
      */
-    boolean emptyPayload() {
+    public boolean emptyPayload() {
         return emptyPayload;
     }
 
     /**
      * Counts how many different byte values are present in the sparse table.
      */
-    int distinctSymbolCount() {
+    public int distinctSymbolCount() {
         int count = 0;
         for (long frequency : frequencies) if (frequency > 0L) count++;
         return count;
@@ -103,7 +103,7 @@ final class ArchiveHeader {
     /**
      * Returns the total size of the serialized header in bytes.
      */
-    long sizeInBytes() {
+    public long sizeInBytes() {
         if (emptyPayload) return BASE_SIZE;
         if (mode == CompressionMode.HUFFMAN) return BASE_SIZE + (long) distinctSymbolCount() * FREQUENCY_ENTRY_SIZE;
         return BASE_SIZE;
@@ -112,7 +112,7 @@ final class ArchiveHeader {
     /**
      * Serializes this header to the output stream.
      */
-    void write(DataOutputStream output) throws IOException {
+    public void write(DataOutputStream output) throws IOException {
         output.write(MAGIC);
         output.writeByte(VERSION);
         output.writeByte(flags());
@@ -134,26 +134,26 @@ final class ArchiveHeader {
     /**
      * Parses a header from the input stream and validates all invariants needed by the decoder.
      */
-    static ArchiveHeader read(DataInputStream input) throws IOException {
+    public static ArchiveHeader read(DataInputStream input) throws IOException {
         byte[] magic = new byte[MAGIC.length];
         input.readFully(magic);
         if (!Arrays.equals(magic, MAGIC)) {
-            throw new ArchiveFormatException("Invalid archive magic.");
+            throw new ArchiveFormatException("Capcalera magica de l'arxiu no valida.");
         }
 
         int version = input.readUnsignedByte();
         if (version != VERSION) {
-            throw new ArchiveFormatException("Unsupported archive version: " + version);
+            throw new ArchiveFormatException("Versio d'arxiu no suportada: " + version);
         }
 
         int flags = input.readUnsignedByte();
         if ((flags & ~KNOWN_FLAGS_MASK) != 0) {
-            throw new ArchiveFormatException("Unsupported archive flags: " + flags);
+            throw new ArchiveFormatException("Flags d'arxiu no suportats: " + flags);
         }
 
         long originalSize = input.readLong();
         if (originalSize < 0L) {
-            throw new ArchiveFormatException("Negative original size in archive header.");
+            throw new ArchiveFormatException("La mida original de la capcalera no pot ser negativa.");
         }
 
         int encodedSymbolCount = input.readUnsignedByte();
@@ -165,24 +165,24 @@ final class ArchiveHeader {
         // the remaining bytes should be interpreted.
         if (emptyPayload) {
             if (huffman) {
-                throw new ArchiveFormatException("Empty archives must not set the Huffman flag.");
+                throw new ArchiveFormatException("Els arxius buits no poden activar el flag Huffman.");
             }
             if (originalSize != 0L) {
-                throw new ArchiveFormatException("Empty archives must declare an original size of 0.");
+                throw new ArchiveFormatException("Els arxius buits han de declarar una mida original de 0.");
             }
             if (encodedSymbolCount != 0) {
-                throw new ArchiveFormatException("Empty archives must store a zero symbol count byte.");
+                throw new ArchiveFormatException("Els arxius buits han d'emmagatzemar un comptador de simbols igual a zero.");
             }
             return empty();
         }
 
         if (originalSize == 0L) {
-            throw new ArchiveFormatException("Zero-sized archives must set the empty payload flag.");
+            throw new ArchiveFormatException("Els arxius de mida zero han d'activar el flag de carrega buida.");
         }
 
         if (!huffman) {
             if (encodedSymbolCount != 0) {
-                throw new ArchiveFormatException("Stored archives must store a zero symbol count byte.");
+                throw new ArchiveFormatException("Els arxius emmagatzemats han de guardar un comptador de simbols igual a zero.");
             }
             return stored(originalSize);
         }
@@ -196,10 +196,10 @@ final class ArchiveHeader {
             long frequency = input.readLong();
 
             if (frequency <= 0L) {
-                throw new ArchiveFormatException("Invalid non-positive frequency for symbol " + symbol + ".");
+                throw new ArchiveFormatException("Frequencia no valida i no positiva per al simbol " + symbol + ".");
             }
             if (frequencies[symbol] != 0L) {
-                throw new ArchiveFormatException("Duplicate frequency entry for symbol " + symbol + ".");
+                throw new ArchiveFormatException("Entrada de frequencia duplicada per al simbol " + symbol + ".");
             }
 
             frequencies[symbol] = frequency;
@@ -207,7 +207,7 @@ final class ArchiveHeader {
         }
 
         if (total != originalSize) {
-            throw new ArchiveFormatException("Frequency table total does not match original size.");
+            throw new ArchiveFormatException("La suma de la taula de frequencies no coincideix amb la mida original.");
         }
 
         return huffman(originalSize, frequencies);

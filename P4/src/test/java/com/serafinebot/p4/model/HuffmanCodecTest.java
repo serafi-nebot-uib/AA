@@ -1,5 +1,13 @@
 package com.serafinebot.p4.model;
 
+import com.serafinebot.p4.model.archive.ArchiveFormatException;
+import com.serafinebot.p4.model.archive.CompressionMode;
+import com.serafinebot.p4.model.codec.HuffmanCodec;
+import com.serafinebot.p4.model.progress.ProgressPhase;
+import com.serafinebot.p4.model.progress.ProgressSnapshot;
+import com.serafinebot.p4.model.report.CompressionReport;
+import com.serafinebot.p4.model.report.CompressionResult;
+import com.serafinebot.p4.model.report.DecompressionResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -16,6 +24,7 @@ import java.util.Random;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -77,6 +86,24 @@ class HuffmanCodecTest {
         assertEquals(CompressionMode.HUFFMAN, roundTrip.compressionResult.mode());
         assertTrue(roundTrip.compressionResult.averageHuffmanCodeLength() >= roundTrip.compressionResult.entropy());
         assertTrue(roundTrip.compressionResult.averageHuffmanCodeLength() < roundTrip.compressionResult.entropy() + 1.0);
+    }
+
+    @Test
+    void compressionReportIncludesTreeAndSymbolTable() throws IOException {
+        byte[] data = "banana bandana".getBytes(StandardCharsets.UTF_8);
+        Path inputPath = writeInput("report-input", data);
+        Path archivePath = tempDir.resolve("report.hff");
+
+        CompressionReport report = codec.compressWithReport(inputPath, archivePath);
+
+        assertFalse(report.symbols().isEmpty());
+        assertTrue(report.symbols().stream().anyMatch(symbol -> symbol.symbol() == 'a' && symbol.probability() > 0.0 && !symbol.code().isEmpty()));
+        assertNotNull(report.tree());
+        assertEquals(data.length, report.tree().frequency());
+        assertEquals(1.0, report.tree().probability(), 1.0e-9);
+        assertEquals("", report.tree().code());
+        assertTrue(report.tree().zeroChild() == null || report.tree().zeroChild().code().startsWith("0"));
+        assertTrue(report.tree().oneChild() == null || report.tree().oneChild().code().startsWith("1"));
     }
 
     @Test

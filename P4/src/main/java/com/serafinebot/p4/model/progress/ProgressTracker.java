@@ -1,4 +1,4 @@
-package com.serafinebot.p4.model;
+package com.serafinebot.p4.model.progress;
 
 /**
  * Emits throttled progress updates with a remaining-time estimate.
@@ -6,7 +6,7 @@ package com.serafinebot.p4.model;
  * <p>This class is internal to the model. It converts low-level byte counters into reusable
  * progress snapshots without coupling the model to any specific UI.</p>
  */
-final class ProgressTracker {
+public final class ProgressTracker {
 
     private static final long REPORT_INTERVAL_BYTES = 64L * 1024L;
 
@@ -20,7 +20,7 @@ final class ProgressTracker {
     /**
      * Starts tracking one phase of work.
      */
-    ProgressTracker(ProgressListener listener, ProgressPhase phase, long totalBytes) {
+    public ProgressTracker(ProgressListener listener, ProgressPhase phase, long totalBytes) {
         this.listener = listener;
         this.phase = phase;
         this.totalBytes = totalBytes;
@@ -32,14 +32,14 @@ final class ProgressTracker {
     /**
      * Reports intermediate progress.
      */
-    void update(long processedBytes) {
+    public void update(long processedBytes) {
         report(processedBytes, false);
     }
 
     /**
      * Forces a final progress report.
      */
-    void complete(long processedBytes) {
+    public void complete(long processedBytes) {
         report(processedBytes, true);
     }
 

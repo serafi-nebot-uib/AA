@@ -1,4 +1,4 @@
-package com.serafinebot.p4.model;
+package com.serafinebot.p4.model.archive;
 
 /**
  * Logical compression mode used by the codec.

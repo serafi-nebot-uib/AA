@@ -1,4 +1,4 @@
-package com.serafinebot.p4.model;
+package com.serafinebot.p4.util;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -10,7 +10,7 @@ import java.io.OutputStream;
  * <p>Bits are packed most-significant-bit first. The last byte is padded with zeros on close if it
  * was not completely filled.</p>
  */
-final class BitOutputStream implements Closeable {
+public final class BitOutputStream implements Closeable {
 
     private final OutputStream output;
     private int currentByte;
@@ -19,14 +19,14 @@ final class BitOutputStream implements Closeable {
     /**
      * Creates a bit writer over the given byte stream.
      */
-    BitOutputStream(OutputStream output) {
+    public BitOutputStream(OutputStream output) {
         this.output = output;
     }
 
     /**
      * Writes a complete Huffman code represented as a sequence of bits.
      */
-    void write(byte[] bits) throws IOException {
+    public void write(byte[] bits) throws IOException {
         for (byte bit : bits) writeBit(bit);
     }
 

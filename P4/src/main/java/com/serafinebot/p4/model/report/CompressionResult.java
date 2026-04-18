@@ -1,4 +1,7 @@
-package com.serafinebot.p4.model;
+package com.serafinebot.p4.model.report;
+
+import com.serafinebot.p4.model.archive.CompressionMode;
+import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
 
 /**
  * Statistics collected after compressing a file.
@@ -24,14 +27,17 @@ public record CompressionResult(
     double averageHuffmanCodeLength,
     long elapsedMillis
 ) {
+    private static final long FIXED_HEADER_SIZE = 15L;
+    private static final long FREQUENCY_ENTRY_SIZE = 9L;
+
     /**
      * Returns the header size implied by the selected mode.
      */
     public long overheadSize() {
         if (mode == CompressionMode.HUFFMAN) {
-            return ArchiveHeader.BASE_SIZE + (long) distinctSymbolCount * ArchiveHeader.FREQUENCY_ENTRY_SIZE;
+            return FIXED_HEADER_SIZE + distinctSymbolCount * FREQUENCY_ENTRY_SIZE;
         }
-        return ArchiveHeader.BASE_SIZE;
+        return FIXED_HEADER_SIZE;
     }
 
     /**

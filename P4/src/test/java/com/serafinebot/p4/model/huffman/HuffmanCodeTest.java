@@ -1,4 +1,9 @@
-package com.serafinebot.p4.model;
+package com.serafinebot.p4.model.huffman;
+
+import com.serafinebot.p4.model.codec.FrequencyTable;
+import com.serafinebot.p4.model.codec.HuffmanCode;
+import com.serafinebot.p4.model.queue.BinaryHeapNodeQueue;
+import com.serafinebot.p4.model.queue.NodeQueue;
 
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +22,8 @@ class HuffmanCodeTest {
         frequencies[127] = 3L;
         frequencies[255] = 5L;
 
-        HuffmanCode root = HuffmanCode.buildTree(FrequencyTable.fromFrequencies(frequencies), new BinaryHeapNodeQueue<>());
+        NodeQueue<HuffmanCode> queue = new BinaryHeapNodeQueue<>();
+        HuffmanCode root = HuffmanCode.buildTree(FrequencyTable.fromFrequencies(frequencies), queue);
         HuffmanCode[] leaves = root.leaves();
 
         assertNotNull(leaves[0]);
@@ -34,7 +40,8 @@ class HuffmanCodeTest {
         frequencies['B'] = 3L;
         frequencies['C'] = 1L;
 
-        HuffmanCode root = HuffmanCode.buildTree(FrequencyTable.fromFrequencies(frequencies), new BinaryHeapNodeQueue<>());
+        NodeQueue<HuffmanCode> queue = new BinaryHeapNodeQueue<>();
+        HuffmanCode root = HuffmanCode.buildTree(FrequencyTable.fromFrequencies(frequencies), queue);
         HuffmanCode[] leaves = root.leaves();
 
         assertArrayEquals(new byte[0], root.code());

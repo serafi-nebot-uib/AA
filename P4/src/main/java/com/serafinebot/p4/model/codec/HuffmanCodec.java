@@ -1,4 +1,22 @@
-package com.serafinebot.p4.model;
+package com.serafinebot.p4.model.codec;
+
+import com.serafinebot.p4.model.archive.ArchiveFormatException;
+import com.serafinebot.p4.model.archive.ArchiveHeader;
+import com.serafinebot.p4.model.archive.CompressionMode;
+import com.serafinebot.p4.model.progress.ProgressListener;
+import com.serafinebot.p4.model.progress.ProgressPhase;
+import com.serafinebot.p4.model.progress.ProgressTracker;
+import com.serafinebot.p4.model.queue.BinaryHeapNodeQueue;
+import com.serafinebot.p4.model.queue.NodeQueue;
+import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
+import com.serafinebot.p4.model.report.CompressionReport;
+import com.serafinebot.p4.model.report.CompressionResult;
+import com.serafinebot.p4.model.report.DecompressionReport;
+import com.serafinebot.p4.model.report.DecompressionResult;
+import com.serafinebot.p4.model.report.HuffmanSymbolInfo;
+import com.serafinebot.p4.model.report.HuffmanTreeNodeInfo;
+import com.serafinebot.p4.util.BitInputStream;
+import com.serafinebot.p4.util.BitOutputStream;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -9,7 +27,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * High-level model service for compressing and decompressing files with Huffman coding.
@@ -51,7 +71,7 @@ public class HuffmanCodec {
      *     archive cannot be created
      */
     public CompressionResult compress(Path inputPath, Path outputPath) throws IOException {
-        return compress(inputPath, outputPath, null);
+        return compressWithReport(inputPath, outputPath).result();
     }
 
     /**
@@ -65,6 +85,20 @@ public class HuffmanCodec {
      *     archive cannot be created
      */
     public CompressionResult compress(Path inputPath, Path outputPath, ProgressListener listener) throws IOException {
+        return compressWithReport(inputPath, outputPath, listener).result();
+    }
+
+    /**
+     * Compresses a file and returns both raw statistics and GUI-friendly Huffman metadata.
+     */
+    public CompressionReport compressWithReport(Path inputPath, Path outputPath) throws IOException {
+        return compressWithReport(inputPath, outputPath, null);
+    }
+
+    /**
+     * Compresses a file and returns both raw statistics and GUI-friendly Huffman metadata.
+     */
+    public CompressionReport compressWithReport(Path inputPath, Path outputPath, ProgressListener listener) throws IOException {
         validatePaths(inputPath, outputPath);
 
         long startNanos = System.nanoTime();
@@ -99,7 +133,7 @@ public class HuffmanCodec {
 
         long archiveSize = Files.size(outputPath);
         long elapsedMillis = (System.nanoTime() - startNanos) / 1_000_000L;
-        return new CompressionResult(
+        CompressionResult result = new CompressionResult(
             mode,
             priorityQueueStrategy,
             originalSize,
@@ -110,6 +144,7 @@ public class HuffmanCodec {
             averageCodeLength,
             elapsedMillis
         );
+        return new CompressionReport(result, buildSymbolInfos(table, leaves), buildTreeInfo(root, table.totalCount(), ""));
     }
 
     /**
@@ -122,7 +157,7 @@ public class HuffmanCodec {
      *     archive is malformed
      */
     public DecompressionResult decompress(Path inputPath, Path outputPath) throws IOException {
-        return decompress(inputPath, outputPath, null);
+        return decompressWithReport(inputPath, outputPath).result();
     }
 
     /**
@@ -136,6 +171,20 @@ public class HuffmanCodec {
      *     archive is malformed
      */
     public DecompressionResult decompress(Path inputPath, Path outputPath, ProgressListener listener) throws IOException {
+        return decompressWithReport(inputPath, outputPath, listener).result();
+    }
+
+    /**
+     * Decompresses an archive and returns both raw statistics and GUI-friendly Huffman metadata.
+     */
+    public DecompressionReport decompressWithReport(Path inputPath, Path outputPath) throws IOException {
+        return decompressWithReport(inputPath, outputPath, null);
+    }
+
+    /**
+     * Decompresses an archive and returns both raw statistics and GUI-friendly Huffman metadata.
+     */
+    public DecompressionReport decompressWithReport(Path inputPath, Path outputPath, ProgressListener listener) throws IOException {
         validatePaths(inputPath, outputPath);
 
         long startNanos = System.nanoTime();
@@ -148,15 +197,23 @@ public class HuffmanCodec {
             ArchiveHeader header = ArchiveHeader.read(input);
             ProgressTracker tracker = new ProgressTracker(listener, ProgressPhase.DECOMPRESSING, header.originalSize());
 
+            List<HuffmanSymbolInfo> symbolInfos = List.of();
+            HuffmanTreeNodeInfo treeInfo = null;
+
             if (header.mode() == CompressionMode.STORED) {
                 copyExact(input, output, header.originalSize(), tracker);
             } else {
-                decompressHuffman(input, output, header, tracker);
+                FrequencyTable table = FrequencyTable.fromFrequencies(header.frequencies());
+                HuffmanCode root = HuffmanCode.buildTree(table, createQueue());
+                symbolInfos = buildSymbolInfos(table, root == null ? new HuffmanCode[256] : root.leaves());
+                treeInfo = buildTreeInfo(root, table.totalCount(), "");
+                decompressHuffman(input, output, table, root, header.originalSize(), tracker);
             }
 
             output.flush();
             long elapsedMillis = (System.nanoTime() - startNanos) / 1_000_000L;
-            return new DecompressionResult(header.mode(), archiveSize, header.originalSize(), elapsedMillis);
+            DecompressionResult result = new DecompressionResult(header.mode(), archiveSize, header.originalSize(), elapsedMillis);
+            return new DecompressionReport(result, symbolInfos, treeInfo);
         }
     }
 
@@ -211,6 +268,63 @@ public class HuffmanCodec {
         long totalCount = table.totalCount();
         if (totalCount == 0L) return 0.0;
         return totalBitCount / (double) totalCount;
+    }
+
+    /**
+     * Converts the Huffman tree to a symbol table suitable for the GUI.
+     */
+    private List<HuffmanSymbolInfo> buildSymbolInfos(FrequencyTable table, HuffmanCode[] leaves) {
+        if (table.distinctSymbolCount() == 0) {
+            return List.of();
+        }
+
+        double totalCount = table.totalCount();
+        List<HuffmanSymbolInfo> symbols = new ArrayList<>(table.distinctSymbolCount());
+        for (int symbol = 0; symbol < 256; symbol++) {
+            long frequency = table.frequencyOf(symbol);
+            if (frequency == 0L) {
+                continue;
+            }
+            symbols.add(new HuffmanSymbolInfo(
+                symbol,
+                frequency,
+                frequency / totalCount,
+                codeString(leaves[symbol] == null ? new byte[0] : leaves[symbol].code())
+            ));
+        }
+        return List.copyOf(symbols);
+    }
+
+    /**
+     * Converts the internal Huffman tree to an immutable view model for the GUI.
+     */
+    private HuffmanTreeNodeInfo buildTreeInfo(HuffmanCode node, long totalCount, String code) {
+        if (node == null) {
+            return null;
+        }
+        return new HuffmanTreeNodeInfo(
+            node.symbol(),
+            node.frequency(),
+            totalCount == 0L ? 0.0 : node.frequency() / (double) totalCount,
+            code,
+            node.isLeaf(),
+            buildTreeInfo(node.min(), totalCount, code + '0'),
+            buildTreeInfo(node.max(), totalCount, code + '1')
+        );
+    }
+
+    /**
+     * Serializes a byte-array code to a human-readable bit string.
+     */
+    private String codeString(byte[] code) {
+        if (code.length == 0) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder(code.length);
+        for (byte bit : code) {
+            builder.append(bit == 0 ? '0' : '1');
+        }
+        return builder.toString();
     }
 
     /**
@@ -284,7 +398,9 @@ public class HuffmanCodec {
             int read;
 
             while ((read = input.read(buffer)) >= 0) {
-                for (int i = 0; i < read; i++) bitOutput.write(leaves[buffer[i] & 0xFF].code());
+                for (int i = 0; i < read; i++) {
+                    bitOutput.write(leaves[buffer[i] & 0xFF].code());
+                }
                 processedBytes += read;
                 tracker.update(processedBytes);
             }
@@ -298,16 +414,14 @@ public class HuffmanCodec {
      */
     private void decompressHuffman(DataInputStream input,
                                    OutputStream output,
-                                   ArchiveHeader header,
+                                   FrequencyTable table,
+                                   HuffmanCode root,
+                                   long originalSize,
                                    ProgressTracker tracker) throws IOException {
-        long originalSize = header.originalSize();
         if (originalSize == 0L) {
             tracker.complete(0L);
             return;
         }
-
-        FrequencyTable table = FrequencyTable.fromFrequencies(header.frequencies());
-        HuffmanCode root = HuffmanCode.buildTree(table, createQueue());
         if (root == null) {
             tracker.complete(0L);
             return;
@@ -326,10 +440,10 @@ public class HuffmanCodec {
         // and restart from the root for the next symbol.
         while (restoredBytes < originalSize) {
             int bit = bitInput.readBit();
-            if (bit < 0) throw new ArchiveFormatException("Unexpected end of Huffman payload.");
+            if (bit < 0) throw new ArchiveFormatException("Final inesperat de la carrega Huffman.");
 
             currentNode = bit == 0 ? currentNode.min() : currentNode.max();
-            if (currentNode == null) throw new ArchiveFormatException("Invalid Huffman path in payload.");
+            if (currentNode == null) throw new ArchiveFormatException("Cami Huffman invalid dins la carrega.");
             if (currentNode.isLeaf()) {
                 output.write(currentNode.symbol());
                 restoredBytes++;
@@ -349,8 +463,7 @@ public class HuffmanCodec {
                                    long count,
                                    ProgressTracker tracker) throws IOException {
         byte[] buffer = new byte[BUFFER_SIZE];
-        byte value = (byte) symbol;
-        Arrays.fill(buffer, value);
+        Arrays.fill(buffer, (byte) symbol);
 
         long written = 0L;
         while (written < count) {
@@ -374,7 +487,7 @@ public class HuffmanCodec {
 
         while (copiedBytes < expectedBytes) {
             int read = input.read(buffer, 0, (int) Math.min(buffer.length, expectedBytes - copiedBytes));
-            if (read < 0) throw new ArchiveFormatException("Unexpected end of stored payload.");
+            if (read < 0) throw new ArchiveFormatException("Final inesperat de la carrega emmagatzemada.");
             output.write(buffer, 0, read);
             copiedBytes += read;
             tracker.update(copiedBytes);
@@ -395,7 +508,7 @@ public class HuffmanCodec {
      */
     private NodeQueue<HuffmanCode> createQueue() {
         if (priorityQueueStrategy == PriorityQueueStrategy.BINARY_HEAP) return new BinaryHeapNodeQueue<>();
-        throw new IllegalArgumentException("Unsupported priority queue strategy: " + priorityQueueStrategy);
+        throw new IllegalArgumentException("Estrategia de cua no suportada: " + priorityQueueStrategy);
     }
 
     /**
@@ -404,7 +517,8 @@ public class HuffmanCodec {
     private static void validatePaths(Path inputPath, Path outputPath) {
         Path normalizedInput = inputPath.toAbsolutePath().normalize();
         Path normalizedOutput = outputPath.toAbsolutePath().normalize();
-        if (normalizedInput.equals(normalizedOutput))
-            throw new IllegalArgumentException("Input and output paths must be different.");
+        if (normalizedInput.equals(normalizedOutput)) {
+            throw new IllegalArgumentException("Les rutes d'entrada i de sortida han de ser diferents.");
+        }
     }
 }

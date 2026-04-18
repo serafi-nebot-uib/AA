@@ -1,4 +1,4 @@
-package com.serafinebot.p4.model;
+package com.serafinebot.p4.model.progress;
 
 /**
  * Current phase of the compression workflow.

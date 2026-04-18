@@ -1,4 +1,4 @@
-package com.serafinebot.p4.model;
+package com.serafinebot.p4.model.codec;
 
 import java.util.Arrays;
 
@@ -8,23 +8,26 @@ import java.util.Arrays;
  * <p>The table always has 256 counters, one per possible byte value. Bytes are treated as unsigned
  * symbols in the range {@code 0..255}.</p>
  */
-final class FrequencyTable {
+public final class FrequencyTable {
 
     private final long[] frequencies = new long[256];
     private long totalCount;
     private int distinctSymbolCount;
 
+    public FrequencyTable() {
+    }
+
     /**
      * Adds a block of bytes to the table.
      */
-    void add(byte[] buffer, int length) {
+    public void add(byte[] buffer, int length) {
         for (int i = 0; i < length; i++) addSymbol(buffer[i] & 0xFF);
     }
 
     /**
      * Increments the counter for one symbol.
      */
-    void addSymbol(int symbol) {
+    public void addSymbol(int symbol) {
         if (frequencies[symbol] == 0L) distinctSymbolCount++;
         frequencies[symbol]++;
         totalCount++;
@@ -33,28 +36,28 @@ final class FrequencyTable {
     /**
      * Returns the number of occurrences for one symbol.
      */
-    long frequencyOf(int symbol) {
+    public long frequencyOf(int symbol) {
         return frequencies[symbol];
     }
 
     /**
      * Returns a defensive copy of the internal frequency array.
      */
-    long[] copyFrequencies() {
+    public long[] copyFrequencies() {
         return Arrays.copyOf(frequencies, frequencies.length);
     }
 
     /**
      * Returns the total number of symbols seen.
      */
-    long totalCount() {
+    public long totalCount() {
         return totalCount;
     }
 
     /**
      * Returns the number of distinct byte values present in the table.
      */
-    int distinctSymbolCount() {
+    public int distinctSymbolCount() {
         return distinctSymbolCount;
     }
 
@@ -62,7 +65,7 @@ final class FrequencyTable {
      * Returns the only symbol present when the table contains exactly one distinct value, or
      * {@code -1} otherwise.
      */
-    int singleSymbol() {
+    public int singleSymbol() {
         if (distinctSymbolCount != 1) return -1;
         for (int symbol = 0; symbol < frequencies.length; symbol++)
             if (frequencies[symbol] > 0L) return symbol;
@@ -72,7 +75,7 @@ final class FrequencyTable {
     /**
      * Computes the Shannon entropy of the observed symbol distribution.
      */
-    double entropy() {
+    public double entropy() {
         if (totalCount == 0L) return 0.0;
         double entropy = 0.0;
         for (long frequency : frequencies) {
@@ -86,7 +89,7 @@ final class FrequencyTable {
     /**
      * Builds a frequency table from an already-known array of counts.
      */
-    static FrequencyTable fromFrequencies(long[] frequencies) {
+    public static FrequencyTable fromFrequencies(long[] frequencies) {
         FrequencyTable table = new FrequencyTable();
         for (int symbol = 0; symbol < frequencies.length; symbol++) {
             long frequency = frequencies[symbol];

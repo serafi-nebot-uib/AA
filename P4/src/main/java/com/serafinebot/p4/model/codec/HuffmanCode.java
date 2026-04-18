@@ -1,4 +1,6 @@
-package com.serafinebot.p4.model;
+package com.serafinebot.p4.model.codec;
+
+import com.serafinebot.p4.model.queue.NodeQueue;
 
 import java.util.ArrayDeque;
 import java.util.Arrays;
@@ -17,7 +19,7 @@ import java.util.Arrays;
  *   <li>a {@code HuffmanCode[256]} lookup table for O(1) symbol-to-code access.</li>
  * </ul>
  */
-final class HuffmanCode implements Comparable<HuffmanCode> {
+public final class HuffmanCode implements Comparable<HuffmanCode> {
     private final int symbol;
     private final long frequency;
     private final HuffmanCode min;
@@ -50,7 +52,7 @@ final class HuffmanCode implements Comparable<HuffmanCode> {
      * Creates an internal node joining two children.
      */
     public HuffmanCode(int symbol, long frequency, HuffmanCode min, HuffmanCode max) {
-        if (min.symbol == max.symbol) throw new IllegalArgumentException("c1 and c2 cannot be the same symbol");
+        if (min.symbol == max.symbol) throw new IllegalArgumentException("c1 i c2 no poden ser el mateix simbol");
 
         this.symbol = symbol;
         this.frequency = frequency;
@@ -126,7 +128,7 @@ final class HuffmanCode implements Comparable<HuffmanCode> {
      * Combines two nodes into one internal node, ordering children deterministically.
      */
     public static HuffmanCode internal(HuffmanCode c1, HuffmanCode c2) {
-        if (c1 == null || c2 == null) throw new IllegalArgumentException("c1 and c2 cannot be null");
+        if (c1 == null || c2 == null) throw new IllegalArgumentException("c1 i c2 no poden ser null");
         HuffmanCode min = c1.compareTo(c2) <= 0 ? c1 : c2;
         HuffmanCode max = min == c1 ? c2 : c1;
         return new HuffmanCode(min.symbol, c1.frequency + c2.frequency, min, max);
