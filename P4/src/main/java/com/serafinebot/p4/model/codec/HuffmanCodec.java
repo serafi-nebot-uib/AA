@@ -7,7 +7,10 @@ import com.serafinebot.p4.model.progress.ProgressListener;
 import com.serafinebot.p4.model.progress.ProgressPhase;
 import com.serafinebot.p4.model.progress.ProgressTracker;
 import com.serafinebot.p4.model.queue.BinaryHeapNodeQueue;
+import com.serafinebot.p4.model.queue.DichotomicListNodeQueue;
+import com.serafinebot.p4.model.queue.FibonacciHeapNodeQueue;
 import com.serafinebot.p4.model.queue.NodeQueue;
+import com.serafinebot.p4.model.queue.OrderedListNodeQueue;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
 import com.serafinebot.p4.model.report.CompressionReport;
 import com.serafinebot.p4.model.report.CompressionResult;
@@ -508,6 +511,9 @@ public class HuffmanCodec {
      */
     private NodeQueue<HuffmanCode> createQueue() {
         if (priorityQueueStrategy == PriorityQueueStrategy.BINARY_HEAP) return new BinaryHeapNodeQueue<>();
+        if (priorityQueueStrategy == PriorityQueueStrategy.ORDERED_LIST) return new OrderedListNodeQueue<>();
+        if (priorityQueueStrategy == PriorityQueueStrategy.DICHOTOMIC_LIST) return new DichotomicListNodeQueue<>();
+        if (priorityQueueStrategy == PriorityQueueStrategy.FIBONACCI_HEAP) return new FibonacciHeapNodeQueue<>();
         throw new IllegalArgumentException("Estrategia de cua no suportada: " + priorityQueueStrategy);
     }
 

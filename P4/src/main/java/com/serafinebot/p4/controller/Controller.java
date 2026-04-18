@@ -1,5 +1,9 @@
 package com.serafinebot.p4.controller;
 
+import com.serafinebot.p4.model.benchmark.BenchmarkConfig;
+import com.serafinebot.p4.model.benchmark.BenchmarkProgressSnapshot;
+import com.serafinebot.p4.model.benchmark.BenchmarkReport;
+import com.serafinebot.p4.model.benchmark.BenchmarkService;
 import com.serafinebot.p4.model.codec.HuffmanCodec;
 import com.serafinebot.p4.model.progress.ProgressSnapshot;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
@@ -20,7 +24,7 @@ import java.util.concurrent.ExecutionException;
 public class Controller implements ViewListener {
 
     private final MainWindow view;
-    private SwingWorker<?, ProgressSnapshot> worker;
+    private SwingWorker<?, ?> worker;
 
     public Controller(MainWindow view) {
         this.view = view;
@@ -37,7 +41,7 @@ public class Controller implements ViewListener {
         view.showStatus("Compressio en curs...");
         view.setRunning(true);
 
-        worker = new SwingWorker<>() {
+        worker = new SwingWorker<CompressionReport, ProgressSnapshot>() {
             @Override
             protected CompressionReport doInBackground() throws Exception {
                 return new HuffmanCodec(strategy).compressWithReport(inputPath, outputPath, snapshot -> publish(snapshot));
@@ -67,7 +71,7 @@ public class Controller implements ViewListener {
         view.showStatus("Descompressio en curs...");
         view.setRunning(true);
 
-        worker = new SwingWorker<>() {
+        worker = new SwingWorker<DecompressionReport, ProgressSnapshot>() {
             @Override
             protected DecompressionReport doInBackground() throws Exception {
                 return new HuffmanCodec(strategy).decompressWithReport(inputPath, outputPath, snapshot -> publish(snapshot));
@@ -82,6 +86,32 @@ public class Controller implements ViewListener {
             protected void done() {
                 view.setRunning(false);
                 handleDecompressionResult(inputPath, outputPath);
+            }
+        };
+        worker.execute();
+    }
+
+    @Override
+    public void onBenchmarkRequested(BenchmarkConfig config) {
+        view.showStatus("Executant comparatives...");
+        view.setRunning(true);
+        view.resetBenchmarkProgress();
+
+        worker = new SwingWorker<BenchmarkReport, BenchmarkProgressSnapshot>() {
+            @Override
+            protected BenchmarkReport doInBackground() throws Exception {
+                return new BenchmarkService().run(config, this::publish);
+            }
+
+            @Override
+            protected void process(List<BenchmarkProgressSnapshot> chunks) {
+                view.updateBenchmarkProgress(chunks.get(chunks.size() - 1));
+            }
+
+            @Override
+            protected void done() {
+                view.setRunning(false);
+                handleBenchmarkResult();
             }
         };
         worker.execute();
@@ -110,6 +140,19 @@ public class Controller implements ViewListener {
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             view.showError("La descompressio s'ha interromput.");
+        } catch (ExecutionException exception) {
+            view.showError(rootMessage(exception));
+        }
+    }
+
+    private void handleBenchmarkResult() {
+        try {
+            BenchmarkReport report = (BenchmarkReport) worker.get();
+            view.showBenchmarkReport(report);
+            view.showStatus("Comparatives completades.");
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            view.showError("L'execucio de les comparatives s'ha interromput.");
         } catch (ExecutionException exception) {
             view.showError(rootMessage(exception));
         }

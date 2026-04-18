@@ -2,9 +2,14 @@ package com.serafinebot.p4.model;
 
 import com.serafinebot.p4.model.archive.ArchiveFormatException;
 import com.serafinebot.p4.model.archive.CompressionMode;
+import com.serafinebot.p4.model.benchmark.BenchmarkConfig;
+import com.serafinebot.p4.model.benchmark.BenchmarkCsvWriter;
+import com.serafinebot.p4.model.benchmark.BenchmarkReport;
+import com.serafinebot.p4.model.benchmark.BenchmarkService;
 import com.serafinebot.p4.model.codec.HuffmanCodec;
 import com.serafinebot.p4.model.progress.ProgressPhase;
 import com.serafinebot.p4.model.progress.ProgressSnapshot;
+import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
 import com.serafinebot.p4.model.report.CompressionReport;
 import com.serafinebot.p4.model.report.CompressionResult;
 import com.serafinebot.p4.model.report.DecompressionResult;
@@ -104,6 +109,54 @@ class HuffmanCodecTest {
         assertEquals("", report.tree().code());
         assertTrue(report.tree().zeroChild() == null || report.tree().zeroChild().code().startsWith("0"));
         assertTrue(report.tree().oneChild() == null || report.tree().oneChild().code().startsWith("1"));
+    }
+
+    @Test
+    void allQueueStrategiesProduceEquivalentArchives() throws IOException {
+        byte[] data = "queue strategy comparison ".repeat(256).getBytes(StandardCharsets.UTF_8);
+        Path inputPath = writeInput("all-queues", data);
+
+        byte[] referenceArchive = null;
+        for (PriorityQueueStrategy strategy : PriorityQueueStrategy.values()) {
+            Path archivePath = tempDir.resolve("queue-" + strategy.name() + ".hff");
+            Path restoredPath = tempDir.resolve("queue-" + strategy.name() + ".bin");
+
+            HuffmanCodec strategyCodec = new HuffmanCodec(strategy);
+            strategyCodec.compress(inputPath, archivePath);
+            strategyCodec.decompress(archivePath, restoredPath);
+
+            assertArrayEquals(data, Files.readAllBytes(restoredPath));
+
+            byte[] archive = Files.readAllBytes(archivePath);
+            if (referenceArchive == null) {
+                referenceArchive = archive;
+            } else {
+                assertArrayEquals(referenceArchive, archive);
+            }
+        }
+    }
+
+    @Test
+    void benchmarkServiceProducesPointsForAllProfilesAndStrategies() throws IOException {
+        BenchmarkConfig config = new BenchmarkConfig(256, 1024, 2, 1);
+        BenchmarkReport report = new BenchmarkService().run(config);
+
+        assertEquals(config, report.config());
+        assertEquals(config.pointCount() * PriorityQueueStrategy.values().length * 3, report.points().size());
+        assertTrue(report.points().stream().allMatch(point -> point.compressionMillis() >= 0.0));
+        assertTrue(report.points().stream().allMatch(point -> point.decompressionMillis() >= 0.0));
+        assertTrue(report.points().stream().allMatch(point -> point.averageCodeLength() + 1.0e-9 >= point.entropy()));
+    }
+
+    @Test
+    void benchmarkCsvWriterProducesHeaderAndRows() throws IOException {
+        BenchmarkReport report = new BenchmarkService().run(new BenchmarkConfig(256, 256, 1, 1));
+
+        String csv = BenchmarkCsvWriter.toCsv(report);
+
+        assertTrue(csv.startsWith("profile,strategy,size_bytes,compression_ms,decompression_ms,entropy,average_code_length,compression_percentage\n"));
+        assertTrue(csv.contains("BINARY_HEAP"));
+        assertTrue(csv.contains("FIBONACCI_HEAP"));
     }
 
     @Test

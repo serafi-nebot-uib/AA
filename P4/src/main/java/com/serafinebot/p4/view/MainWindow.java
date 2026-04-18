@@ -1,5 +1,8 @@
 package com.serafinebot.p4.view;
 
+import com.serafinebot.p4.model.benchmark.BenchmarkConfig;
+import com.serafinebot.p4.model.benchmark.BenchmarkProgressSnapshot;
+import com.serafinebot.p4.model.benchmark.BenchmarkReport;
 import com.serafinebot.p4.model.progress.ProgressSnapshot;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
 import com.serafinebot.p4.model.report.CompressionReport;
@@ -14,7 +17,6 @@ import javax.swing.BoxLayout;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -27,7 +29,6 @@ import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
@@ -42,14 +43,8 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.io.IOException;
-import java.nio.file.ClosedWatchServiceException;
-import java.nio.file.FileSystems;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
 import java.text.DecimalFormat;
 import java.util.List;
 
@@ -79,18 +74,16 @@ public class MainWindow extends JFrame {
     };
     private final JTable symbolTable = new JTable(symbolTableModel);
     private final HuffmanTreePanel treePanel = new HuffmanTreePanel();
+    private final BenchmarkPanel benchmarkPanel = new BenchmarkPanel();
+    private final FileBrowserPanel fileBrowserPanel = new FileBrowserPanel();
     private final JLabel progressTextLabel = new JLabel("Inactiu • 0% (0 B / 0 B)");
     private final JProgressBar progressBar = new JProgressBar(0, 100);
     private final JLabel phaseLabel = new JLabel("Fase: Inactiu");
     private final JLabel etaLabel = new JLabel("Temps restant --");
     private final JLabel statusLabel = new JLabel("Preparat.", SwingConstants.RIGHT);
     private final JTabbedPane contentTabs = new JTabbedPane();
-    private final JFileChooser fileExplorer = new JFileChooser();
 
     private ViewListener viewListener;
-    private WatchService directoryWatchService;
-    private Thread directoryWatcherThread;
-    private Path watchedDirectory;
 
     public MainWindow() {
         super("P4 Compressor Huffman");
@@ -102,8 +95,8 @@ public class MainWindow extends JFrame {
         queueCombo.setModel(new DefaultComboBoxModel<>(PriorityQueueStrategy.values()));
         configureTextAreas();
         configureTables();
-        configureFileExplorer();
         installInputAutoSync();
+        fileBrowserPanel.setFileActivationListener(this::applyBrowserPathToInput);
 
         add(createCenterPanel(), BorderLayout.CENTER);
         add(createBottomPanel(), BorderLayout.SOUTH);
@@ -125,7 +118,7 @@ public class MainWindow extends JFrame {
 
     @Override
     public void dispose() {
-        stopWatchingDirectory();
+        fileBrowserPanel.disposeBrowser();
         super.dispose();
     }
 
@@ -136,7 +129,8 @@ public class MainWindow extends JFrame {
         queueCombo.setEnabled(!running);
         inputField.setEnabled(!running);
         outputField.setEnabled(!running);
-        fileExplorer.setEnabled(!running);
+        fileBrowserPanel.setBrowserEnabled(!running);
+        benchmarkPanel.setRunning(running);
     }
 
     public void updateProgress(ProgressSnapshot snapshot) {
@@ -198,6 +192,20 @@ public class MainWindow extends JFrame {
         updateProcessButtonLabel();
     }
 
+    public void showBenchmarkReport(BenchmarkReport report) {
+        benchmarkPanel.showReport(report);
+        contentTabs.setSelectedIndex(3);
+    }
+
+    public void resetBenchmarkProgress() {
+        benchmarkPanel.resetProgress();
+    }
+
+    public void updateBenchmarkProgress(BenchmarkProgressSnapshot snapshot) {
+        benchmarkPanel.updateProgress(snapshot);
+        contentTabs.setSelectedIndex(3);
+    }
+
     public void showStatus(String message) {
         statusLabel.setText(message);
     }
@@ -208,7 +216,7 @@ public class MainWindow extends JFrame {
     }
 
     public void refreshFileExplorer() {
-        SwingUtilities.invokeLater(fileExplorer::rescanCurrentDirectory);
+        fileBrowserPanel.refreshCurrentDirectory();
     }
 
     private void configureTextAreas() {
@@ -230,22 +238,6 @@ public class MainWindow extends JFrame {
         symbolTable.setFillsViewportHeight(true);
         symbolTable.setRowHeight(24);
         symbolTable.getTableHeader().setReorderingAllowed(false);
-    }
-
-    private void configureFileExplorer() {
-        fileExplorer.setControlButtonsAreShown(false);
-        fileExplorer.setMultiSelectionEnabled(false);
-        fileExplorer.setFileSelectionMode(JFileChooser.FILES_ONLY);
-        fileExplorer.setAcceptAllFileFilterUsed(true);
-        fileExplorer.setBorder(null);
-        fileExplorer.addPropertyChangeListener(JFileChooser.DIRECTORY_CHANGED_PROPERTY,
-            event -> startWatchingDirectory(fileExplorer.getCurrentDirectory() == null ? null : fileExplorer.getCurrentDirectory().toPath()));
-        fileExplorer.addActionListener(event -> {
-            if (JFileChooser.APPROVE_SELECTION.equals(event.getActionCommand())) {
-                applyExplorerSelectionToInput();
-            }
-        });
-        startWatchingDirectory(fileExplorer.getCurrentDirectory() == null ? null : fileExplorer.getCurrentDirectory().toPath());
     }
 
     private void installInputAutoSync() {
@@ -275,6 +267,7 @@ public class MainWindow extends JFrame {
         contentTabs.addTab("Fitxers", createFilesTab());
         contentTabs.addTab("Taula de codis", wrapPanel("Codis Huffman assignats", new JScrollPane(symbolTable)));
         contentTabs.addTab("Arbre", createTreeTab());
+        contentTabs.addTab("Comparatives", benchmarkPanel);
 
         center.add(contentTabs, BorderLayout.CENTER);
         return center;
@@ -283,9 +276,6 @@ public class MainWindow extends JFrame {
     private JPanel createFilesTab() {
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(FRAME_BACKGROUND);
-
-        JScrollPane explorerScroll = new JScrollPane(fileExplorer);
-        explorerScroll.setBorder(createSectionBorder("Explorador de fitxers"));
 
         JPanel workspace = new JPanel();
         workspace.setLayout(new BoxLayout(workspace, BoxLayout.Y_AXIS));
@@ -357,7 +347,7 @@ public class MainWindow extends JFrame {
         workspace.add(Box.createVerticalStrut(14));
         workspace.add(statsPanel);
 
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, explorerScroll, workspace);
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, fileBrowserPanel, workspace);
         splitPane.setResizeWeight(0.68);
         splitPane.setBorder(null);
         splitPane.setContinuousLayout(true);
@@ -442,22 +432,20 @@ public class MainWindow extends JFrame {
         browseInputButton.addActionListener(event -> applyExplorerSelectionToInput());
         browseOutputButton.addActionListener(event -> applyExplorerSelectionToOutput());
         processButton.addActionListener(event -> dispatchPrimaryAction());
+        benchmarkPanel.addRunListener(event -> dispatchBenchmark());
     }
 
     private void applyExplorerSelectionToInput() {
-        Path selectedPath = selectedExplorerPath();
+        Path selectedPath = fileBrowserPanel.selectedPath();
         if (selectedPath == null) {
             showError("Selecciona abans un fitxer a l'explorador incrustat.");
             return;
         }
-
-        inputField.setText(selectedPath.toString());
-        contentTabs.setSelectedIndex(0);
-        showStatus("S'ha seleccionat el fitxer d'entrada: " + selectedPath.getFileName());
+        applyBrowserPathToInput(selectedPath);
     }
 
     private void applyExplorerSelectionToOutput() {
-        Path selectedPath = selectedExplorerPath();
+        Path selectedPath = fileBrowserPanel.selectedPath();
         if (selectedPath == null) {
             showError("Selecciona abans un fitxer a l'explorador incrustat.");
             return;
@@ -483,6 +471,25 @@ public class MainWindow extends JFrame {
             viewListener.onDecompressRequested(inputPath, outputPath, strategy);
         } else {
             viewListener.onCompressRequested(inputPath, outputPath, strategy);
+        }
+    }
+
+    private void applyBrowserPathToInput(Path selectedPath) {
+        inputField.setText(selectedPath.toString());
+        contentTabs.setSelectedIndex(0);
+        showStatus("S'ha seleccionat el fitxer d'entrada: " + selectedPath.getFileName());
+    }
+
+    private void dispatchBenchmark() {
+        if (viewListener == null) {
+            return;
+        }
+
+        try {
+            BenchmarkConfig config = benchmarkPanel.readConfig();
+            viewListener.onBenchmarkRequested(config);
+        } catch (IllegalArgumentException exception) {
+            showError(exception.getMessage());
         }
     }
 
@@ -591,79 +598,4 @@ public class MainWindow extends JFrame {
         };
     }
 
-    private Path selectedExplorerPath() {
-        return fileExplorer.getSelectedFile() == null ? null : fileExplorer.getSelectedFile().toPath();
-    }
-
-    private synchronized void startWatchingDirectory(Path directory) {
-        if (directory == null) {
-            stopWatchingDirectory();
-            return;
-        }
-
-        Path normalizedDirectory = directory.toAbsolutePath().normalize();
-        if (normalizedDirectory.equals(watchedDirectory)) {
-            return;
-        }
-
-        stopWatchingDirectory();
-
-        try {
-            directoryWatchService = FileSystems.getDefault().newWatchService();
-            normalizedDirectory.register(
-                directoryWatchService,
-                StandardWatchEventKinds.ENTRY_CREATE,
-                StandardWatchEventKinds.ENTRY_DELETE,
-                StandardWatchEventKinds.ENTRY_MODIFY
-            );
-            watchedDirectory = normalizedDirectory;
-            directoryWatcherThread = new Thread(this::watchDirectoryLoop, "p4-file-explorer-watcher");
-            directoryWatcherThread.setDaemon(true);
-            directoryWatcherThread.start();
-        } catch (IOException exception) {
-            watchedDirectory = null;
-            directoryWatchService = null;
-            showStatus("L'actualitzacio automatica de l'explorador no esta disponible per a aquesta carpeta.");
-        }
-    }
-
-    private synchronized void stopWatchingDirectory() {
-        watchedDirectory = null;
-
-        if (directoryWatcherThread != null) {
-            directoryWatcherThread.interrupt();
-            directoryWatcherThread = null;
-        }
-
-        if (directoryWatchService != null) {
-            try {
-                directoryWatchService.close();
-            } catch (IOException ignored) {
-                // Best effort cleanup.
-            }
-            directoryWatchService = null;
-        }
-    }
-
-    private void watchDirectoryLoop() {
-        try {
-            while (!Thread.currentThread().isInterrupted()) {
-                WatchKey key = directoryWatchService.take();
-                boolean changed = false;
-                for (var event : key.pollEvents()) {
-                    if (event.kind() != StandardWatchEventKinds.OVERFLOW) {
-                        changed = true;
-                    }
-                }
-                key.reset();
-                if (changed) {
-                    refreshFileExplorer();
-                }
-            }
-        } catch (InterruptedException ignored) {
-            Thread.currentThread().interrupt();
-        } catch (ClosedWatchServiceException ignored) {
-            // Normal shutdown path when the window closes or the watched folder changes.
-        }
-    }
 }
