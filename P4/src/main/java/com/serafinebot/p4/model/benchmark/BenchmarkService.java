@@ -1,5 +1,6 @@
 package com.serafinebot.p4.model.benchmark;
 
+import com.serafinebot.p4.model.archive.CompressionMode;
 import com.serafinebot.p4.model.codec.HuffmanCodec;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
 import com.serafinebot.p4.model.report.CompressionResult;
@@ -8,16 +9,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Random;
 
 /**
- * Executes deterministic synthetic benchmarks over all configured queue strategies.
+ * Executes benchmarks over a directory of real corpus files.
  */
 public final class BenchmarkService {
-
-    private static final byte[] TEXT_ALPHABET = "eeeeeeeeeeeeaaaaaaaaiiiiiiiiooooooosssssrrrnnnntttllccuupmdh,.;:-_ ()".getBytes();
 
     /**
      * Executes the benchmark described by {@code config}.
@@ -31,67 +29,63 @@ public final class BenchmarkService {
      */
     public BenchmarkReport run(BenchmarkConfig config, BenchmarkProgressListener progressListener) throws IOException {
         List<BenchmarkPoint> points = new ArrayList<>();
-        int[] sizes = sizes(config);
-        int totalSteps = BenchmarkProfile.values().length * sizes.length * PriorityQueueStrategy.values().length * config.repetitions();
+        List<BenchmarkModePoint> modePoints = new ArrayList<>();
+        List<CorpusInput> corpusInputs = loadCorpusInputs(config.corpusDirectory());
+        int totalSteps = corpusInputs.size() * PriorityQueueStrategy.values().length * config.repetitions();
         int completedSteps = 0;
         Path tempDirectory = Files.createTempDirectory("p4-benchmark-");
 
         try {
-            for (BenchmarkProfile profile : BenchmarkProfile.values()) {
-                for (int size : sizes) {
-                    byte[] data = generate(profile, size, 73L + profile.ordinal() * 997L + size);
-                    Path inputPath = tempDirectory.resolve("input-" + profile.ordinal() + '-' + size + ".bin");
-                    Files.write(inputPath, data);
+            for (int inputIndex = 0; inputIndex < corpusInputs.size(); inputIndex++) {
+                CorpusInput input = corpusInputs.get(inputIndex);
+                modePoints.addAll(measureModeCompression(input, inputIndex, tempDirectory, config.repetitions()));
 
-                    for (PriorityQueueStrategy strategy : PriorityQueueStrategy.values()) {
-                        double totalCompressionMillis = 0.0;
-                        double totalDecompressionMillis = 0.0;
-                        double totalEntropy = 0.0;
-                        double totalAverageCodeLength = 0.0;
-                        double totalCompressionPercentage = 0.0;
+                for (PriorityQueueStrategy strategy : PriorityQueueStrategy.values()) {
+                    double totalCompressionMillis = 0.0;
+                    double totalDecompressionMillis = 0.0;
+                    double totalEntropy = 0.0;
+                    double totalAverageCodeLength = 0.0;
+                    double totalCompressionPercentage = 0.0;
 
-                        for (int repetition = 0; repetition < config.repetitions(); repetition++) {
-                            Path archivePath = tempDirectory.resolve("archive-" + profile.ordinal() + '-' + size + '-' + strategy.name() + '-' + repetition + ".hff");
-                            Path restoredPath = tempDirectory.resolve("restored-" + profile.ordinal() + '-' + size + '-' + strategy.name() + '-' + repetition + ".bin");
+                    for (int repetition = 0; repetition < config.repetitions(); repetition++) {
+                        Path archivePath = tempDirectory.resolve("archive-" + inputIndex + '-' + strategy.name() + '-' + repetition + ".hff");
+                        Path restoredPath = tempDirectory.resolve("restored-" + inputIndex + '-' + strategy.name() + '-' + repetition + ".bin");
 
-                            HuffmanCodec codec = new HuffmanCodec(strategy);
+                        HuffmanCodec codec = new HuffmanCodec(strategy);
 
-                            long startCompression = System.nanoTime();
-                            CompressionResult compressionResult = codec.compress(inputPath, archivePath);
-                            totalCompressionMillis += nanosToMillis(System.nanoTime() - startCompression);
+                        long startCompression = System.nanoTime();
+                        CompressionResult compressionResult = codec.compress(input.path(), archivePath);
+                        totalCompressionMillis += nanosToMillis(System.nanoTime() - startCompression);
 
-                            long startDecompression = System.nanoTime();
-                            codec.decompress(archivePath, restoredPath);
-                            totalDecompressionMillis += nanosToMillis(System.nanoTime() - startDecompression);
+                        long startDecompression = System.nanoTime();
+                        codec.decompress(archivePath, restoredPath);
+                        totalDecompressionMillis += nanosToMillis(System.nanoTime() - startDecompression);
 
-                            if (!Arrays.equals(data, Files.readAllBytes(restoredPath))) {
-                                throw new IOException("El benchmark ha produït una descompressio incorrecta.");
-                            }
-
-                            totalEntropy += compressionResult.entropy();
-                            totalAverageCodeLength += compressionResult.averageHuffmanCodeLength();
-                            totalCompressionPercentage += compressionResult.compressionPercentage();
-
-                            completedSteps++;
-                            reportProgress(progressListener, completedSteps, totalSteps, profile, strategy, size);
-
-                            Files.deleteIfExists(archivePath);
-                            Files.deleteIfExists(restoredPath);
+                        if (Files.mismatch(input.path(), restoredPath) != -1L) {
+                            throw new IOException("El benchmark ha produït una descompressio incorrecta per al fitxer " + input.sourceName() + '.');
                         }
 
-                        points.add(new BenchmarkPoint(
-                            profile,
-                            strategy,
-                            size,
-                            totalCompressionMillis / config.repetitions(),
-                            totalDecompressionMillis / config.repetitions(),
-                            totalEntropy / config.repetitions(),
-                            totalAverageCodeLength / config.repetitions(),
-                            totalCompressionPercentage / config.repetitions()
-                        ));
+                        totalEntropy += compressionResult.entropy();
+                        totalAverageCodeLength += compressionResult.averageHuffmanCodeLength();
+                        totalCompressionPercentage += compressionResult.compressionPercentage();
+
+                        completedSteps++;
+                        reportProgress(progressListener, completedSteps, totalSteps, input.sourceName(), strategy, input.sizeBytes());
+
+                        Files.deleteIfExists(archivePath);
+                        Files.deleteIfExists(restoredPath);
                     }
 
-                    Files.deleteIfExists(inputPath);
+                    points.add(new BenchmarkPoint(
+                        input.sourceName(),
+                        strategy,
+                        input.sizeBytes(),
+                        totalCompressionMillis / config.repetitions(),
+                        totalDecompressionMillis / config.repetitions(),
+                        totalEntropy / config.repetitions(),
+                        totalAverageCodeLength / config.repetitions(),
+                        totalCompressionPercentage / config.repetitions()
+                    ));
                 }
             }
         } finally {
@@ -106,74 +100,73 @@ public final class BenchmarkService {
             }
         }
 
-        reportProgress(progressListener, totalSteps, totalSteps, BenchmarkProfile.RANDOM_BYTES, PriorityQueueStrategy.BINARY_HEAP, config.maxSizeBytes());
-        return new BenchmarkReport(config, points);
+        return new BenchmarkReport(config, points, modePoints);
+    }
+
+    private List<BenchmarkModePoint> measureModeCompression(CorpusInput input,
+                                                            int inputIndex,
+                                                            Path tempDirectory,
+                                                            int repetitions) throws IOException {
+        List<BenchmarkModePoint> points = new ArrayList<>();
+        for (CompressionMode mode : List.of(CompressionMode.HUFFMAN_1_BYTE, CompressionMode.HUFFMAN_2_BYTE, CompressionMode.HUFFMAN_BLOCK)) {
+            double totalCompressionPercentage = 0.0;
+            for (int repetition = 0; repetition < repetitions; repetition++) {
+                Path archivePath = tempDirectory.resolve("mode-archive-" + inputIndex + '-' + mode.name() + '-' + repetition + ".hff");
+                CompressionResult result = new HuffmanCodec(PriorityQueueStrategy.BINARY_HEAP, mode).compress(input.path(), archivePath);
+                totalCompressionPercentage += result.compressionPercentage();
+                Files.deleteIfExists(archivePath);
+            }
+
+            points.add(new BenchmarkModePoint(
+                input.sourceName(),
+                mode,
+                input.sizeBytes(),
+                totalCompressionPercentage / repetitions
+            ));
+        }
+        return points;
     }
 
     private void reportProgress(BenchmarkProgressListener listener,
                                 int completedSteps,
                                 int totalSteps,
-                                BenchmarkProfile profile,
+                                String sourceName,
                                 PriorityQueueStrategy strategy,
-                                int sizeBytes) {
+                                long sizeBytes) {
         if (listener == null) {
             return;
         }
-        listener.onProgress(new BenchmarkProgressSnapshot(completedSteps, totalSteps, profile, strategy, sizeBytes));
+        listener.onProgress(new BenchmarkProgressSnapshot(completedSteps, totalSteps, sourceName, strategy, sizeBytes));
     }
 
-    private int[] sizes(BenchmarkConfig config) {
-        if (config.pointCount() == 1) {
-            return new int[] {config.minSizeBytes()};
+    private List<CorpusInput> loadCorpusInputs(Path corpusDirectory) throws IOException {
+        Path normalizedDirectory = corpusDirectory.toAbsolutePath().normalize();
+        if (!Files.isDirectory(normalizedDirectory)) {
+            throw new IOException("El directori del corpus no existeix o no es un directori: " + normalizedDirectory);
         }
 
-        int[] sizes = new int[config.pointCount()];
-        double step = (config.maxSizeBytes() - config.minSizeBytes()) / (double) (config.pointCount() - 1);
-        int previous = 0;
-        for (int i = 0; i < sizes.length; i++) {
-            int candidate = (int) Math.round(config.minSizeBytes() + step * i);
-            if (i > 0 && candidate <= previous) {
-                candidate = previous + 1;
-            }
-            sizes[i] = Math.min(candidate, config.maxSizeBytes());
-            previous = sizes[i];
-        }
-        sizes[sizes.length - 1] = config.maxSizeBytes();
-        return sizes;
-    }
-
-    private byte[] generate(BenchmarkProfile profile, int size, long seed) {
-        Random random = new Random(seed);
-        byte[] data = new byte[size];
-
-        if (profile == BenchmarkProfile.RANDOM_BYTES) {
-            random.nextBytes(data);
-            return data;
-        }
-
-        if (profile == BenchmarkProfile.LOW_ENTROPY) {
-            for (int i = 0; i < data.length; i++) {
-                double sample = random.nextDouble();
-                if (sample < 0.72) {
-                    data[i] = 'A';
-                } else if (sample < 0.86) {
-                    data[i] = 'B';
-                } else if (sample < 0.95) {
-                    data[i] = 'C';
-                } else {
-                    data[i] = (byte) ('0' + random.nextInt(10));
+        List<CorpusInput> inputs = new ArrayList<>();
+        try (var walk = Files.walk(normalizedDirectory)) {
+            for (Path path : (Iterable<Path>) walk::iterator) {
+                if (!Files.isRegularFile(path)) {
+                    continue;
                 }
+                inputs.add(new CorpusInput(path, path.getFileName().toString(), Files.size(path)));
             }
-            return data;
         }
 
-        for (int i = 0; i < data.length; i++) {
-            data[i] = TEXT_ALPHABET[random.nextInt(TEXT_ALPHABET.length)];
+        if (inputs.isEmpty()) {
+            throw new IOException("No s'ha trobat cap fitxer regular dins el directori del corpus: " + normalizedDirectory);
         }
-        return data;
+
+        inputs.sort(Comparator.comparingLong(CorpusInput::sizeBytes).thenComparing(CorpusInput::sourceName));
+        return List.copyOf(inputs);
     }
 
     private double nanosToMillis(long nanos) {
         return nanos / 1_000_000.0;
+    }
+
+    private record CorpusInput(Path path, String sourceName, long sizeBytes) {
     }
 }

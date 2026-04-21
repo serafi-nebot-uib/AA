@@ -53,6 +53,7 @@ import java.util.List;
  */
 public class MainWindow extends JFrame {
 
+    private static final int FILES_TAB_INDEX = 0;
     private static final Color FRAME_BACKGROUND = new Color(238, 241, 245);
     private static final Color PANEL_BACKGROUND = new Color(248, 250, 252);
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.000000");
@@ -60,8 +61,6 @@ public class MainWindow extends JFrame {
 
     private final JTextField inputField = new JTextField(42);
     private final JTextField outputField = new JTextField(42);
-    private final JButton browseInputButton = new JButton("Explora");
-    private final JButton browseOutputButton = new JButton("Explora");
     private final JButton processButton = new JButton("Comprimeix a .hff");
     private final JComboBox<PriorityQueueStrategy> queueCombo = new JComboBox<>();
     private final JTextArea statsArea = new JTextArea();
@@ -82,6 +81,8 @@ public class MainWindow extends JFrame {
     private final JLabel etaLabel = new JLabel("Temps restant --");
     private final JLabel statusLabel = new JLabel("Preparat.", SwingConstants.RIGHT);
     private final JTabbedPane contentTabs = new JTabbedPane();
+    private final JPanel progressPanel = new JPanel();
+    private final JPanel progressInfoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
 
     private ViewListener viewListener;
 
@@ -103,6 +104,7 @@ public class MainWindow extends JFrame {
 
         clearResults();
         installActions();
+        updateBottomPanelsVisibility();
 
         pack();
         setLocationRelativeTo(null);
@@ -123,8 +125,6 @@ public class MainWindow extends JFrame {
     }
 
     public void setRunning(boolean running) {
-        browseInputButton.setEnabled(!running);
-        browseOutputButton.setEnabled(!running);
         processButton.setEnabled(!running);
         queueCombo.setEnabled(!running);
         inputField.setEnabled(!running);
@@ -207,11 +207,16 @@ public class MainWindow extends JFrame {
     }
 
     public void showStatus(String message) {
+        if (!isFilesTabSelected()) {
+            return;
+        }
         statusLabel.setText(message);
     }
 
     public void showError(String message) {
-        statusLabel.setText(message);
+        if (isFilesTabSelected()) {
+            statusLabel.setText(message);
+        }
         JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
@@ -268,6 +273,7 @@ public class MainWindow extends JFrame {
         contentTabs.addTab("Taula de codis", wrapPanel("Codis Huffman assignats", new JScrollPane(symbolTable)));
         contentTabs.addTab("Arbre", createTreeTab());
         contentTabs.addTab("Comparatives", benchmarkPanel);
+        contentTabs.addChangeListener(event -> updateBottomPanelsVisibility());
 
         center.add(contentTabs, BorderLayout.CENTER);
         return center;
@@ -307,10 +313,6 @@ public class MainWindow extends JFrame {
         gbc.weightx = 1.0;
         selectorsPanel.add(inputField, gbc);
 
-        gbc.gridx = 2;
-        gbc.weightx = 0.0;
-        selectorsPanel.add(browseInputButton, gbc);
-
         gbc.gridy = 1;
         gbc.gridx = 0;
         selectorsPanel.add(new JLabel("Fitxer de sortida:"), gbc);
@@ -318,10 +320,6 @@ public class MainWindow extends JFrame {
         gbc.gridx = 1;
         gbc.weightx = 1.0;
         selectorsPanel.add(outputField, gbc);
-
-        gbc.gridx = 2;
-        gbc.weightx = 0.0;
-        selectorsPanel.add(browseOutputButton, gbc);
 
         gbc.gridy = 2;
         gbc.gridx = 0;
@@ -391,7 +389,6 @@ public class MainWindow extends JFrame {
             new EmptyBorder(10, 12, 10, 12)
         ));
 
-        JPanel progressPanel = new JPanel();
         progressPanel.setOpaque(false);
         progressPanel.setLayout(new BoxLayout(progressPanel, BoxLayout.Y_AXIS));
         progressTextLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -401,16 +398,25 @@ public class MainWindow extends JFrame {
         progressPanel.add(progressTextLabel);
         progressPanel.add(progressBar);
 
-        JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
-        infoPanel.setOpaque(false);
-        infoPanel.add(phaseLabel);
-        infoPanel.add(new JLabel("|"));
-        infoPanel.add(etaLabel);
+        progressInfoPanel.setOpaque(false);
+        progressInfoPanel.add(phaseLabel);
+        progressInfoPanel.add(new JLabel("|"));
+        progressInfoPanel.add(etaLabel);
 
         panel.add(progressPanel, BorderLayout.CENTER);
-        panel.add(infoPanel, BorderLayout.WEST);
+        panel.add(progressInfoPanel, BorderLayout.WEST);
         panel.add(statusLabel, BorderLayout.EAST);
         return panel;
+    }
+
+    private void updateBottomPanelsVisibility() {
+        boolean showFilePanels = isFilesTabSelected();
+        progressPanel.setVisible(showFilePanels);
+        progressInfoPanel.setVisible(showFilePanels);
+    }
+
+    private boolean isFilesTabSelected() {
+        return contentTabs.getSelectedIndex() == FILES_TAB_INDEX;
     }
 
     private JPanel wrapPanel(String title, Component content) {
@@ -429,31 +435,8 @@ public class MainWindow extends JFrame {
     }
 
     private void installActions() {
-        browseInputButton.addActionListener(event -> applyExplorerSelectionToInput());
-        browseOutputButton.addActionListener(event -> applyExplorerSelectionToOutput());
         processButton.addActionListener(event -> dispatchPrimaryAction());
         benchmarkPanel.addRunListener(event -> dispatchBenchmark());
-    }
-
-    private void applyExplorerSelectionToInput() {
-        Path selectedPath = fileBrowserPanel.selectedPath();
-        if (selectedPath == null) {
-            showError("Selecciona abans un fitxer a l'explorador incrustat.");
-            return;
-        }
-        applyBrowserPathToInput(selectedPath);
-    }
-
-    private void applyExplorerSelectionToOutput() {
-        Path selectedPath = fileBrowserPanel.selectedPath();
-        if (selectedPath == null) {
-            showError("Selecciona abans un fitxer a l'explorador incrustat.");
-            return;
-        }
-
-        outputField.setText(selectedPath.toString());
-        contentTabs.setSelectedIndex(0);
-        showStatus("S'ha seleccionat la ruta de sortida: " + selectedPath.getFileName());
     }
 
     private void dispatchPrimaryAction() {

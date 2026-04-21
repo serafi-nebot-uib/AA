@@ -93,7 +93,6 @@ public class Controller implements ViewListener {
 
     @Override
     public void onBenchmarkRequested(BenchmarkConfig config) {
-        view.showStatus("Executant comparatives...");
         view.setRunning(true);
         view.resetBenchmarkProgress();
 
@@ -149,7 +148,6 @@ public class Controller implements ViewListener {
         try {
             BenchmarkReport report = (BenchmarkReport) worker.get();
             view.showBenchmarkReport(report);
-            view.showStatus("Comparatives completades.");
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             view.showError("L'execucio de les comparatives s'ha interromput.");

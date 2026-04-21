@@ -1,68 +1,55 @@
 package com.serafinebot.p4.view;
 
+import com.serafinebot.p4.model.archive.CompressionMode;
 import com.serafinebot.p4.model.benchmark.BenchmarkConfig;
 import com.serafinebot.p4.model.benchmark.BenchmarkCsvWriter;
+import com.serafinebot.p4.model.benchmark.BenchmarkModePoint;
 import com.serafinebot.p4.model.benchmark.BenchmarkPoint;
 import com.serafinebot.p4.model.benchmark.BenchmarkProgressSnapshot;
-import com.serafinebot.p4.model.benchmark.BenchmarkProfile;
 import com.serafinebot.p4.model.benchmark.BenchmarkReport;
-import com.serafinebot.p4.model.benchmark.BenchmarkSizeUnit;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
 
 import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
-import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
-import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.geom.Point2D;
-import java.text.DecimalFormat;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Controls and graphs for the optional performance comparison section.
+ * Controls and graphs for the performance comparison section.
  */
 public final class BenchmarkPanel extends JPanel {
 
-    private static final DecimalFormat SIZE_FIELD_FORMAT = new DecimalFormat("0.###");
+    private static final String DEFAULT_CORPUS_DIRECTORY = detectDefaultCorpusDirectory();
 
     private static final Map<PriorityQueueStrategy, Color> STRATEGY_COLORS = Map.of(
         PriorityQueueStrategy.BINARY_HEAP, new Color(54, 111, 214),
-        PriorityQueueStrategy.ORDERED_LIST, new Color(232, 126, 39),
-        PriorityQueueStrategy.DICHOTOMIC_LIST, new Color(55, 156, 91),
+        PriorityQueueStrategy.DICHOTOMIC_LIST, new Color(232, 126, 39),
         PriorityQueueStrategy.FIBONACCI_HEAP, new Color(142, 84, 201)
     );
-    private static final Map<BenchmarkProfile, Color> PROFILE_COLORS = Map.of(
-        BenchmarkProfile.TEXT_LIKE, new Color(54, 111, 214),
-        BenchmarkProfile.LOW_ENTROPY, new Color(55, 156, 91),
-        BenchmarkProfile.RANDOM_BYTES, new Color(184, 73, 109)
+    private static final Map<CompressionMode, Color> MODE_COLORS = Map.of(
+        CompressionMode.HUFFMAN_1_BYTE, new Color(54, 111, 214),
+        CompressionMode.HUFFMAN_2_BYTE, new Color(232, 126, 39),
+        CompressionMode.HUFFMAN_BLOCK, new Color(55, 156, 91)
     );
 
-    private final JTextField minSizeField = new JTextField("4", 6);
-    private final JTextField maxSizeField = new JTextField("256", 6);
-    private final JTextField pointCountField = new JTextField("6", 6);
+    private final JTextField corpusDirectoryField = new JTextField(DEFAULT_CORPUS_DIRECTORY, 28);
     private final JTextField repetitionsField = new JTextField("3", 6);
-    private final JComboBox<BenchmarkSizeUnit> sizeUnitCombo = new JComboBox<>(BenchmarkSizeUnit.values());
-    private final JComboBox<BenchmarkProfile> timeProfileCombo = new JComboBox<>(BenchmarkProfile.values());
     private final JButton runButton = new JButton("Executa comparatives");
     private final JButton exportButton = new JButton("Exporta CSV");
     private final JLabel progressLabel = new JLabel("Comparativa inactiva.");
@@ -70,7 +57,6 @@ public final class BenchmarkPanel extends JPanel {
     private final BenchmarkGraphPanel compressionGraph = new BenchmarkGraphPanel();
     private final BenchmarkGraphPanel decompressionGraph = new BenchmarkGraphPanel();
     private final BenchmarkGraphPanel compressionRateGraph = new BenchmarkGraphPanel();
-    private final BenchmarkBarChartPanel strategyTimeChart = new BenchmarkBarChartPanel();
     private final BenchmarkGraphPanel entropyGraph = new BenchmarkGraphPanel();
 
     private BenchmarkReport report;
@@ -81,9 +67,6 @@ public final class BenchmarkPanel extends JPanel {
         add(createTopPanel(), BorderLayout.NORTH);
         add(createGraphsPanel(), BorderLayout.CENTER);
         progressBar.setStringPainted(false);
-
-        timeProfileCombo.addActionListener(event -> refreshGraphs());
-        sizeUnitCombo.addActionListener(event -> clampSizeFieldsToUnit());
         exportButton.addActionListener(event -> exportCsv());
         showEmptyState();
     }
@@ -94,12 +77,8 @@ public final class BenchmarkPanel extends JPanel {
 
     public void setRunning(boolean running) {
         runButton.setEnabled(!running);
-        minSizeField.setEnabled(!running);
-        maxSizeField.setEnabled(!running);
-        pointCountField.setEnabled(!running);
+        corpusDirectoryField.setEnabled(!running);
         repetitionsField.setEnabled(!running);
-        sizeUnitCombo.setEnabled(!running);
-        timeProfileCombo.setEnabled(!running);
         exportButton.setEnabled(!running && report != null);
     }
 
@@ -113,7 +92,7 @@ public final class BenchmarkPanel extends JPanel {
         progressBar.setValue(percent);
         progressLabel.setText(String.format(
             "%s • %s • %s • pas %d/%d • %d%%",
-            snapshot.profile(),
+            snapshot.sourceName(),
             snapshot.strategy(),
             formatSize(snapshot.sizeBytes()),
             snapshot.completedSteps(),
@@ -123,25 +102,47 @@ public final class BenchmarkPanel extends JPanel {
     }
 
     public BenchmarkConfig readConfig() {
-        try {
-            double minSize = Double.parseDouble(minSizeField.getText().trim());
-            double maxSize = Double.parseDouble(maxSizeField.getText().trim());
-            int pointCount = Integer.parseInt(pointCountField.getText().trim());
-            int repetitions = Integer.parseInt(repetitionsField.getText().trim());
-
-            BenchmarkSizeUnit unit = (BenchmarkSizeUnit) sizeUnitCombo.getSelectedItem();
-            long minBytes = Math.round(minSize * unit.multiplier());
-            long maxBytes = Math.round(maxSize * unit.multiplier());
-            if (minSize <= 0.0 || maxSize <= 0.0) {
-                throw new IllegalArgumentException("Les mides de la comparativa han de ser positives.");
-            }
-            if (minBytes > Integer.MAX_VALUE || maxBytes > Integer.MAX_VALUE) {
-                throw new IllegalArgumentException("La comparativa sintetica es limita a aproximadament 2 GiB per mostra. Redueix la mida o usa una unitat mes petita.");
-            }
-            return new BenchmarkConfig((int) minBytes, (int) maxBytes, pointCount, repetitions);
-        } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException("Els camps de mida de la comparativa han de contenir nombres valids.");
+        String corpusText = corpusDirectoryField.getText().trim();
+        if (corpusText.isEmpty()) {
+            throw new IllegalArgumentException("Indica el directori on has descomprimit el corpus Silesia.");
         }
+
+        try {
+            Path corpusDirectory = resolveCorpusDirectory(corpusText);
+            if (!Files.isDirectory(corpusDirectory)) {
+                throw new IllegalArgumentException("El directori del corpus no existeix o no es valid.");
+            }
+
+            int repetitions = Integer.parseInt(repetitionsField.getText().trim());
+            return new BenchmarkConfig(corpusDirectory, repetitions);
+        } catch (InvalidPathException exception) {
+            throw new IllegalArgumentException("La ruta del corpus no es valida: " + exception.getInput());
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("El camp de repeticions ha de contenir un nombre valid.");
+        }
+    }
+
+    private static String detectDefaultCorpusDirectory() {
+        for (String candidate : List.of("res", "P4/res")) {
+            if (Files.isDirectory(Path.of(candidate))) {
+                return candidate;
+            }
+        }
+        return "res";
+    }
+
+    private static Path resolveCorpusDirectory(String corpusText) {
+        Path direct = Path.of(corpusText);
+        if (Files.isDirectory(direct)) {
+            return direct;
+        }
+        if (!direct.isAbsolute()) {
+            Path projectRelative = Path.of("P4").resolve(direct).normalize();
+            if (Files.isDirectory(projectRelative)) {
+                return projectRelative;
+            }
+        }
+        return direct;
     }
 
     public void showReport(BenchmarkReport report) {
@@ -171,45 +172,28 @@ public final class BenchmarkPanel extends JPanel {
         gbc.gridy = 0;
 
         gbc.gridx = 0;
-        panel.add(new JLabel("Mida minima:"), gbc);
+        gbc.weightx = 0.0;
+        panel.add(new JLabel("Directori del corpus:"), gbc);
+
         gbc.gridx = 1;
-        panel.add(minSizeField, gbc);
+        gbc.weightx = 1.0;
+        gbc.gridwidth = 4;
+        panel.add(corpusDirectoryField, gbc);
 
-        gbc.gridx = 2;
-        panel.add(new JLabel("Mida maxima:"), gbc);
-        gbc.gridx = 3;
-        panel.add(maxSizeField, gbc);
-
-        gbc.gridx = 4;
-        panel.add(new JLabel("Unitat:"), gbc);
         gbc.gridx = 5;
-        panel.add(sizeUnitCombo, gbc);
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.0;
+        panel.add(exportButton, gbc);
 
         gbc.gridx = 6;
-        panel.add(new JLabel("Punts:"), gbc);
-        gbc.gridx = 7;
-        panel.add(pointCountField, gbc);
+        panel.add(runButton, gbc);
 
         gbc.gridy = 1;
         gbc.gridx = 0;
         panel.add(new JLabel("Repeticions:"), gbc);
+
         gbc.gridx = 1;
         panel.add(repetitionsField, gbc);
-
-        gbc.gridx = 2;
-        panel.add(new JLabel("Perfil pels temps:"), gbc);
-        gbc.gridx = 3;
-        gbc.gridwidth = 2;
-        panel.add(timeProfileCombo, gbc);
-
-        gbc.gridx = 5;
-        gbc.gridwidth = 1;
-        panel.add(exportButton, gbc);
-
-        gbc.gridx = 7;
-        gbc.gridwidth = 1;
-        gbc.anchor = GridBagConstraints.EAST;
-        panel.add(runButton, gbc);
 
         return panel;
     }
@@ -228,7 +212,6 @@ public final class BenchmarkPanel extends JPanel {
         tabs.addTab("Temps de compressio", compressionGraph);
         tabs.addTab("Temps de descompressio", decompressionGraph);
         tabs.addTab("Taxa de compressio", compressionRateGraph);
-        tabs.addTab("Temps per estrategia", strategyTimeChart);
         tabs.addTab("Entropia vs codi", entropyGraph);
         return tabs;
     }
@@ -239,33 +222,26 @@ public final class BenchmarkPanel extends JPanel {
             return;
         }
 
-        BenchmarkProfile selectedProfile = (BenchmarkProfile) timeProfileCombo.getSelectedItem();
         compressionGraph.setGraph(
             "Temps de compressio segons la mida",
             "Mida (bytes)",
             "Temps (ms)",
             "No hi ha dades de compressio.",
-            timeSeries(selectedProfile, true)
+            timeSeries(true)
         );
         decompressionGraph.setGraph(
             "Temps de descompressio segons la mida",
             "Mida (bytes)",
             "Temps (ms)",
             "No hi ha dades de descompressio.",
-            timeSeries(selectedProfile, false)
+            timeSeries(false)
         );
         compressionRateGraph.setGraph(
-            "Taxa de compressio segons la mida",
+            "Rati de compressio segons la mida (per mode)",
             "Mida (bytes)",
-            "Compressio (%)",
-            "No hi ha dades de taxa de compressio.",
-            compressionRateSeries(selectedProfile)
-        );
-        strategyTimeChart.setChart(
-            "Temps mitja de compressio per estrategia",
-            "Temps mitja (ms)",
-            "No hi ha dades de temps per estrategia.",
-            strategyTimeBars(selectedProfile)
+            "Rati (N:1)",
+            "No hi ha dades de rati de compressio.",
+            compressionRateSeries()
         );
         entropyGraph.setGraph(
             "Entropia vs longitud mitjana del codi",
@@ -279,19 +255,22 @@ public final class BenchmarkPanel extends JPanel {
     private void showEmptyState() {
         compressionGraph.setGraph("Temps de compressio segons la mida", "Mida (bytes)", "Temps (ms)", "Executa una comparativa per veure el graf.", List.of());
         decompressionGraph.setGraph("Temps de descompressio segons la mida", "Mida (bytes)", "Temps (ms)", "Executa una comparativa per veure el graf.", List.of());
-        compressionRateGraph.setGraph("Taxa de compressio segons la mida", "Mida (bytes)", "Compressio (%)", "Executa una comparativa per veure el graf.", List.of());
-        strategyTimeChart.setChart("Temps mitja de compressio per estrategia", "Temps mitja (ms)", "Executa una comparativa per veure el graf.", List.of());
+        compressionRateGraph.setGraph("Rati de compressio segons la mida (per mode)", "Mida (bytes)", "Rati (N:1)", "Executa una comparativa per veure el graf.", List.of());
         entropyGraph.setGraph("Entropia vs longitud mitjana del codi", "Entropia", "Longitud mitjana", "Executa una comparativa per veure el graf.", List.of());
         exportButton.setEnabled(false);
     }
 
-    private List<BenchmarkGraphPanel.Series> timeSeries(BenchmarkProfile selectedProfile, boolean compression) {
+    private List<BenchmarkGraphPanel.Series> timeSeries(boolean compression) {
         List<BenchmarkGraphPanel.Series> series = new ArrayList<>();
         for (PriorityQueueStrategy strategy : PriorityQueueStrategy.values()) {
-            List<Point2D.Double> points = new ArrayList<>();
+            List<BenchmarkGraphPanel.GraphPoint> points = new ArrayList<>();
             for (BenchmarkPoint point : report.points()) {
-                if (point.profile() == selectedProfile && point.strategy() == strategy) {
-                    points.add(new Point2D.Double(point.sizeBytes(), compression ? point.compressionMillis() : point.decompressionMillis()));
+                if (point.strategy() == strategy) {
+                    points.add(new BenchmarkGraphPanel.GraphPoint(
+                        point.sizeBytes(),
+                        compression ? point.compressionMillis() : point.decompressionMillis(),
+                        strategy == PriorityQueueStrategy.BINARY_HEAP ? point.sourceName() : null
+                    ));
                 }
             }
             series.add(new BenchmarkGraphPanel.Series(strategy.toString(), STRATEGY_COLORS.get(strategy), true, points));
@@ -300,53 +279,35 @@ public final class BenchmarkPanel extends JPanel {
     }
 
     private List<BenchmarkGraphPanel.Series> entropySeries() {
+        List<BenchmarkGraphPanel.GraphPoint> points = new ArrayList<>();
+        for (BenchmarkPoint point : report.points()) {
+            if (point.strategy() == PriorityQueueStrategy.BINARY_HEAP) {
+                points.add(new BenchmarkGraphPanel.GraphPoint(point.entropy(), point.averageCodeLength(), point.sourceName()));
+            }
+        }
+        return List.of(new BenchmarkGraphPanel.Series("Corpus Silesia", new Color(54, 111, 214), false, points));
+    }
+
+    private List<BenchmarkGraphPanel.Series> compressionRateSeries() {
         List<BenchmarkGraphPanel.Series> series = new ArrayList<>();
-        for (BenchmarkProfile profile : BenchmarkProfile.values()) {
-            Map<Integer, Point2D.Double> uniquePoints = new LinkedHashMap<>();
-            for (BenchmarkPoint point : report.points()) {
-                if (point.profile() == profile && point.strategy() == PriorityQueueStrategy.BINARY_HEAP) {
-                    uniquePoints.put(point.sizeBytes(), new Point2D.Double(point.entropy(), point.averageCodeLength()));
+        for (CompressionMode mode : List.of(CompressionMode.HUFFMAN_1_BYTE, CompressionMode.HUFFMAN_2_BYTE, CompressionMode.HUFFMAN_BLOCK)) {
+            List<BenchmarkGraphPanel.GraphPoint> points = new ArrayList<>();
+            for (BenchmarkModePoint point : report.modePoints()) {
+                if (point.mode() == mode) {
+                    points.add(new BenchmarkGraphPanel.GraphPoint(
+                        point.sizeBytes(),
+                        compressionRatio(point.compressionPercentage()),
+                        mode == CompressionMode.HUFFMAN_1_BYTE ? point.sourceName() : null
+                    ));
                 }
             }
-            series.add(new BenchmarkGraphPanel.Series(profile.toString(), PROFILE_COLORS.get(profile), false, List.copyOf(uniquePoints.values())));
+            series.add(new BenchmarkGraphPanel.Series(mode.toString(), MODE_COLORS.get(mode), true, points));
         }
         return series;
     }
 
-    private List<BenchmarkGraphPanel.Series> compressionRateSeries(BenchmarkProfile selectedProfile) {
-        List<BenchmarkGraphPanel.Series> series = new ArrayList<>();
-        for (PriorityQueueStrategy strategy : PriorityQueueStrategy.values()) {
-            List<Point2D.Double> points = new ArrayList<>();
-            for (BenchmarkPoint point : report.points()) {
-                if (point.profile() == selectedProfile && point.strategy() == strategy) {
-                    points.add(new Point2D.Double(point.sizeBytes(), point.compressionPercentage()));
-                }
-            }
-            series.add(new BenchmarkGraphPanel.Series(strategy.toString(), STRATEGY_COLORS.get(strategy), true, points));
-        }
-        return series;
-    }
-
-    private List<BenchmarkBarChartPanel.Bar> strategyTimeBars(BenchmarkProfile selectedProfile) {
-        List<BenchmarkBarChartPanel.Bar> bars = new ArrayList<>();
-        for (PriorityQueueStrategy strategy : PriorityQueueStrategy.values()) {
-            double total = 0.0;
-            int count = 0;
-            for (BenchmarkPoint point : report.points()) {
-                if (point.profile() == selectedProfile && point.strategy() == strategy) {
-                    total += point.compressionMillis();
-                    count++;
-                }
-            }
-            if (count > 0) {
-                bars.add(new BenchmarkBarChartPanel.Bar(strategy.toString(), STRATEGY_COLORS.get(strategy), total / count));
-            }
-        }
-        return bars;
-    }
-
-    private String format(double value) {
-        return String.format("%.3f", value);
+    private double compressionRatio(double compressionPercentage) {
+        return 100.0 / (100.0 - compressionPercentage);
     }
 
     private String formatSize(long sizeBytes) {
@@ -361,27 +322,6 @@ public final class BenchmarkPanel extends JPanel {
             return sizeBytes + " " + units[unitIndex];
         }
         return String.format("%.2f %s", value, units[unitIndex]);
-    }
-
-    private void clampSizeFieldsToUnit() {
-        BenchmarkSizeUnit unit = (BenchmarkSizeUnit) sizeUnitCombo.getSelectedItem();
-        if (unit == null) {
-            return;
-        }
-        double maxAllowed = Integer.MAX_VALUE / (double) unit.multiplier();
-        clampField(minSizeField, maxAllowed);
-        clampField(maxSizeField, maxAllowed);
-    }
-
-    private void clampField(JTextField field, double maxAllowed) {
-        try {
-            double value = Double.parseDouble(field.getText().trim());
-            if (value > maxAllowed) {
-                field.setText(SIZE_FIELD_FORMAT.format(maxAllowed));
-            }
-        } catch (NumberFormatException ignored) {
-            // Leave validation to readConfig().
-        }
     }
 
     private void exportCsv() {

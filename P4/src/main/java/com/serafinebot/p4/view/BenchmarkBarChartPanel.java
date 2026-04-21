@@ -7,7 +7,6 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
-import java.text.DecimalFormat;
 import java.util.List;
 
 /**
@@ -17,8 +16,6 @@ public final class BenchmarkBarChartPanel extends JPanel {
 
     public record Bar(String label, Color color, double value) {
     }
-
-    private static final DecimalFormat VALUE_FORMAT = new DecimalFormat("0.###");
 
     private String title = "";
     private String yLabel = "";
@@ -52,30 +49,40 @@ public final class BenchmarkBarChartPanel extends JPanel {
             return;
         }
 
-        int left = 72;
+        int left = 88;
         int top = 46;
-        int width = Math.max(120, getWidth() - 96);
+        int width = Math.max(120, getWidth() - left - 24);
         int height = Math.max(120, getHeight() - 92);
-        double maxValue = bars.stream().mapToDouble(Bar::value).max().orElse(1.0);
-        if (maxValue <= 0.0) {
-            maxValue = 1.0;
+        double minValue = Math.min(0.0, bars.stream().mapToDouble(Bar::value).min().orElse(0.0));
+        double maxValue = Math.max(0.0, bars.stream().mapToDouble(Bar::value).max().orElse(1.0));
+        if (Double.compare(minValue, maxValue) == 0) {
+            maxValue = minValue + 1.0;
         }
+        ChartAxisSupport.AxisValueFormatter yFormatter = ChartAxisSupport.formatter(yLabel, minValue, maxValue);
+        ChartAxisSupport.AxisTicks yTicks = yFormatter.ticks(
+            minValue,
+            maxValue,
+            ChartAxisSupport.suggestTickCount(height)
+        );
+        String renderedYLabel = yFormatter.axisLabel(yLabel);
+        double axisMin = yTicks.min();
+        double axisMax = yTicks.max();
+        int baselineY = valueToY(0.0, top, height, axisMin, axisMax);
 
         g2.setColor(new Color(82, 90, 105));
-        g2.drawLine(left, top + height, left + width, top + height);
+        g2.drawLine(left, baselineY, left + width, baselineY);
         g2.drawLine(left, top, left, top + height);
 
         Font labelFont = getFont().deriveFont(Font.PLAIN, 11f);
         g2.setFont(labelFont);
         FontMetrics metrics = g2.getFontMetrics();
 
-        for (int step = 0; step <= 5; step++) {
-            int y = top + height - step * height / 5;
-            double value = maxValue * step / 5.0;
+        for (double tick : yTicks.values()) {
+            int y = valueToY(tick, top, height, axisMin, axisMax);
             g2.setColor(new Color(232, 236, 242));
             g2.drawLine(left, y, left + width, y);
             g2.setColor(new Color(82, 90, 105));
-            String valueLabel = VALUE_FORMAT.format(value);
+            String valueLabel = yFormatter.format(tick);
             g2.drawString(valueLabel, left - metrics.stringWidth(valueLabel) - 8, y + metrics.getAscent() / 2);
         }
 
@@ -83,9 +90,10 @@ public final class BenchmarkBarChartPanel extends JPanel {
         int barWidth = Math.max(22, slotWidth - 26);
         for (int i = 0; i < bars.size(); i++) {
             Bar bar = bars.get(i);
-            int barHeight = (int) Math.round((bar.value() / maxValue) * (height - 8));
+            int valueY = valueToY(bar.value(), top, height, axisMin, axisMax);
+            int y = Math.min(valueY, baselineY);
+            int barHeight = Math.max(1, Math.abs(valueY - baselineY));
             int x = left + i * slotWidth + (slotWidth - barWidth) / 2;
-            int y = top + height - barHeight;
 
             g2.setColor(bar.color());
             g2.fillRoundRect(x, y, barWidth, barHeight, 12, 12);
@@ -96,12 +104,32 @@ public final class BenchmarkBarChartPanel extends JPanel {
             String label = bar.label();
             g2.drawString(label, x + (barWidth - metrics.stringWidth(label)) / 2, top + height + 18);
 
-            String valueLabel = VALUE_FORMAT.format(bar.value());
-            g2.drawString(valueLabel, x + (barWidth - metrics.stringWidth(valueLabel)) / 2, y - 6);
+            String valueLabel = yFormatter.format(bar.value());
+            int valueLabelY = bar.value() >= 0.0
+                ? y - 6
+                : y + barHeight + metrics.getAscent() + 2;
+            valueLabelY = Math.max(top + metrics.getAscent(), Math.min(top + height - 2, valueLabelY));
+            g2.drawString(valueLabel, x + (barWidth - metrics.stringWidth(valueLabel)) / 2, valueLabelY);
         }
 
-        g2.drawString(yLabel, left + (width - metrics.stringWidth(yLabel)) / 2, top + height + 42);
+        drawYAxisLabel(g2, renderedYLabel, top, height);
         g2.dispose();
+    }
+
+    private void drawYAxisLabel(Graphics2D g2, String axisLabel, int top, int height) {
+        Font font = getFont().deriveFont(Font.PLAIN, 12f);
+        Graphics2D rotated = (Graphics2D) g2.create();
+        rotated.setFont(font);
+        rotated.setColor(new Color(47, 57, 74));
+        FontMetrics metrics = rotated.getFontMetrics();
+        rotated.rotate(-Math.PI / 2);
+        rotated.drawString(axisLabel, -(top + height / 2 + metrics.stringWidth(axisLabel) / 2), 18);
+        rotated.dispose();
+    }
+
+    private int valueToY(double value, int top, int height, double axisMin, double axisMax) {
+        double ratio = (value - axisMin) / (axisMax - axisMin);
+        return top + height - (int) Math.round(ratio * height);
     }
 
     private void drawTitle(Graphics2D g2) {

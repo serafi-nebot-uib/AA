@@ -111,7 +111,7 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
     /**
      * Creates a single-symbol code entry for the given symbol and frequency.
      */
-    public static HuffmanCode forSymbol(int symbol, long frequency) {
+    public static HuffmanCode single(int symbol, long frequency) {
         return new HuffmanCode(symbol, frequency);
     }
 
@@ -135,7 +135,7 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
     public static HuffmanCode buildFromFrequencies(FrequencyTable table, NodeQueue<HuffmanCode> queue) {
         for (int symbol = 0; symbol < table.symbolSpaceSize(); symbol++) {
             long frequency = table.frequencyOf(symbol);
-            if (frequency > 0L) queue.add(forSymbol(symbol, frequency));
+            if (frequency > 0L) queue.add(single(symbol, frequency));
         }
 
         if (queue.size() == 0) return null;

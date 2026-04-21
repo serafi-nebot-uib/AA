@@ -10,11 +10,6 @@ public enum PriorityQueueStrategy {
     BINARY_HEAP("Heap binari"),
 
     /**
-     * Linked list kept sorted by linear insertion.
-     */
-    ORDERED_LIST("Llista ordenada"),
-
-    /**
      * Array list kept sorted through binary-search insertion.
      */
     DICHOTOMIC_LIST("Llista dicotomica"),

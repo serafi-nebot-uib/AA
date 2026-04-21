@@ -7,16 +7,16 @@ import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
  *
  * @param completedSteps completed measurement steps
  * @param totalSteps total measurement steps
- * @param profile current dataset profile
+ * @param sourceName current corpus file name
  * @param strategy current queue strategy
  * @param sizeBytes current input size in bytes
  */
 public record BenchmarkProgressSnapshot(
     int completedSteps,
     int totalSteps,
-    BenchmarkProfile profile,
+    String sourceName,
     PriorityQueueStrategy strategy,
-    int sizeBytes
+    long sizeBytes
 ) {
     public double completion() {
         if (totalSteps <= 0) {

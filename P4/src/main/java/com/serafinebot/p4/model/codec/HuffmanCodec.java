@@ -10,7 +10,6 @@ import com.serafinebot.p4.model.queue.BinaryHeapNodeQueue;
 import com.serafinebot.p4.model.queue.DichotomicListNodeQueue;
 import com.serafinebot.p4.model.queue.FibonacciHeapNodeQueue;
 import com.serafinebot.p4.model.queue.NodeQueue;
-import com.serafinebot.p4.model.queue.OrderedListNodeQueue;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
 import com.serafinebot.p4.model.report.CompressionReport;
 import com.serafinebot.p4.model.report.CompressionResult;
@@ -41,18 +40,24 @@ public class HuffmanCodec {
 
     private static final int BUFFER_SIZE = 8192;
     private static final int WORD_SYMBOL_SPACE = 65536;
-    private static final int BLOCK_SIZE = 4096;
+    private static final int BLOCK_SIZE = 128 * 1024;
     private static final int BLOCK_HEADER_SIZE = Short.BYTES + Byte.BYTES;
     private static final int BLOCK_BYTE_FREQUENCY_ENTRY_SIZE = 9;
 
     private final PriorityQueueStrategy priorityQueueStrategy;
+    private final CompressionMode preferredCompressionMode;
 
     public HuffmanCodec() {
-        this(PriorityQueueStrategy.BINARY_HEAP);
+        this(PriorityQueueStrategy.BINARY_HEAP, null);
     }
 
     public HuffmanCodec(PriorityQueueStrategy priorityQueueStrategy) {
+        this(priorityQueueStrategy, null);
+    }
+
+    public HuffmanCodec(PriorityQueueStrategy priorityQueueStrategy, CompressionMode preferredCompressionMode) {
         this.priorityQueueStrategy = priorityQueueStrategy;
+        this.preferredCompressionMode = preferredCompressionMode;
     }
 
     public CompressionResult compress(Path inputPath, Path outputPath) throws IOException {
@@ -78,7 +83,7 @@ public class HuffmanCodec {
         BlockPlan blockPlan = analyzeBlockPlan(inputPath, originalSize, listener);
         long storedArchiveSize = ArchiveHeader.stored(originalSize).sizeInBytes() + originalSize;
 
-        CompressionMode selectedMode = selectBestMode(storedArchiveSize, bytePlan, wordPlan, blockPlan);
+        CompressionMode selectedMode = selectMode(storedArchiveSize, bytePlan, wordPlan, blockPlan);
         switch (selectedMode) {
             case STORED -> writeStoredArchive(inputPath, outputPath, originalSize, listener);
             case HUFFMAN_1_BYTE -> writeByteArchive(inputPath, outputPath, bytePlan, listener);
@@ -259,6 +264,19 @@ public class HuffmanCodec {
             selected = CompressionMode.HUFFMAN_BLOCK;
         }
         return selected;
+    }
+
+    private CompressionMode selectMode(long storedArchiveSize, BytePlan bytePlan, WordPlan wordPlan, BlockPlan blockPlan) {
+        if (preferredCompressionMode == null) {
+            return selectBestMode(storedArchiveSize, bytePlan, wordPlan, blockPlan);
+        }
+
+        return switch (preferredCompressionMode) {
+            case STORED -> CompressionMode.STORED;
+            case HUFFMAN_1_BYTE -> bytePlan == null ? CompressionMode.STORED : CompressionMode.HUFFMAN_1_BYTE;
+            case HUFFMAN_2_BYTE -> wordPlan == null ? CompressionMode.STORED : CompressionMode.HUFFMAN_2_BYTE;
+            case HUFFMAN_BLOCK -> blockPlan == null ? CompressionMode.STORED : CompressionMode.HUFFMAN_BLOCK;
+        };
     }
 
     private CompressionReport buildStoredReport(long originalSize,
@@ -840,7 +858,6 @@ public class HuffmanCodec {
 
     private NodeQueue<HuffmanCode> createQueue() {
         if (priorityQueueStrategy == PriorityQueueStrategy.BINARY_HEAP) return new BinaryHeapNodeQueue<>();
-        if (priorityQueueStrategy == PriorityQueueStrategy.ORDERED_LIST) return new OrderedListNodeQueue<>();
         if (priorityQueueStrategy == PriorityQueueStrategy.DICHOTOMIC_LIST) return new DichotomicListNodeQueue<>();
         if (priorityQueueStrategy == PriorityQueueStrategy.FIBONACCI_HEAP) return new FibonacciHeapNodeQueue<>();
         throw new IllegalArgumentException("Estrategia de cua no suportada: " + priorityQueueStrategy);

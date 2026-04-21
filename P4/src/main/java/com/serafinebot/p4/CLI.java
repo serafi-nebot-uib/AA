@@ -1,5 +1,10 @@
 package com.serafinebot.p4;
 
+import com.serafinebot.p4.model.benchmark.BenchmarkConfig;
+import com.serafinebot.p4.model.benchmark.BenchmarkCsvWriter;
+import com.serafinebot.p4.model.benchmark.BenchmarkProgressSnapshot;
+import com.serafinebot.p4.model.benchmark.BenchmarkReport;
+import com.serafinebot.p4.model.benchmark.BenchmarkService;
 import com.serafinebot.p4.model.codec.HuffmanCodec;
 import com.serafinebot.p4.model.progress.ProgressPhase;
 import com.serafinebot.p4.model.progress.ProgressSnapshot;
@@ -7,7 +12,9 @@ import com.serafinebot.p4.model.report.CompressionResult;
 import com.serafinebot.p4.model.report.DecompressionResult;
 
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Locale;
 
 /**
  * Command-line entry point for compressing and decompressing files.
@@ -30,14 +37,27 @@ public final class CLI {
             return 1;
         }
 
-        String command = args[0].toLowerCase();
+        String command = args[0].toLowerCase(Locale.ROOT);
         if ("--help".equals(command) || "-h".equals(command) || "help".equals(command)) {
             printHelp(out);
             return 0;
         }
 
+        return switch (command) {
+            case "compress", "c" -> runCompress(args, out, err);
+            case "decompress", "d" -> runDecompress(args, out, err);
+            case "benchmark", "bench", "b" -> runBenchmark(args, out, err);
+            default -> {
+                err.println("Unknown command: " + args[0]);
+                printHelp(err);
+                yield 1;
+            }
+        };
+    }
+
+    private static int runCompress(String[] args, PrintStream out, PrintStream err) {
         if (args.length != 3) {
-            err.println("Expected exactly 3 arguments.");
+            err.println("Compress command expects exactly 2 arguments: <input> <output>.");
             printHelp(err);
             return 1;
         }
@@ -48,25 +68,69 @@ public final class CLI {
         CliProgressPrinter progressPrinter = new CliProgressPrinter(err);
 
         try {
-            switch (command) {
-                case "compress", "c" -> {
-                    CompressionResult result = codec.compress(inputPath, outputPath, progressPrinter::print);
-                    progressPrinter.finish();
-                    printCompressionResult(out, inputPath, outputPath, result);
-                    return 0;
-                }
-                case "decompress", "d" -> {
-                    DecompressionResult result = codec.decompress(inputPath, outputPath, progressPrinter::print);
-                    progressPrinter.finish();
-                    printDecompressionResult(out, inputPath, outputPath, result);
-                    return 0;
-                }
-                default -> {
-                    err.println("Unknown command: " + args[0]);
-                    printHelp(err);
-                    return 1;
-                }
+            CompressionResult result = codec.compress(inputPath, outputPath, progressPrinter::print);
+            progressPrinter.finish();
+            printCompressionResult(out, inputPath, outputPath, result);
+            return 0;
+        } catch (Exception exception) {
+            progressPrinter.finish();
+            err.println("Error: " + exception.getMessage());
+            return 1;
+        }
+    }
+
+    private static int runDecompress(String[] args, PrintStream out, PrintStream err) {
+        if (args.length != 3) {
+            err.println("Decompress command expects exactly 2 arguments: <input> <output>.");
+            printHelp(err);
+            return 1;
+        }
+
+        Path inputPath = Path.of(args[1]);
+        Path outputPath = Path.of(args[2]);
+        HuffmanCodec codec = new HuffmanCodec();
+        CliProgressPrinter progressPrinter = new CliProgressPrinter(err);
+
+        try {
+            DecompressionResult result = codec.decompress(inputPath, outputPath, progressPrinter::print);
+            progressPrinter.finish();
+            printDecompressionResult(out, inputPath, outputPath, result);
+            return 0;
+        } catch (Exception exception) {
+            progressPrinter.finish();
+            err.println("Error: " + exception.getMessage());
+            return 1;
+        }
+    }
+
+    private static int runBenchmark(String[] args, PrintStream out, PrintStream err) {
+        if (args.length != 4) {
+            err.println("Benchmark command expects exactly 3 arguments: <corpusDir> <repetitions> <outputCsv>.");
+            printHelp(err);
+            return 1;
+        }
+
+        CliBenchmarkProgressPrinter progressPrinter = new CliBenchmarkProgressPrinter(err);
+        try {
+            Path corpusDirectory = Path.of(args[1]);
+            if (!Files.isDirectory(corpusDirectory)) {
+                throw new IllegalArgumentException("Corpus directory does not exist or is not a directory: " + corpusDirectory);
             }
+
+            int repetitions = parsePositiveInt(args[2], "repetitions");
+            Path outputCsvPath = Path.of(args[3]);
+
+            Path parent = outputCsvPath.toAbsolutePath().normalize().getParent();
+            if (parent != null && !Files.exists(parent)) {
+                throw new IllegalArgumentException("Output directory does not exist: " + parent);
+            }
+
+            BenchmarkConfig config = new BenchmarkConfig(corpusDirectory, repetitions);
+            BenchmarkReport report = new BenchmarkService().run(config, progressPrinter::print);
+            progressPrinter.finish();
+            BenchmarkCsvWriter.write(report, outputCsvPath);
+            printBenchmarkResult(out, config, report, outputCsvPath);
+            return 0;
         } catch (Exception exception) {
             progressPrinter.finish();
             err.println("Error: " + exception.getMessage());
@@ -91,9 +155,9 @@ public final class CLI {
     }
 
     private static void printDecompressionResult(PrintStream out,
-                                                 Path inputPath,
-                                                 Path outputPath,
-                                                 DecompressionResult result) {
+                                                  Path inputPath,
+                                                  Path outputPath,
+                                                  DecompressionResult result) {
         out.printf("Decompressed %s -> %s%n", inputPath, outputPath);
         out.printf("Mode: %s%n", result.mode());
         out.printf("Archive size: %d bytes%n", result.archiveSize());
@@ -101,16 +165,102 @@ public final class CLI {
         out.printf("Elapsed: %d ms%n", result.elapsedMillis());
     }
 
+    private static void printBenchmarkResult(PrintStream out,
+                                             BenchmarkConfig config,
+                                             BenchmarkReport report,
+                                             Path outputCsvPath) {
+        out.println("Benchmark completed.");
+        out.printf("Corpus: %s%n", config.corpusDirectory().toAbsolutePath().normalize());
+        out.printf("Repetitions: %d%n", config.repetitions());
+        out.printf("Measurements: %d%n", report.points().size());
+        out.printf("CSV: %s%n", outputCsvPath.toAbsolutePath().normalize());
+    }
+
+    private static int parsePositiveInt(String rawValue, String label) {
+        int parsedValue;
+        try {
+            parsedValue = Integer.parseInt(rawValue);
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("Invalid " + label + ": " + rawValue);
+        }
+        if (parsedValue <= 0) {
+            throw new IllegalArgumentException("The " + label + " must be positive.");
+        }
+        return parsedValue;
+    }
+
     private static void printHelp(PrintStream stream) {
-        stream.println("Usage: java -cp target/P4-1.0-SNAPSHOT.jar com.serafinebot.p4.CLI <compress|decompress> <input> <output>");
+        stream.println("Usage:");
+        stream.println("  java -cp target/P4-1.0-SNAPSHOT.jar com.serafinebot.p4.CLI <compress|decompress> <input> <output>");
+        stream.println("  java -cp target/P4-1.0-SNAPSHOT.jar com.serafinebot.p4.CLI benchmark <corpusDir> <repetitions> <outputCsv>");
         stream.println();
         stream.println("Commands:");
         stream.println("  compress, c    Compress a file into .hff format");
         stream.println("  decompress, d  Restore a file from .hff format");
+        stream.println("  benchmark, b   Run the comparatives benchmark and export CSV");
         stream.println();
         stream.println("Examples:");
         stream.println("  java -cp target/P4-1.0-SNAPSHOT.jar com.serafinebot.p4.CLI compress input.txt input.hff");
         stream.println("  java -cp target/P4-1.0-SNAPSHOT.jar com.serafinebot.p4.CLI decompress input.hff restored.bin");
+        stream.println("  java -cp target/P4-1.0-SNAPSHOT.jar com.serafinebot.p4.CLI benchmark /path/to/silesia-corpus 3 comparativa.csv");
+    }
+
+    private static String formatBytes(long bytes) {
+        String[] units = {"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"};
+        double value = bytes;
+        int unitIndex = 0;
+
+        while (value >= 1024.0 && unitIndex < units.length - 1) {
+            value /= 1024.0;
+            unitIndex++;
+        }
+
+        if (unitIndex == 0) {
+            return bytes + " " + units[unitIndex];
+        }
+        return String.format("%.2f %s", value, units[unitIndex]);
+    }
+
+    private static final class CliBenchmarkProgressPrinter {
+
+        private final PrintStream err;
+        private int previousLength;
+        private boolean activeLine;
+
+        private CliBenchmarkProgressPrinter(PrintStream err) {
+            this.err = err;
+        }
+
+        void print(BenchmarkProgressSnapshot snapshot) {
+            String line = String.format(
+                "Benchmark %6.2f%% (%d/%d) %s | %s | %s",
+                snapshot.completion() * 100.0,
+                snapshot.completedSteps(),
+                snapshot.totalSteps(),
+                snapshot.sourceName(),
+                snapshot.strategy(),
+                formatBytes(snapshot.sizeBytes())
+            );
+
+            int padding = Math.max(0, previousLength - line.length());
+            err.print('\r' + line + " ".repeat(padding));
+            activeLine = true;
+            previousLength = line.length();
+
+            if (snapshot.completion() >= 1.0) {
+                err.println();
+                activeLine = false;
+                previousLength = 0;
+            }
+        }
+
+        void finish() {
+            if (activeLine) {
+                err.println();
+                activeLine = false;
+                previousLength = 0;
+            }
+        }
     }
 
     private static final class CliProgressPrinter {
@@ -175,22 +325,6 @@ public final class CLI {
                 case COMPRESSING -> "Compressing ";
                 case DECOMPRESSING -> "Decompressing";
             };
-        }
-
-        private String formatBytes(long bytes) {
-            String[] units = {"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"};
-            double value = bytes;
-            int unitIndex = 0;
-
-            while (value >= 1024.0 && unitIndex < units.length - 1) {
-                value /= 1024.0;
-                unitIndex++;
-            }
-
-            if (unitIndex == 0) {
-                return bytes + " " + units[unitIndex];
-            }
-            return String.format("%.2f %s", value, units[unitIndex]);
         }
 
         private String formatDuration(long millis) {
