@@ -10,6 +10,7 @@ import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
  * @param priorityQueueStrategy queue strategy used to build the Huffman tree
  * @param originalSize original input size in bytes
  * @param archiveSize final archive size in bytes
+ * @param headerSize header size in bytes
  * @param distinctSymbolCount number of distinct byte values present in the input
  * @param theoreticalHuffmanBitCount number of payload bits produced by the Huffman codes alone
  * @param entropy Shannon entropy of the input distribution in bits per symbol
@@ -21,23 +22,18 @@ public record CompressionResult(
     PriorityQueueStrategy priorityQueueStrategy,
     long originalSize,
     long archiveSize,
+    long headerSize,
     int distinctSymbolCount,
     long theoreticalHuffmanBitCount,
     double entropy,
     double averageHuffmanCodeLength,
     long elapsedMillis
 ) {
-    private static final long FIXED_HEADER_SIZE = 15L;
-    private static final long FREQUENCY_ENTRY_SIZE = 9L;
-
     /**
      * Returns the header size implied by the selected mode.
      */
     public long overheadSize() {
-        if (mode == CompressionMode.HUFFMAN) {
-            return FIXED_HEADER_SIZE + distinctSymbolCount * FREQUENCY_ENTRY_SIZE;
-        }
-        return FIXED_HEADER_SIZE;
+        return headerSize;
     }
 
     /**

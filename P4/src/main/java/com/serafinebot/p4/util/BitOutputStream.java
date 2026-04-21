@@ -49,9 +49,13 @@ public final class BitOutputStream implements Closeable {
         bitCount = 0;
     }
 
+    public void finish() throws IOException {
+        flushCurrentByte();
+    }
+
     @Override
     public void close() throws IOException {
-        flushCurrentByte();
+        finish();
         output.close();
     }
 }

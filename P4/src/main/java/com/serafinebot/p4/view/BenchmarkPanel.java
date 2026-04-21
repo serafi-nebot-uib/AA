@@ -65,11 +65,12 @@ public final class BenchmarkPanel extends JPanel {
     private final JComboBox<BenchmarkProfile> timeProfileCombo = new JComboBox<>(BenchmarkProfile.values());
     private final JButton runButton = new JButton("Executa comparatives");
     private final JButton exportButton = new JButton("Exporta CSV");
-    private final JTextArea summaryArea = new JTextArea();
     private final JLabel progressLabel = new JLabel("Comparativa inactiva.");
     private final JProgressBar progressBar = new JProgressBar(0, 100);
     private final BenchmarkGraphPanel compressionGraph = new BenchmarkGraphPanel();
     private final BenchmarkGraphPanel decompressionGraph = new BenchmarkGraphPanel();
+    private final BenchmarkGraphPanel compressionRateGraph = new BenchmarkGraphPanel();
+    private final BenchmarkBarChartPanel strategyTimeChart = new BenchmarkBarChartPanel();
     private final BenchmarkGraphPanel entropyGraph = new BenchmarkGraphPanel();
 
     private BenchmarkReport report;
@@ -78,13 +79,7 @@ public final class BenchmarkPanel extends JPanel {
         super(new BorderLayout(10, 10));
         setOpaque(false);
         add(createTopPanel(), BorderLayout.NORTH);
-        add(createCenterPanel(), BorderLayout.CENTER);
-
-        summaryArea.setEditable(false);
-        summaryArea.setRows(6);
-        summaryArea.setLineWrap(true);
-        summaryArea.setWrapStyleWord(true);
-        summaryArea.setBorder(new EmptyBorder(8, 8, 8, 8));
+        add(createGraphsPanel(), BorderLayout.CENTER);
         progressBar.setStringPainted(false);
 
         timeProfileCombo.addActionListener(event -> refreshGraphs());
@@ -151,7 +146,6 @@ public final class BenchmarkPanel extends JPanel {
 
     public void showReport(BenchmarkReport report) {
         this.report = report;
-        summaryArea.setText(summaryText(report));
         exportButton.setEnabled(true);
         progressBar.setValue(100);
         progressLabel.setText("Comparativa completada.");
@@ -164,14 +158,6 @@ public final class BenchmarkPanel extends JPanel {
         top.add(createControlsPanel(), BorderLayout.NORTH);
         top.add(createProgressPanel(), BorderLayout.SOUTH);
         return top;
-    }
-
-    private JPanel createCenterPanel() {
-        JPanel center = new JPanel(new BorderLayout(10, 10));
-        center.setOpaque(false);
-        center.add(createGraphsPanel(), BorderLayout.CENTER);
-        center.add(createSummaryPanel(), BorderLayout.SOUTH);
-        return center;
     }
 
     private JPanel createControlsPanel() {
@@ -237,18 +223,12 @@ public final class BenchmarkPanel extends JPanel {
         return panel;
     }
 
-    private JPanel createSummaryPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setOpaque(false);
-        panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(189, 198, 210)), "Resum"));
-        panel.add(new JScrollPane(summaryArea), BorderLayout.CENTER);
-        return panel;
-    }
-
     private JTabbedPane createGraphsPanel() {
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("Temps de compressio", compressionGraph);
         tabs.addTab("Temps de descompressio", decompressionGraph);
+        tabs.addTab("Taxa de compressio", compressionRateGraph);
+        tabs.addTab("Temps per estrategia", strategyTimeChart);
         tabs.addTab("Entropia vs codi", entropyGraph);
         return tabs;
     }
@@ -274,6 +254,19 @@ public final class BenchmarkPanel extends JPanel {
             "No hi ha dades de descompressio.",
             timeSeries(selectedProfile, false)
         );
+        compressionRateGraph.setGraph(
+            "Taxa de compressio segons la mida",
+            "Mida (bytes)",
+            "Compressio (%)",
+            "No hi ha dades de taxa de compressio.",
+            compressionRateSeries(selectedProfile)
+        );
+        strategyTimeChart.setChart(
+            "Temps mitja de compressio per estrategia",
+            "Temps mitja (ms)",
+            "No hi ha dades de temps per estrategia.",
+            strategyTimeBars(selectedProfile)
+        );
         entropyGraph.setGraph(
             "Entropia vs longitud mitjana del codi",
             "Entropia (bits/simbol)",
@@ -286,8 +279,9 @@ public final class BenchmarkPanel extends JPanel {
     private void showEmptyState() {
         compressionGraph.setGraph("Temps de compressio segons la mida", "Mida (bytes)", "Temps (ms)", "Executa una comparativa per veure el graf.", List.of());
         decompressionGraph.setGraph("Temps de descompressio segons la mida", "Mida (bytes)", "Temps (ms)", "Executa una comparativa per veure el graf.", List.of());
+        compressionRateGraph.setGraph("Taxa de compressio segons la mida", "Mida (bytes)", "Compressio (%)", "Executa una comparativa per veure el graf.", List.of());
+        strategyTimeChart.setChart("Temps mitja de compressio per estrategia", "Temps mitja (ms)", "Executa una comparativa per veure el graf.", List.of());
         entropyGraph.setGraph("Entropia vs longitud mitjana del codi", "Entropia", "Longitud mitjana", "Executa una comparativa per veure el graf.", List.of());
-        summaryArea.setText("Encara no hi ha cap comparativa executada.");
         exportButton.setEnabled(false);
     }
 
@@ -319,46 +313,36 @@ public final class BenchmarkPanel extends JPanel {
         return series;
     }
 
-    private String summaryText(BenchmarkReport report) {
-        BenchmarkProfile selectedProfile = (BenchmarkProfile) timeProfileCombo.getSelectedItem();
-        Map<PriorityQueueStrategy, double[]> aggregates = new EnumMap<>(PriorityQueueStrategy.class);
+    private List<BenchmarkGraphPanel.Series> compressionRateSeries(BenchmarkProfile selectedProfile) {
+        List<BenchmarkGraphPanel.Series> series = new ArrayList<>();
         for (PriorityQueueStrategy strategy : PriorityQueueStrategy.values()) {
-            aggregates.put(strategy, new double[3]);
-        }
-
-        for (BenchmarkPoint point : report.points()) {
-            if (point.profile() != selectedProfile) {
-                continue;
+            List<Point2D.Double> points = new ArrayList<>();
+            for (BenchmarkPoint point : report.points()) {
+                if (point.profile() == selectedProfile && point.strategy() == strategy) {
+                    points.add(new Point2D.Double(point.sizeBytes(), point.compressionPercentage()));
+                }
             }
-            double[] values = aggregates.get(point.strategy());
-            values[0] += point.compressionMillis();
-            values[1] += point.decompressionMillis();
-            values[2] += 1.0;
+            series.add(new BenchmarkGraphPanel.Series(strategy.toString(), STRATEGY_COLORS.get(strategy), true, points));
         }
+        return series;
+    }
 
-        StringBuilder builder = new StringBuilder();
-        builder.append("S'ha executat una comparativa amb ")
-            .append(report.points().size())
-            .append(" punts agregats.\n")
-            .append("Perfil actual pels grafs de temps: ")
-            .append(selectedProfile)
-            .append(".\n\n");
-
+    private List<BenchmarkBarChartPanel.Bar> strategyTimeBars(BenchmarkProfile selectedProfile) {
+        List<BenchmarkBarChartPanel.Bar> bars = new ArrayList<>();
         for (PriorityQueueStrategy strategy : PriorityQueueStrategy.values()) {
-            double[] values = aggregates.get(strategy);
-            if (values[2] == 0.0) {
-                continue;
+            double total = 0.0;
+            int count = 0;
+            for (BenchmarkPoint point : report.points()) {
+                if (point.profile() == selectedProfile && point.strategy() == strategy) {
+                    total += point.compressionMillis();
+                    count++;
+                }
             }
-            builder.append(strategy)
-                .append(": compressio mitjana ")
-                .append(format(values[0] / values[2]))
-                .append(" ms, descompressio mitjana ")
-                .append(format(values[1] / values[2]))
-                .append(" ms.\n");
+            if (count > 0) {
+                bars.add(new BenchmarkBarChartPanel.Bar(strategy.toString(), STRATEGY_COLORS.get(strategy), total / count));
+            }
         }
-
-        builder.append("\nEl graf d'entropia mostra un sol conjunt de punts per perfil, ja que la longitud mitjana del codi hauria de ser independent de l'estructura de cua si l'arbre es construeix de manera determinista.");
-        return builder.toString();
+        return bars;
     }
 
     private String format(double value) {

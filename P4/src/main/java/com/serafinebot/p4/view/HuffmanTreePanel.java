@@ -240,8 +240,8 @@ public final class HuffmanTreePanel extends JPanel {
         List<String> lines = new ArrayList<>();
         lines.add(info.leaf() ? formatSymbol(info.symbol()) : "freq=" + info.frequency());
         lines.add(info.leaf()
-            ? String.format("0x%02X • freq=%d", info.symbol(), info.frequency())
-            : String.format("min=0x%02X • freq=%d", info.symbol(), info.frequency()));
+            ? String.format("%s • freq=%d", formatHex(info.symbol()), info.frequency())
+            : String.format("min=%s • freq=%d", formatHex(info.symbol()), info.frequency()));
         lines.add("p=" + formatProbability(info.probability()));
 
         String codeLine = "codi=" + displayCode(info.code());
@@ -261,6 +261,9 @@ public final class HuffmanTreePanel extends JPanel {
     }
 
     private String formatSymbol(int symbol) {
+        if (symbol > 0xFF) {
+            return String.format("parella[%02X %02X]", (symbol >>> 8) & 0xFF, symbol & 0xFF);
+        }
         return switch (symbol) {
             case '\n' -> "\\n";
             case '\r' -> "\\r";
@@ -270,6 +273,13 @@ public final class HuffmanTreePanel extends JPanel {
                 ? Character.toString((char) symbol)
                 : String.format("byte[%d]", symbol);
         };
+    }
+
+    private String formatHex(int symbol) {
+        if (symbol <= 0xFF) {
+            return String.format("0x%02X", symbol);
+        }
+        return String.format("0x%04X", symbol);
     }
 
     private void drawCenteredLine(Graphics2D g2, Font font, String text, double centerX, double baselineY) {

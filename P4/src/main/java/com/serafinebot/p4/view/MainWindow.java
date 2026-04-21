@@ -149,7 +149,7 @@ public class MainWindow extends JFrame {
         CompressionResult result = report.result();
         statsArea.setText(String.join("\n",
             "Operacio: Compressio",
-            "Mode: " + result.mode(),
+            "Estrategia: " + result.mode(),
             "Cua: " + result.priorityQueueStrategy(),
             "Mida original: " + result.originalSize() + " bytes",
             "Mida de l'arxiu: " + result.archiveSize() + " bytes",
@@ -170,7 +170,7 @@ public class MainWindow extends JFrame {
         DecompressionResult result = report.result();
         statsArea.setText(String.join("\n",
             "Operacio: Descompressio",
-            "Mode: " + result.mode(),
+            "Estrategia: " + result.mode(),
             "Mida de l'arxiu: " + result.archiveSize() + " bytes",
             "Mida restaurada: " + result.restoredSize() + " bytes",
             "Temps: " + result.elapsedMillis() + " ms"
@@ -541,7 +541,7 @@ public class MainWindow extends JFrame {
         for (HuffmanSymbolInfo symbol : symbols) {
             symbolTableModel.addRow(new Object[] {
                 formatSymbol(symbol.symbol()),
-                String.format("0x%02X", symbol.symbol()),
+                formatHex(symbol.symbol()),
                 symbol.frequency(),
                 formatProbability(symbol.probability()),
                 symbol.code().isEmpty() ? "<buit>" : symbol.code()
@@ -587,6 +587,9 @@ public class MainWindow extends JFrame {
     }
 
     private String formatSymbol(int symbol) {
+        if (symbol > 0xFF) {
+            return String.format("parella[%02X %02X]", (symbol >>> 8) & 0xFF, symbol & 0xFF);
+        }
         return switch (symbol) {
             case '\n' -> "\\n";
             case '\r' -> "\\r";
@@ -596,6 +599,13 @@ public class MainWindow extends JFrame {
                 ? Character.toString((char) symbol)
                 : String.format("byte[%d]", symbol);
         };
+    }
+
+    private String formatHex(int symbol) {
+        if (symbol <= 0xFF) {
+            return String.format("0x%02X", symbol);
+        }
+        return String.format("0x%04X", symbol);
     }
 
 }

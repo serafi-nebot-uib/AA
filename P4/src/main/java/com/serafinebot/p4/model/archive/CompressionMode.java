@@ -1,28 +1,63 @@
 package com.serafinebot.p4.model.archive;
 
 /**
- * Logical compression mode used by the codec.
+ * Logical compression strategy stored inside the archive.
  */
 public enum CompressionMode {
     /**
      * Payload is copied byte-for-byte after the header.
      */
-    STORED(0),
+    STORED(0, "Emmagatzemat"),
     /**
-     * Payload is encoded with the Huffman tree described by the header metadata.
+     * One global Huffman tree over byte symbols.
      */
-    HUFFMAN(1);
+    HUFFMAN_1_BYTE(1, "Huffman 1 byte"),
+    /**
+     * One global Huffman tree over 2-byte symbols.
+     */
+    HUFFMAN_2_BYTE(2, "Huffman 2 bytes"),
+    /**
+     * Independent byte-based Huffman compression per block.
+     */
+    HUFFMAN_BLOCK(3, "Huffman per blocs");
 
-    private final int flag;
+    private final int id;
+    private final String displayName;
 
-    CompressionMode(int flag) {
-        this.flag = flag;
+    CompressionMode(int id, String displayName) {
+        this.id = id;
+        this.displayName = displayName;
     }
 
-    /**
-     * Returns the on-disk flag bit associated with this mode.
-     */
-    public int flag() {
-        return flag;
+    public int id() {
+        return id;
+    }
+
+    public boolean usesGlobalFrequencyTable() {
+        return this == HUFFMAN_1_BYTE || this == HUFFMAN_2_BYTE;
+    }
+
+    public int symbolWidthBytes() {
+        if (this == HUFFMAN_1_BYTE) {
+            return 1;
+        }
+        if (this == HUFFMAN_2_BYTE) {
+            return 2;
+        }
+        return 0;
+    }
+
+    public static CompressionMode fromId(int id) throws ArchiveFormatException {
+        for (CompressionMode mode : values()) {
+            if (mode.id == id) {
+                return mode;
+            }
+        }
+        throw new ArchiveFormatException("Mode de compressio no suportat: " + id);
+    }
+
+    @Override
+    public String toString() {
+        return displayName;
     }
 }

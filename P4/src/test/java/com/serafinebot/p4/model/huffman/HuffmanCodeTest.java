@@ -23,14 +23,14 @@ class HuffmanCodeTest {
         frequencies[255] = 5L;
 
         NodeQueue<HuffmanCode> queue = new BinaryHeapNodeQueue<>();
-        HuffmanCode root = HuffmanCode.buildTree(FrequencyTable.fromFrequencies(frequencies), queue);
-        HuffmanCode[] leaves = root.leaves();
+        HuffmanCode root = HuffmanCode.buildFromFrequencies(FrequencyTable.fromFrequencies(frequencies), queue);
+        HuffmanCode[] leaves = root.lookupBySymbol(256);
 
         assertNotNull(leaves[0]);
         assertNotNull(leaves[127]);
         assertNotNull(leaves[255]);
         assertEquals(255, leaves[255].symbol());
-        assertSame(leaves[255], root.leaves()[255]);
+        assertSame(leaves[255], root.lookupBySymbol(256)[255]);
     }
 
     @Test
@@ -41,8 +41,8 @@ class HuffmanCodeTest {
         frequencies['C'] = 1L;
 
         NodeQueue<HuffmanCode> queue = new BinaryHeapNodeQueue<>();
-        HuffmanCode root = HuffmanCode.buildTree(FrequencyTable.fromFrequencies(frequencies), queue);
-        HuffmanCode[] leaves = root.leaves();
+        HuffmanCode root = HuffmanCode.buildFromFrequencies(FrequencyTable.fromFrequencies(frequencies), queue);
+        HuffmanCode[] leaves = root.lookupBySymbol(256);
 
         assertArrayEquals(new byte[0], root.code());
         assertEquals(leaves['A'].depth(), leaves['A'].code().length);

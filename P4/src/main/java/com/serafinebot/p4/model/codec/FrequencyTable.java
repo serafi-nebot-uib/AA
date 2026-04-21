@@ -3,18 +3,20 @@ package com.serafinebot.p4.model.codec;
 import java.util.Arrays;
 
 /**
- * Frequency table for byte-oriented Huffman coding.
- *
- * <p>The table always has 256 counters, one per possible byte value. Bytes are treated as unsigned
- * symbols in the range {@code 0..255}.</p>
+ * Frequency table for Huffman coding over a fixed symbol space.
  */
 public final class FrequencyTable {
 
-    private final long[] frequencies = new long[256];
+    private final long[] frequencies;
     private long totalCount;
     private int distinctSymbolCount;
 
     public FrequencyTable() {
+        this(256);
+    }
+
+    public FrequencyTable(int symbolSpaceSize) {
+        this.frequencies = new long[symbolSpaceSize];
     }
 
     /**
@@ -45,6 +47,10 @@ public final class FrequencyTable {
      */
     public long[] copyFrequencies() {
         return Arrays.copyOf(frequencies, frequencies.length);
+    }
+
+    public int symbolSpaceSize() {
+        return frequencies.length;
     }
 
     /**
@@ -90,7 +96,7 @@ public final class FrequencyTable {
      * Builds a frequency table from an already-known array of counts.
      */
     public static FrequencyTable fromFrequencies(long[] frequencies) {
-        FrequencyTable table = new FrequencyTable();
+        FrequencyTable table = new FrequencyTable(frequencies.length);
         for (int symbol = 0; symbol < frequencies.length; symbol++) {
             long frequency = frequencies[symbol];
             if (frequency <= 0L) continue;

@@ -16,7 +16,7 @@ import java.util.Arrays;
  *
  * <ul>
  *   <li>the bit code for each leaf, and</li>
- *   <li>a {@code HuffmanCode[256]} lookup table for O(1) symbol-to-code access.</li>
+ *   <li>leaf depths for fast encoded-size calculation.</li>
  * </ul>
  */
 public final class HuffmanCode implements Comparable<HuffmanCode> {
@@ -30,7 +30,6 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
                         // 1: self is max node of parent
     private byte[] code;
     private boolean metadataInitialized;
-    private HuffmanCode[] leaves;
 
     /**
      * Creates a leaf for one byte value.
@@ -45,7 +44,6 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
         this.max = null;
         this.code = null;
         this.metadataInitialized = false;
-        this.leaves = null;
     }
 
     /**
@@ -61,7 +59,6 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
         this.parent = null;
         this.code = null;
         this.metadataInitialized = false;
-        this.leaves = null;
 
         this.min = min;
         this.min.parent = this;
@@ -76,7 +73,7 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
      * Initializes cached code metadata once for the whole tree rooted at this node.
      *
      * <p>The method performs a single breadth-first traversal from the root. During that pass it
-     * assigns each node its depth, builds each leaf code, and fills the root's leaf lookup table.</p>
+     * assigns each node its depth and builds each leaf code.</p>
      */
     private void initMetadata() {
         HuffmanCode root = this;
@@ -87,18 +84,12 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
         ArrayDeque<HuffmanCode> queue = new ArrayDeque<>();
         root.depth = 0;
         root.code = new byte[0];
-        root.leaves = new HuffmanCode[256];
         queue.add(root);
 
         // Cache everything in one pass so encoding can later jump directly from a symbol to its
-        // leaf and code without walking the tree again.
+        // leaf code without walking the tree again.
         while (!queue.isEmpty()) {
             HuffmanCode curr = queue.remove();
-
-            if (curr.isLeaf()) {
-                root.leaves[curr.symbol] = curr;
-                continue;
-            }
 
             if (curr.min != null) {
                 curr.min.depth = curr.depth + 1;
@@ -118,16 +109,16 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
     }
 
     /**
-     * Creates a leaf node for the given symbol and frequency.
+     * Creates a single-symbol code entry for the given symbol and frequency.
      */
-    public static HuffmanCode leaf(int symbol, long frequency) {
+    public static HuffmanCode forSymbol(int symbol, long frequency) {
         return new HuffmanCode(symbol, frequency);
     }
 
     /**
-     * Combines two nodes into one internal node, ordering children deterministically.
+     * Combines two code entries into one deterministic merged entry.
      */
-    public static HuffmanCode internal(HuffmanCode c1, HuffmanCode c2) {
+    public static HuffmanCode merge(HuffmanCode c1, HuffmanCode c2) {
         if (c1 == null || c2 == null) throw new IllegalArgumentException("c1 i c2 no poden ser null");
         HuffmanCode min = c1.compareTo(c2) <= 0 ? c1 : c2;
         HuffmanCode max = min == c1 ? c2 : c1;
@@ -135,16 +126,16 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
     }
 
     /**
-     * Builds a deterministic Huffman tree from a frequency table using the provided queue.
+     * Builds a deterministic prefix-code structure from a frequency table using the provided queue.
      *
      * @param table byte frequency table
      * @param queue already-initialized priority queue implementation to use for this build
      * @return the root of the constructed tree, or {@code null} for an empty table
      */
-    public static HuffmanCode buildTree(FrequencyTable table, NodeQueue<HuffmanCode> queue) {
-        for (int symbol = 0; symbol < 256; symbol++) {
+    public static HuffmanCode buildFromFrequencies(FrequencyTable table, NodeQueue<HuffmanCode> queue) {
+        for (int symbol = 0; symbol < table.symbolSpaceSize(); symbol++) {
             long frequency = table.frequencyOf(symbol);
-            if (frequency > 0L) queue.add(leaf(symbol, frequency));
+            if (frequency > 0L) queue.add(forSymbol(symbol, frequency));
         }
 
         if (queue.size() == 0) return null;
@@ -152,20 +143,33 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
         while (queue.size() > 1) {
             HuffmanCode min = queue.removeMin();
             HuffmanCode max = queue.removeMin();
-            queue.add(internal(min, max));
+            queue.add(merge(min, max));
         }
 
         return queue.removeMin();
     }
 
     /**
-     * Returns a cached lookup table from byte value to leaf node.
+     * Returns a lookup table from symbol value to code entry.
      */
-    public HuffmanCode[] leaves() {
+    public HuffmanCode[] lookupBySymbol(int symbolSpaceSize) {
         initMetadata();
         HuffmanCode root = this;
         while (root.parent != null) root = root.parent;
-        return root.leaves;
+
+        HuffmanCode[] codesBySymbol = new HuffmanCode[symbolSpaceSize];
+        ArrayDeque<HuffmanCode> queue = new ArrayDeque<>();
+        queue.add(root);
+        while (!queue.isEmpty()) {
+            HuffmanCode curr = queue.remove();
+            if (curr.isLeaf()) {
+                codesBySymbol[curr.symbol] = curr;
+                continue;
+            }
+            if (curr.min != null) queue.add(curr.min);
+            if (curr.max != null) queue.add(curr.max);
+        }
+        return codesBySymbol;
     }
 
     /**
@@ -217,6 +221,7 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
      * Returns the cached depth of this node from the root.
      */
     public int depth() {
+        initMetadata();
         return depth;
     }
 
