@@ -4,6 +4,7 @@ import com.serafinebot.p4.model.archive.CompressionMode;
 import com.serafinebot.p4.model.codec.HuffmanCodec;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
 import com.serafinebot.p4.model.report.CompressionResult;
+import com.serafinebot.p4.model.report.DecompressionResult;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -41,8 +42,8 @@ public final class BenchmarkService {
                 modePoints.addAll(measureModeCompression(input, inputIndex, tempDirectory, config.repetitions()));
 
                 for (PriorityQueueStrategy strategy : PriorityQueueStrategy.values()) {
-                    double totalCompressionMillis = 0.0;
-                    double totalDecompressionMillis = 0.0;
+                    double totalCompressionTreeBuildMillis = 0.0;
+                    double totalDecompressionTreeBuildMillis = 0.0;
                     double totalEntropy = 0.0;
                     double totalAverageCodeLength = 0.0;
                     double totalCompressionPercentage = 0.0;
@@ -53,13 +54,11 @@ public final class BenchmarkService {
 
                         HuffmanCodec codec = new HuffmanCodec(strategy);
 
-                        long startCompression = System.nanoTime();
                         CompressionResult compressionResult = codec.compress(input.path(), archivePath);
-                        totalCompressionMillis += nanosToMillis(System.nanoTime() - startCompression);
+                        totalCompressionTreeBuildMillis += compressionResult.treeBuildMillis();
 
-                        long startDecompression = System.nanoTime();
-                        codec.decompress(archivePath, restoredPath);
-                        totalDecompressionMillis += nanosToMillis(System.nanoTime() - startDecompression);
+                        DecompressionResult decompressionResult = codec.decompress(archivePath, restoredPath);
+                        totalDecompressionTreeBuildMillis += decompressionResult.treeBuildMillis();
 
                         if (Files.mismatch(input.path(), restoredPath) != -1L) {
                             throw new IOException("El benchmark ha produït una descompressio incorrecta per al fitxer " + input.sourceName() + '.');
@@ -80,8 +79,8 @@ public final class BenchmarkService {
                         input.sourceName(),
                         strategy,
                         input.sizeBytes(),
-                        totalCompressionMillis / config.repetitions(),
-                        totalDecompressionMillis / config.repetitions(),
+                        totalCompressionTreeBuildMillis / config.repetitions(),
+                        totalDecompressionTreeBuildMillis / config.repetitions(),
                         totalEntropy / config.repetitions(),
                         totalAverageCodeLength / config.repetitions(),
                         totalCompressionPercentage / config.repetitions()
@@ -110,18 +109,33 @@ public final class BenchmarkService {
         List<BenchmarkModePoint> points = new ArrayList<>();
         for (CompressionMode mode : List.of(CompressionMode.HUFFMAN_1_BYTE, CompressionMode.HUFFMAN_2_BYTE, CompressionMode.HUFFMAN_BLOCK)) {
             double totalCompressionPercentage = 0.0;
+            double totalCompressionMillis = 0.0;
+            double totalDecompressionMillis = 0.0;
             for (int repetition = 0; repetition < repetitions; repetition++) {
                 Path archivePath = tempDirectory.resolve("mode-archive-" + inputIndex + '-' + mode.name() + '-' + repetition + ".hff");
-                CompressionResult result = new HuffmanCodec(PriorityQueueStrategy.BINARY_HEAP, mode).compress(input.path(), archivePath);
-                totalCompressionPercentage += result.compressionPercentage();
+                Path restoredPath = tempDirectory.resolve("mode-restored-" + inputIndex + '-' + mode.name() + '-' + repetition + ".bin");
+                HuffmanCodec codec = new HuffmanCodec(PriorityQueueStrategy.BINARY_HEAP, mode);
+
+                long startCompression = System.nanoTime();
+                CompressionResult compressionResult = codec.compress(input.path(), archivePath);
+                totalCompressionMillis += nanosToMillis(System.nanoTime() - startCompression);
+
+                long startDecompression = System.nanoTime();
+                codec.decompress(archivePath, restoredPath);
+                totalDecompressionMillis += nanosToMillis(System.nanoTime() - startDecompression);
+
+                totalCompressionPercentage += compressionResult.compressionPercentage();
                 Files.deleteIfExists(archivePath);
+                Files.deleteIfExists(restoredPath);
             }
 
             points.add(new BenchmarkModePoint(
                 input.sourceName(),
                 mode,
                 input.sizeBytes(),
-                totalCompressionPercentage / repetitions
+                totalCompressionPercentage / repetitions,
+                totalCompressionMillis / repetitions,
+                totalDecompressionMillis / repetitions
             ));
         }
         return points;

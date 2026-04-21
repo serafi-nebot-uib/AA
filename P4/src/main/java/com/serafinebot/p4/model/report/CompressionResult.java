@@ -16,6 +16,7 @@ import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
  * @param entropy Shannon entropy of the input distribution in bits per symbol
  * @param averageHuffmanCodeLength average Huffman code length in bits per symbol
  * @param elapsedMillis wall-clock compression time in milliseconds
+ * @param treeBuildMillis cumulative time spent building Huffman trees in milliseconds
  */
 public record CompressionResult(
     CompressionMode mode,
@@ -27,7 +28,8 @@ public record CompressionResult(
     long theoreticalHuffmanBitCount,
     double entropy,
     double averageHuffmanCodeLength,
-    long elapsedMillis
+    long elapsedMillis,
+    long treeBuildMillis
 ) {
     /**
      * Returns the header size implied by the selected mode.

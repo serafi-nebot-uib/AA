@@ -54,8 +54,10 @@ public final class BenchmarkPanel extends JPanel {
     private final JButton exportButton = new JButton("Exporta CSV");
     private final JLabel progressLabel = new JLabel("Comparativa inactiva.");
     private final JProgressBar progressBar = new JProgressBar(0, 100);
-    private final BenchmarkGraphPanel compressionGraph = new BenchmarkGraphPanel();
-    private final BenchmarkGraphPanel decompressionGraph = new BenchmarkGraphPanel();
+    private final BenchmarkGraphPanel compressionTreeBuildGraph = new BenchmarkGraphPanel();
+    private final BenchmarkGraphPanel decompressionTreeBuildGraph = new BenchmarkGraphPanel();
+    private final BenchmarkGraphPanel modeCompressionGraph = new BenchmarkGraphPanel();
+    private final BenchmarkGraphPanel modeDecompressionGraph = new BenchmarkGraphPanel();
     private final BenchmarkGraphPanel compressionRateGraph = new BenchmarkGraphPanel();
     private final BenchmarkGraphPanel entropyGraph = new BenchmarkGraphPanel();
 
@@ -209,8 +211,10 @@ public final class BenchmarkPanel extends JPanel {
 
     private JTabbedPane createGraphsPanel() {
         JTabbedPane tabs = new JTabbedPane();
-        tabs.addTab("Temps de compressio", compressionGraph);
-        tabs.addTab("Temps de descompressio", decompressionGraph);
+        tabs.addTab("Construccio arbre (compressio)", compressionTreeBuildGraph);
+        tabs.addTab("Construccio arbre (descompressio)", decompressionTreeBuildGraph);
+        tabs.addTab("Temps de compressio per mode", modeCompressionGraph);
+        tabs.addTab("Temps de descompressio per mode", modeDecompressionGraph);
         tabs.addTab("Taxa de compressio", compressionRateGraph);
         tabs.addTab("Entropia vs codi", entropyGraph);
         return tabs;
@@ -222,19 +226,33 @@ public final class BenchmarkPanel extends JPanel {
             return;
         }
 
-        compressionGraph.setGraph(
-            "Temps de compressio segons la mida",
+        compressionTreeBuildGraph.setGraph(
+            "Temps de construccio de l'arbre (compressio) segons la mida",
             "Mida (bytes)",
             "Temps (ms)",
-            "No hi ha dades de compressio.",
-            timeSeries(true)
+            "No hi ha dades de construccio de l'arbre.",
+            treeBuildSeries(true)
         );
-        decompressionGraph.setGraph(
-            "Temps de descompressio segons la mida",
+        decompressionTreeBuildGraph.setGraph(
+            "Temps de construccio de l'arbre (descompressio) segons la mida",
             "Mida (bytes)",
             "Temps (ms)",
-            "No hi ha dades de descompressio.",
-            timeSeries(false)
+            "No hi ha dades de construccio de l'arbre.",
+            treeBuildSeries(false)
+        );
+        modeCompressionGraph.setGraph(
+            "Temps de compressio segons la mida (per mode)",
+            "Mida (bytes)",
+            "Temps (ms)",
+            "No hi ha dades de compressio per mode.",
+            modeTimeSeries(true)
+        );
+        modeDecompressionGraph.setGraph(
+            "Temps de descompressio segons la mida (per mode)",
+            "Mida (bytes)",
+            "Temps (ms)",
+            "No hi ha dades de descompressio per mode.",
+            modeTimeSeries(false)
         );
         compressionRateGraph.setGraph(
             "Rati de compressio segons la mida (per mode)",
@@ -253,14 +271,16 @@ public final class BenchmarkPanel extends JPanel {
     }
 
     private void showEmptyState() {
-        compressionGraph.setGraph("Temps de compressio segons la mida", "Mida (bytes)", "Temps (ms)", "Executa una comparativa per veure el graf.", List.of());
-        decompressionGraph.setGraph("Temps de descompressio segons la mida", "Mida (bytes)", "Temps (ms)", "Executa una comparativa per veure el graf.", List.of());
+        compressionTreeBuildGraph.setGraph("Temps de construccio de l'arbre (compressio)", "Mida (bytes)", "Temps (ms)", "Executa una comparativa per veure el graf.", List.of());
+        decompressionTreeBuildGraph.setGraph("Temps de construccio de l'arbre (descompressio)", "Mida (bytes)", "Temps (ms)", "Executa una comparativa per veure el graf.", List.of());
+        modeCompressionGraph.setGraph("Temps de compressio per mode", "Mida (bytes)", "Temps (ms)", "Executa una comparativa per veure el graf.", List.of());
+        modeDecompressionGraph.setGraph("Temps de descompressio per mode", "Mida (bytes)", "Temps (ms)", "Executa una comparativa per veure el graf.", List.of());
         compressionRateGraph.setGraph("Rati de compressio segons la mida (per mode)", "Mida (bytes)", "Rati (N:1)", "Executa una comparativa per veure el graf.", List.of());
         entropyGraph.setGraph("Entropia vs longitud mitjana del codi", "Entropia", "Longitud mitjana", "Executa una comparativa per veure el graf.", List.of());
         exportButton.setEnabled(false);
     }
 
-    private List<BenchmarkGraphPanel.Series> timeSeries(boolean compression) {
+    private List<BenchmarkGraphPanel.Series> treeBuildSeries(boolean compression) {
         List<BenchmarkGraphPanel.Series> series = new ArrayList<>();
         for (PriorityQueueStrategy strategy : PriorityQueueStrategy.values()) {
             List<BenchmarkGraphPanel.GraphPoint> points = new ArrayList<>();
@@ -274,6 +294,24 @@ public final class BenchmarkPanel extends JPanel {
                 }
             }
             series.add(new BenchmarkGraphPanel.Series(strategy.toString(), STRATEGY_COLORS.get(strategy), true, points));
+        }
+        return series;
+    }
+
+    private List<BenchmarkGraphPanel.Series> modeTimeSeries(boolean compression) {
+        List<BenchmarkGraphPanel.Series> series = new ArrayList<>();
+        for (CompressionMode mode : List.of(CompressionMode.HUFFMAN_1_BYTE, CompressionMode.HUFFMAN_2_BYTE, CompressionMode.HUFFMAN_BLOCK)) {
+            List<BenchmarkGraphPanel.GraphPoint> points = new ArrayList<>();
+            for (BenchmarkModePoint point : report.modePoints()) {
+                if (point.mode() == mode) {
+                    points.add(new BenchmarkGraphPanel.GraphPoint(
+                        point.sizeBytes(),
+                        compression ? point.compressionMillis() : point.decompressionMillis(),
+                        mode == CompressionMode.HUFFMAN_1_BYTE ? point.sourceName() : null
+                    ));
+                }
+            }
+            series.add(new BenchmarkGraphPanel.Series(mode.toString(), MODE_COLORS.get(mode), true, points));
         }
         return series;
     }

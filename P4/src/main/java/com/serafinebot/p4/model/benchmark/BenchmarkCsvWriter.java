@@ -18,7 +18,7 @@ public final class BenchmarkCsvWriter {
 
     public static String toCsv(BenchmarkReport report) {
         StringBuilder builder = new StringBuilder();
-        builder.append("source_name,strategy,size_bytes,compression_ms,decompression_ms,entropy,average_code_length,compression_percentage\n");
+        builder.append("source_name,strategy,size_bytes,tree_build_compression_ms,tree_build_decompression_ms,entropy,average_code_length,compression_percentage\n");
         for (BenchmarkPoint point : report.points()) {
             builder.append(point.sourceName()).append(',')
                 .append(point.strategy().name()).append(',')
@@ -32,12 +32,14 @@ public final class BenchmarkCsvWriter {
 
         if (!report.modePoints().isEmpty()) {
             builder.append('\n');
-            builder.append("source_name,mode,size_bytes,compression_percentage\n");
+            builder.append("source_name,mode,size_bytes,compression_percentage,compression_ms,decompression_ms\n");
             for (BenchmarkModePoint point : report.modePoints()) {
                 builder.append(point.sourceName()).append(',')
                     .append(point.mode().name()).append(',')
                     .append(point.sizeBytes()).append(',')
-                    .append(format(point.compressionPercentage())).append('\n');
+                    .append(format(point.compressionPercentage())).append(',')
+                    .append(format(point.compressionMillis())).append(',')
+                    .append(format(point.decompressionMillis())).append('\n');
             }
         }
 

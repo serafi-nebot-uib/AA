@@ -9,11 +9,13 @@ import com.serafinebot.p4.model.archive.CompressionMode;
  * @param archiveSize archive size in bytes
  * @param restoredSize restored output size in bytes
  * @param elapsedMillis wall-clock decompression time in milliseconds
+ * @param treeBuildMillis cumulative time spent building Huffman trees in milliseconds
  */
 public record DecompressionResult(
     CompressionMode mode,
     long archiveSize,
     long restoredSize,
-    long elapsedMillis
+    long elapsedMillis,
+    long treeBuildMillis
 ) {
 }
