@@ -41,12 +41,17 @@ public class HuffmanCodec {
     private static final int BUFFER_SIZE = 8192;
     private static final int WORD_SYMBOL_SPACE = 65536;
     private static final int BLOCK_HEADER_SIZE = Integer.BYTES + Byte.BYTES;
-    private static final int BLOCK_BYTE_FREQUENCY_ENTRY_SIZE = 9;
+    private static final int BLOCK_BYTE_FREQUENCY_ENTRY_SIZE = Byte.BYTES + Long.BYTES;
+    private static final int BLOCK_WORD_FREQUENCY_ENTRY_SIZE = Short.BYTES + Long.BYTES;
     private static final int ANALYSIS_BLOCK_SIZE = 4096;
-    private static final int[] CANDIDATE_BLOCK_SIZES = {4096, 16384, 65536, 262144, 1048576};
+    private static final int[] CANDIDATE_BLOCK_SIZES = {4096, 16384, 65536, 262144, 1048576, 4194304, 16777216};
+
+    private static final java.util.Set<CompressionMode> DEFAULT_BLOCK_SUB_MODES =
+        java.util.Set.of(CompressionMode.HUFFMAN_1_BYTE, CompressionMode.HUFFMAN_2_BYTE);
 
     private final PriorityQueueStrategy priorityQueueStrategy;
     private final CompressionMode preferredCompressionMode;
+    private final java.util.Set<CompressionMode> allowedBlockHuffmanModes;
     private long treeBuildNanos;
 
     private HuffmanCode buildTreeAndTrack(FrequencyTable table) {
@@ -57,16 +62,33 @@ public class HuffmanCodec {
     }
 
     public HuffmanCodec() {
-        this(PriorityQueueStrategy.BINARY_HEAP, null);
+        this(PriorityQueueStrategy.BINARY_HEAP, null, null);
     }
 
     public HuffmanCodec(PriorityQueueStrategy priorityQueueStrategy) {
-        this(priorityQueueStrategy, null);
+        this(priorityQueueStrategy, null, null);
     }
 
     public HuffmanCodec(PriorityQueueStrategy priorityQueueStrategy, CompressionMode preferredCompressionMode) {
+        this(priorityQueueStrategy, preferredCompressionMode, null);
+    }
+
+    public HuffmanCodec(PriorityQueueStrategy priorityQueueStrategy,
+                        CompressionMode preferredCompressionMode,
+                        java.util.Set<CompressionMode> allowedBlockHuffmanModes) {
         this.priorityQueueStrategy = priorityQueueStrategy;
         this.preferredCompressionMode = preferredCompressionMode;
+        this.allowedBlockHuffmanModes = allowedBlockHuffmanModes == null
+            ? DEFAULT_BLOCK_SUB_MODES
+            : java.util.Set.copyOf(allowedBlockHuffmanModes);
+    }
+
+    private boolean blockAllowsByteSubMode() {
+        return allowedBlockHuffmanModes.contains(CompressionMode.HUFFMAN_1_BYTE);
+    }
+
+    private boolean blockAllowsWordSubMode() {
+        return allowedBlockHuffmanModes.contains(CompressionMode.HUFFMAN_2_BYTE);
     }
 
     public CompressionResult compress(Path inputPath, Path outputPath) throws IOException {
@@ -219,37 +241,75 @@ public class HuffmanCodec {
         long metadataOverhead = header.sizeInBytes();
         long estimatedArchiveSize = header.sizeInBytes();
         long totalCompressedBits = 0L;
-        double weightedAverageCodeLength = 0.0;
+        long totalEncodedBytes = 0L;
         double weightedEntropy = 0.0;
 
         try (InputStream input = new BufferedInputStream(Files.newInputStream(inputPath), BUFFER_SIZE)) {
             byte[] buffer = new byte[selectedBlockSize];
             int read;
             while ((read = readBlock(input, buffer, selectedBlockSize)) > 0) {
-                FrequencyTable table = new FrequencyTable();
-                table.add(buffer, read);
+                FrequencyTable byteTable = new FrequencyTable();
+                byteTable.add(buffer, read);
+                HuffmanCode[] byteLeaves = null;
+                long byteBitCount = 0L;
+                long byteMetadata = 0L;
+                long byteSize = Long.MAX_VALUE;
+                if (blockAllowsByteSubMode()) {
+                    HuffmanCode byteRoot = buildTreeAndTrack(byteTable);
+                    byteLeaves = byteRoot == null ? new HuffmanCode[byteTable.symbolSpaceSize()] : byteRoot.lookupBySymbol(byteTable.symbolSpaceSize());
+                    byteBitCount = totalBitCount(byteTable, byteLeaves);
+                    byteMetadata = BLOCK_HEADER_SIZE + Integer.BYTES + (long) byteTable.distinctSymbolCount() * BLOCK_BYTE_FREQUENCY_ENTRY_SIZE;
+                    byteSize = byteMetadata + bytesForBits(byteBitCount);
+                }
 
-                HuffmanCode root = buildTreeAndTrack(table);
-                HuffmanCode[] leaves = root == null ? new HuffmanCode[table.symbolSpaceSize()] : root.lookupBySymbol(table.symbolSpaceSize());
-                long bitCount = totalBitCount(table, leaves);
-                long huffmanMetadata = BLOCK_HEADER_SIZE + Integer.BYTES + (long) table.distinctSymbolCount() * BLOCK_BYTE_FREQUENCY_ENTRY_SIZE;
-                long huffmanSize = huffmanMetadata + bytesForBits(bitCount);
+                FrequencyTable wordTable = null;
+                HuffmanCode[] wordLeaves = null;
+                long wordBitCount = 0L;
+                long wordMetadata = 0L;
+                long wordSize = Long.MAX_VALUE;
+                if (blockAllowsWordSubMode() && read >= 2) {
+                    wordTable = buildBlockWordFrequencyTable(buffer, read);
+                    if (wordTable.totalCount() > 0L) {
+                        HuffmanCode wordRoot = buildTreeAndTrack(wordTable);
+                        wordLeaves = wordRoot == null ? new HuffmanCode[wordTable.symbolSpaceSize()] : wordRoot.lookupBySymbol(wordTable.symbolSpaceSize());
+                        wordBitCount = totalBitCount(wordTable, wordLeaves);
+                        wordMetadata = BLOCK_HEADER_SIZE + Integer.BYTES + (long) wordTable.distinctSymbolCount() * BLOCK_WORD_FREQUENCY_ENTRY_SIZE;
+                        long trailing = (read & 1) == 1 ? 1L : 0L;
+                        wordSize = wordMetadata + bytesForBits(wordBitCount) + trailing;
+                    }
+                }
+
                 long storedSize = BLOCK_HEADER_SIZE + read;
 
-                CompressionMode blockMode = huffmanSize < storedSize ? CompressionMode.HUFFMAN_1_BYTE : CompressionMode.STORED;
-                long blockMetadata = blockMode == CompressionMode.HUFFMAN_1_BYTE ? huffmanMetadata : BLOCK_HEADER_SIZE;
-                long blockEncodedSize = blockMode == CompressionMode.HUFFMAN_1_BYTE ? huffmanSize : storedSize;
-                double entropy = table.entropy();
-                double averageCodeLength = averageCodeLength(table, bitCount);
+                CompressionMode blockMode;
+                long blockMetadata;
+                long blockEncodedSize;
+                long blockEncodedBits;
+                if (wordSize < storedSize && wordSize <= byteSize) {
+                    blockMode = CompressionMode.HUFFMAN_2_BYTE;
+                    blockMetadata = wordMetadata;
+                    blockEncodedSize = wordSize;
+                    blockEncodedBits = wordBitCount;
+                } else if (byteSize < storedSize) {
+                    blockMode = CompressionMode.HUFFMAN_1_BYTE;
+                    blockMetadata = byteMetadata;
+                    blockEncodedSize = byteSize;
+                    blockEncodedBits = byteBitCount;
+                } else {
+                    blockMode = CompressionMode.STORED;
+                    blockMetadata = BLOCK_HEADER_SIZE;
+                    blockEncodedSize = storedSize;
+                    blockEncodedBits = 0L;
+                }
 
-                blocks.add(new BlockUnit(read, blockMode, table, leaves, bitCount, blockMetadata, blockEncodedSize));
+                blocks.add(new BlockUnit(read, blockMode, byteTable, byteLeaves, wordTable, wordLeaves, blockEncodedBits, blockMetadata, blockEncodedSize));
                 metadataOverhead += blockMetadata;
                 estimatedArchiveSize += blockEncodedSize;
-                if (blockMode == CompressionMode.HUFFMAN_1_BYTE) {
-                    totalCompressedBits += bitCount;
-                    weightedAverageCodeLength += averageCodeLength * read;
+                if (blockMode != CompressionMode.STORED) {
+                    totalCompressedBits += blockEncodedBits;
+                    totalEncodedBytes += read;
                 }
-                weightedEntropy += entropy * read;
+                weightedEntropy += byteTable.entropy() * read;
 
                 processedBytes += read;
                 tracker.update(processedBytes);
@@ -258,14 +318,27 @@ public class HuffmanCodec {
 
         tracker.complete(processedBytes);
 
-        double averageCodeLength = totalBytes == 0L ? 0.0 : weightedAverageCodeLength / totalBytes;
+        double averageCodeLength = totalEncodedBytes == 0L ? 0.0 : (double) totalCompressedBits / totalEncodedBytes;
         double entropy = totalBytes == 0L ? 0.0 : weightedEntropy / totalBytes;
         return new BlockPlan(selectedBlockSize, List.copyOf(blocks), header, metadataOverhead, estimatedArchiveSize, totalCompressedBits, entropy, averageCodeLength);
     }
 
+    private FrequencyTable buildBlockWordFrequencyTable(byte[] buffer, int length) {
+        FrequencyTable table = new FrequencyTable(WORD_SYMBOL_SPACE);
+        int pairEnd = length - (length & 1);
+        for (int i = 0; i < pairEnd; i += 2) {
+            int word = ((buffer[i] & 0xFF) << 8) | (buffer[i + 1] & 0xFF);
+            table.addSymbol(word);
+        }
+        return table;
+    }
+
     private int selectBlockSize(Path inputPath, long totalBytes) throws IOException {
         int numCandidates = CANDIDATE_BLOCK_SIZES.length;
-        long[][] runningFreqs = new long[numCandidates][256];
+        long[][] runningByteFreqs = new long[numCandidates][256];
+        long[][] runningWordFreqs = new long[numCandidates][WORD_SYMBOL_SPACE];
+        int[][] runningWordVisited = new int[numCandidates][WORD_SYMBOL_SPACE];
+        int[] runningWordVisitedCount = new int[numCandidates];
         int[] runningBytes = new int[numCandidates];
         long[] totalEstimates = new long[numCandidates];
 
@@ -274,31 +347,71 @@ public class HuffmanCodec {
 
         try (InputStream input = new BufferedInputStream(Files.newInputStream(inputPath), BUFFER_SIZE)) {
             byte[] buffer = new byte[ANALYSIS_BLOCK_SIZE];
+            long[] miniByteFreqs = new long[256];
+            long[] miniWordFreqs = new long[WORD_SYMBOL_SPACE];
+            int[] miniWordVisited = new int[ANALYSIS_BLOCK_SIZE / 2 + 1];
             int read;
             while ((read = readBlock(input, buffer, ANALYSIS_BLOCK_SIZE)) > 0) {
-                long[] miniFreqs = new long[256];
+                Arrays.fill(miniByteFreqs, 0L);
                 for (int i = 0; i < read; i++) {
-                    miniFreqs[buffer[i] & 0xFF]++;
+                    miniByteFreqs[buffer[i] & 0xFF]++;
+                }
+
+                int miniWordCount = 0;
+                int pairEnd = read - (read & 1);
+                for (int i = 0; i < pairEnd; i += 2) {
+                    int word = ((buffer[i] & 0xFF) << 8) | (buffer[i + 1] & 0xFF);
+                    if (miniWordFreqs[word] == 0L) {
+                        miniWordVisited[miniWordCount++] = word;
+                    }
+                    miniWordFreqs[word]++;
                 }
 
                 for (int c = 0; c < numCandidates; c++) {
                     for (int s = 0; s < 256; s++) {
-                        runningFreqs[c][s] += miniFreqs[s];
+                        runningByteFreqs[c][s] += miniByteFreqs[s];
+                    }
+                    for (int v = 0; v < miniWordCount; v++) {
+                        int word = miniWordVisited[v];
+                        if (runningWordFreqs[c][word] == 0L) {
+                            runningWordVisited[c][runningWordVisitedCount[c]++] = word;
+                        }
+                        runningWordFreqs[c][word] += miniWordFreqs[word];
                     }
                     runningBytes[c] += read;
 
                     if (runningBytes[c] >= CANDIDATE_BLOCK_SIZES[c]) {
-                        totalEstimates[c] += estimateBlockCompressedSize(runningFreqs[c], runningBytes[c]);
-                        Arrays.fill(runningFreqs[c], 0);
+                        totalEstimates[c] += estimateBlockCompressedSize(
+                            runningByteFreqs[c],
+                            runningWordFreqs[c],
+                            runningWordVisited[c],
+                            runningWordVisitedCount[c],
+                            runningBytes[c]
+                        );
+                        Arrays.fill(runningByteFreqs[c], 0L);
+                        for (int v = 0; v < runningWordVisitedCount[c]; v++) {
+                            runningWordFreqs[c][runningWordVisited[c][v]] = 0L;
+                        }
+                        runningWordVisitedCount[c] = 0;
                         runningBytes[c] = 0;
                     }
+                }
+
+                for (int v = 0; v < miniWordCount; v++) {
+                    miniWordFreqs[miniWordVisited[v]] = 0L;
                 }
             }
         }
 
         for (int c = 0; c < numCandidates; c++) {
             if (runningBytes[c] > 0) {
-                totalEstimates[c] += estimateBlockCompressedSize(runningFreqs[c], runningBytes[c]);
+                totalEstimates[c] += estimateBlockCompressedSize(
+                    runningByteFreqs[c],
+                    runningWordFreqs[c],
+                    runningWordVisited[c],
+                    runningWordVisitedCount[c],
+                    runningBytes[c]
+                );
             }
         }
 
@@ -311,36 +424,85 @@ public class HuffmanCodec {
         return CANDIDATE_BLOCK_SIZES[bestIndex];
     }
 
-    private long estimateBlockCompressedSize(long[] frequencies, int blockBytes) {
+    private long estimateBlockCompressedSize(long[] byteFreqs,
+                                             long[] wordFreqs,
+                                             int[] wordVisited,
+                                             int wordVisitedCount,
+                                             int blockBytes) {
+        long storedSize = (long) BLOCK_HEADER_SIZE + blockBytes;
+        long best = storedSize;
+
+        if (blockAllowsByteSubMode()) {
+            long byteSize = estimateByteHuffmanBlockSize(byteFreqs, blockBytes);
+            if (byteSize < best) {
+                best = byteSize;
+            }
+        }
+
+        if (blockAllowsWordSubMode()) {
+            long wordSize = estimateWordHuffmanBlockSize(wordFreqs, wordVisited, wordVisitedCount, blockBytes);
+            if (wordSize < best) {
+                best = wordSize;
+            }
+        }
+        return best;
+    }
+
+    private long estimateByteHuffmanBlockSize(long[] frequencies, int blockBytes) {
         int distinctSymbols = 0;
-        long totalSymbols = 0;
+        long totalSymbols = 0L;
         for (long f : frequencies) {
-            if (f > 0) {
+            if (f > 0L) {
                 distinctSymbols++;
                 totalSymbols += f;
             }
         }
 
-        long storedSize = (long) BLOCK_HEADER_SIZE + blockBytes;
-
+        long metadata = (long) BLOCK_HEADER_SIZE + Integer.BYTES + (long) distinctSymbols * BLOCK_BYTE_FREQUENCY_ENTRY_SIZE;
         if (distinctSymbols <= 1) {
-            long huffmanMetadata = (long) BLOCK_HEADER_SIZE + Integer.BYTES + (long) distinctSymbols * BLOCK_BYTE_FREQUENCY_ENTRY_SIZE;
-            return Math.min(huffmanMetadata, storedSize);
+            return metadata;
+        }
+
+        double totalBits = shannonBits(frequencies, totalSymbols);
+        return metadata + bytesForBits((long) Math.ceil(totalBits));
+    }
+
+    private long estimateWordHuffmanBlockSize(long[] wordFreqs, int[] visited, int visitedCount, int blockBytes) {
+        if (blockBytes < 2) {
+            return Long.MAX_VALUE;
+        }
+
+        long totalPairs = 0L;
+        for (int v = 0; v < visitedCount; v++) {
+            totalPairs += wordFreqs[visited[v]];
+        }
+
+        long trailing = (blockBytes & 1) == 1 ? 1L : 0L;
+        long metadata = (long) BLOCK_HEADER_SIZE + Integer.BYTES + (long) visitedCount * BLOCK_WORD_FREQUENCY_ENTRY_SIZE;
+        if (visitedCount <= 1) {
+            return metadata + trailing;
         }
 
         double totalBits = 0.0;
-        double logTotal = Math.log(totalSymbols);
-        for (long f : frequencies) {
-            if (f > 0) {
-                totalBits += f * (logTotal - Math.log(f));
-            }
+        double logTotal = Math.log(totalPairs);
+        for (int v = 0; v < visitedCount; v++) {
+            long f = wordFreqs[visited[v]];
+            totalBits += f * (logTotal - Math.log(f));
         }
         totalBits /= Math.log(2);
 
-        long huffmanMetadata = (long) BLOCK_HEADER_SIZE + Integer.BYTES + (long) distinctSymbols * BLOCK_BYTE_FREQUENCY_ENTRY_SIZE;
-        long huffmanSize = huffmanMetadata + bytesForBits((long) Math.ceil(totalBits));
+        return metadata + bytesForBits((long) Math.ceil(totalBits)) + trailing;
+    }
 
-        return Math.min(huffmanSize, storedSize);
+    private double shannonBits(long[] frequencies, long totalSymbols) {
+        double totalBits = 0.0;
+        double logTotal = Math.log(totalSymbols);
+        for (long f : frequencies) {
+            if (f > 0L) {
+                totalBits += f * (logTotal - Math.log(f));
+            }
+        }
+        return totalBits / Math.log(2);
     }
 
     private static int readBlock(InputStream input, byte[] buffer, int maxBytes) throws IOException {
@@ -655,18 +817,36 @@ public class HuffmanCodec {
                 output.writeInt(block.blockSize);
                 output.writeByte(block.mode.id());
 
-                if (block.mode == CompressionMode.STORED) {
-                    output.write(buffer, 0, read);
-                } else {
-                    output.writeInt(block.table.distinctSymbolCount());
-                    writeByteFrequencyEntries(output, block.table.copyFrequencies());
-                    if (block.table.distinctSymbolCount() > 1) {
-                        BitOutputStream bitOutput = new BitOutputStream(output);
-                        for (int i = 0; i < read; i++) {
-                            bitOutput.write(block.leaves[buffer[i] & 0xFF].code());
+                switch (block.mode) {
+                    case STORED -> output.write(buffer, 0, read);
+                    case HUFFMAN_1_BYTE -> {
+                        output.writeInt(block.byteTable.distinctSymbolCount());
+                        writeByteFrequencyEntries(output, block.byteTable.copyFrequencies());
+                        if (block.byteTable.distinctSymbolCount() > 1) {
+                            BitOutputStream bitOutput = new BitOutputStream(output);
+                            for (int i = 0; i < read; i++) {
+                                bitOutput.write(block.byteLeaves[buffer[i] & 0xFF].code());
+                            }
+                            bitOutput.finish();
                         }
-                        bitOutput.finish();
                     }
+                    case HUFFMAN_2_BYTE -> {
+                        output.writeInt(block.wordTable.distinctSymbolCount());
+                        writeWordFrequencyEntries(output, block.wordTable.copyFrequencies());
+                        int pairEnd = read - (read & 1);
+                        if (block.wordTable.distinctSymbolCount() > 1) {
+                            BitOutputStream bitOutput = new BitOutputStream(output);
+                            for (int i = 0; i < pairEnd; i += 2) {
+                                int word = ((buffer[i] & 0xFF) << 8) | (buffer[i + 1] & 0xFF);
+                                bitOutput.write(block.wordLeaves[word].code());
+                            }
+                            bitOutput.finish();
+                        }
+                        if ((read & 1) == 1) {
+                            output.writeByte(buffer[read - 1]);
+                        }
+                    }
+                    default -> throw new IOException("Mode de bloc no suportat: " + block.mode);
                 }
 
                 processedBytes += read;
@@ -684,6 +864,17 @@ public class HuffmanCodec {
                 continue;
             }
             output.writeByte(symbol);
+            output.writeLong(frequency);
+        }
+    }
+
+    private void writeWordFrequencyEntries(DataOutputStream output, long[] frequencies) throws IOException {
+        for (int symbol = 0; symbol < frequencies.length; symbol++) {
+            long frequency = frequencies[symbol];
+            if (frequency == 0L) {
+                continue;
+            }
+            output.writeShort(symbol);
             output.writeLong(frequency);
         }
     }
@@ -831,45 +1022,119 @@ public class HuffmanCodec {
             }
             CompressionMode blockMode = CompressionMode.fromId(input.readUnsignedByte());
 
-            if (blockMode == CompressionMode.STORED) {
-                restoredBytes += copyExact(input, output, blockSize);
-                tracker.update(restoredBytes);
-                continue;
-            }
-            if (blockMode != CompressionMode.HUFFMAN_1_BYTE) {
-                throw new ArchiveFormatException("Mode de bloc no valid: " + blockMode);
-            }
-
-            int symbolCount = input.readInt();
-            if (symbolCount < 0) {
-                throw new ArchiveFormatException("El nombre de simbols del bloc no pot ser negatiu.");
-            }
-
-            long[] frequencies = new long[256];
-            long total = 0L;
-            for (int i = 0; i < symbolCount; i++) {
-                int symbol = input.readUnsignedByte();
-                long frequency = input.readLong();
-                if (frequency <= 0L || frequencies[symbol] != 0L) {
-                    throw new ArchiveFormatException("Metadades de bloc Huffman no valides.");
-                }
-                frequencies[symbol] = frequency;
-                total += frequency;
-            }
-            if (total != blockSize) {
-                throw new ArchiveFormatException("La taula de frequencia del bloc no coincideix amb la mida del bloc.");
-            }
-
-            FrequencyTable table = FrequencyTable.fromFrequencies(frequencies);
-            HuffmanCode root = buildTreeAndTrack(table);
-            if (table.distinctSymbolCount() == 1) {
-                restoredBytes += writeRepeatedByte(output, table.singleSymbol(), blockSize);
-            } else {
-                restoredBytes += decodeByteBlock(input, output, root, blockSize);
+            switch (blockMode) {
+                case STORED -> restoredBytes += copyExact(input, output, blockSize);
+                case HUFFMAN_1_BYTE -> restoredBytes += decompressByteBlock(input, output, blockSize);
+                case HUFFMAN_2_BYTE -> restoredBytes += decompressWordBlock(input, output, blockSize);
+                default -> throw new ArchiveFormatException("Mode de bloc no valid: " + blockMode);
             }
             tracker.update(restoredBytes);
         }
         tracker.complete(restoredBytes);
+    }
+
+    private long decompressByteBlock(DataInputStream input, OutputStream output, int blockSize) throws IOException {
+        int symbolCount = input.readInt();
+        if (symbolCount < 0) {
+            throw new ArchiveFormatException("El nombre de simbols del bloc no pot ser negatiu.");
+        }
+
+        long[] frequencies = new long[256];
+        long total = 0L;
+        for (int i = 0; i < symbolCount; i++) {
+            int symbol = input.readUnsignedByte();
+            long frequency = input.readLong();
+            if (frequency <= 0L || frequencies[symbol] != 0L) {
+                throw new ArchiveFormatException("Metadades de bloc Huffman no valides.");
+            }
+            frequencies[symbol] = frequency;
+            total += frequency;
+        }
+        if (total != blockSize) {
+            throw new ArchiveFormatException("La taula de frequencia del bloc no coincideix amb la mida del bloc.");
+        }
+
+        FrequencyTable table = FrequencyTable.fromFrequencies(frequencies);
+        HuffmanCode root = buildTreeAndTrack(table);
+        if (table.distinctSymbolCount() == 1) {
+            return writeRepeatedByte(output, table.singleSymbol(), blockSize);
+        }
+        return decodeByteBlock(input, output, root, blockSize);
+    }
+
+    private long decompressWordBlock(DataInputStream input, OutputStream output, int blockSize) throws IOException {
+        int symbolCount = input.readInt();
+        if (symbolCount < 0) {
+            throw new ArchiveFormatException("El nombre de simbols del bloc no pot ser negatiu.");
+        }
+
+        long[] frequencies = new long[WORD_SYMBOL_SPACE];
+        long total = 0L;
+        for (int i = 0; i < symbolCount; i++) {
+            int symbol = input.readUnsignedShort();
+            long frequency = input.readLong();
+            if (frequency <= 0L || frequencies[symbol] != 0L) {
+                throw new ArchiveFormatException("Metadades de bloc Huffman de 2 bytes no valides.");
+            }
+            frequencies[symbol] = frequency;
+            total += frequency;
+        }
+        long pairCount = (long) blockSize / 2L;
+        if (total != pairCount) {
+            throw new ArchiveFormatException("La taula de bigrames del bloc no coincideix amb la mida del bloc.");
+        }
+
+        FrequencyTable table = FrequencyTable.fromFrequencies(frequencies);
+        long restoredBytes = 0L;
+        if (pairCount > 0L) {
+            HuffmanCode root = buildTreeAndTrack(table);
+            if (table.distinctSymbolCount() == 1) {
+                int symbol = table.singleSymbol();
+                for (long i = 0; i < pairCount; i++) {
+                    output.write((symbol >>> 8) & 0xFF);
+                    output.write(symbol & 0xFF);
+                }
+                restoredBytes += pairCount * 2L;
+            } else {
+                restoredBytes += decodeWordBlock(input, output, root, pairCount);
+            }
+        }
+
+        if ((blockSize & 1) == 1) {
+            int trailing = input.read();
+            if (trailing < 0) {
+                throw new ArchiveFormatException("Final inesperat del byte final del bloc de 2 bytes.");
+            }
+            output.write(trailing);
+            restoredBytes++;
+        }
+        return restoredBytes;
+    }
+
+    private long decodeWordBlock(DataInputStream input, OutputStream output, HuffmanCode root, long pairCount) throws IOException {
+        BitInputStream bitInput = new BitInputStream(input);
+        HuffmanCode current = root;
+        long decodedPairs = 0L;
+        long restoredBytes = 0L;
+        while (decodedPairs < pairCount) {
+            int bit = bitInput.readBit();
+            if (bit < 0) {
+                throw new ArchiveFormatException("Final inesperat de la carrega Huffman del bloc de 2 bytes.");
+            }
+            current = bit == 0 ? current.min() : current.max();
+            if (current == null) {
+                throw new ArchiveFormatException("Cami Huffman invalid dins la carrega del bloc de 2 bytes.");
+            }
+            if (current.isLeaf()) {
+                int symbol = current.symbol();
+                output.write((symbol >>> 8) & 0xFF);
+                output.write(symbol & 0xFF);
+                restoredBytes += 2L;
+                decodedPairs++;
+                current = root;
+            }
+        }
+        return restoredBytes;
     }
 
     private long decodeByteBlock(DataInputStream input, OutputStream output, HuffmanCode root, int blockSize) throws IOException {
@@ -1009,8 +1274,10 @@ public class HuffmanCodec {
 
     private record BlockUnit(int blockSize,
                              CompressionMode mode,
-                             FrequencyTable table,
-                             HuffmanCode[] leaves,
+                             FrequencyTable byteTable,
+                             HuffmanCode[] byteLeaves,
+                             FrequencyTable wordTable,
+                             HuffmanCode[] wordLeaves,
                              long bitCount,
                              long metadataOverhead,
                              long encodedSize) {

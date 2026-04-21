@@ -32,10 +32,10 @@ public final class BenchmarkCsvWriter {
 
         if (!report.modePoints().isEmpty()) {
             builder.append('\n');
-            builder.append("source_name,mode,size_bytes,compression_percentage,compression_ms,decompression_ms\n");
+            builder.append("source_name,variant,size_bytes,compression_percentage,compression_ms,decompression_ms\n");
             for (BenchmarkModePoint point : report.modePoints()) {
                 builder.append(point.sourceName()).append(',')
-                    .append(point.mode().name()).append(',')
+                    .append(point.variant().name()).append(',')
                     .append(point.sizeBytes()).append(',')
                     .append(format(point.compressionPercentage())).append(',')
                     .append(format(point.compressionMillis())).append(',')

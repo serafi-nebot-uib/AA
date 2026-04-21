@@ -1,6 +1,5 @@
 package com.serafinebot.p4.model.benchmark;
 
-import com.serafinebot.p4.model.archive.CompressionMode;
 import com.serafinebot.p4.model.codec.HuffmanCodec;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
 import com.serafinebot.p4.model.report.CompressionResult;
@@ -107,14 +106,14 @@ public final class BenchmarkService {
                                                             Path tempDirectory,
                                                             int repetitions) throws IOException {
         List<BenchmarkModePoint> points = new ArrayList<>();
-        for (CompressionMode mode : List.of(CompressionMode.HUFFMAN_1_BYTE, CompressionMode.HUFFMAN_2_BYTE, CompressionMode.HUFFMAN_BLOCK)) {
+        for (BenchmarkVariant variant : BenchmarkVariant.values()) {
             double totalCompressionPercentage = 0.0;
             double totalCompressionMillis = 0.0;
             double totalDecompressionMillis = 0.0;
             for (int repetition = 0; repetition < repetitions; repetition++) {
-                Path archivePath = tempDirectory.resolve("mode-archive-" + inputIndex + '-' + mode.name() + '-' + repetition + ".hff");
-                Path restoredPath = tempDirectory.resolve("mode-restored-" + inputIndex + '-' + mode.name() + '-' + repetition + ".bin");
-                HuffmanCodec codec = new HuffmanCodec(PriorityQueueStrategy.BINARY_HEAP, mode);
+                Path archivePath = tempDirectory.resolve("mode-archive-" + inputIndex + '-' + variant.name() + '-' + repetition + ".hff");
+                Path restoredPath = tempDirectory.resolve("mode-restored-" + inputIndex + '-' + variant.name() + '-' + repetition + ".bin");
+                HuffmanCodec codec = variant.createCodec(PriorityQueueStrategy.BINARY_HEAP);
 
                 long startCompression = System.nanoTime();
                 CompressionResult compressionResult = codec.compress(input.path(), archivePath);
@@ -131,7 +130,7 @@ public final class BenchmarkService {
 
             points.add(new BenchmarkModePoint(
                 input.sourceName(),
-                mode,
+                variant,
                 input.sizeBytes(),
                 totalCompressionPercentage / repetitions,
                 totalCompressionMillis / repetitions,

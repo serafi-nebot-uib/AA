@@ -157,6 +157,41 @@ class HuffmanCodecTest {
     }
 
     @Test
+    void blockModeRoundTripsWithTwoByteBlocks() throws IOException {
+        int blockBytes = 1 << 17;
+        byte[] first = new byte[blockBytes];
+        byte[] second = new byte[blockBytes + 1];
+        Random random = new Random(424242L);
+        for (int i = 0; i < first.length; i += 2) {
+            int symbol = random.nextInt(64);
+            first[i] = (byte) ((symbol >>> 4) & 0x0F);
+            first[i + 1] = (byte) (symbol & 0x0F);
+        }
+        for (int i = 0; i < second.length - 1; i += 2) {
+            int symbol = random.nextInt(64) + 128;
+            second[i] = (byte) ((symbol >>> 4) & 0x0F);
+            second[i + 1] = (byte) (symbol & 0x0F);
+        }
+        second[second.length - 1] = (byte) 0x7F;
+
+        byte[] data = new byte[first.length + second.length];
+        System.arraycopy(first, 0, data, 0, first.length);
+        System.arraycopy(second, 0, data, first.length, second.length);
+
+        HuffmanCodec blockCodec = new HuffmanCodec(PriorityQueueStrategy.BINARY_HEAP, CompressionMode.HUFFMAN_BLOCK);
+        Path inputPath = writeInput("two-byte-block", data);
+        Path archivePath = tempDir.resolve("two-byte-block.hff");
+        Path restoredPath = tempDir.resolve("two-byte-block-restored.bin");
+
+        CompressionResult compressionResult = blockCodec.compress(inputPath, archivePath);
+        DecompressionResult decompressionResult = blockCodec.decompress(archivePath, restoredPath);
+
+        assertEquals(CompressionMode.HUFFMAN_BLOCK, compressionResult.mode());
+        assertEquals(CompressionMode.HUFFMAN_BLOCK, decompressionResult.mode());
+        assertArrayEquals(data, Files.readAllBytes(restoredPath));
+    }
+
+    @Test
     void codecChoosesBlockStrategyWhenBlocksHaveIndependentLocalPatterns() throws IOException {
         byte[] data = new byte[BLOCK_TEST_SIZE * 2];
         Arrays.fill(data, 0, BLOCK_TEST_SIZE, (byte) 'A');
