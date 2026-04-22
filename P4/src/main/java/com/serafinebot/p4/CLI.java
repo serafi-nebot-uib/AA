@@ -10,6 +10,7 @@ import com.serafinebot.p4.model.progress.ProgressPhase;
 import com.serafinebot.p4.model.progress.ProgressSnapshot;
 import com.serafinebot.p4.model.report.CompressionResult;
 import com.serafinebot.p4.model.report.DecompressionResult;
+import com.serafinebot.p4.util.ByteFormat;
 
 import java.io.PrintStream;
 import java.nio.file.Files;
@@ -172,7 +173,7 @@ public final class CLI {
         out.println("Benchmark completed.");
         out.printf("Corpus: %s%n", config.corpusDirectory().toAbsolutePath().normalize());
         out.printf("Repetitions: %d%n", config.repetitions());
-        out.printf("Measurements: %d%n", report.points().size());
+        out.printf("Measurements: %d%n", report.queuePoints().size());
         out.printf("CSV: %s%n", outputCsvPath.toAbsolutePath().normalize());
     }
 
@@ -205,22 +206,6 @@ public final class CLI {
         stream.println("  java -cp target/P4-1.0-SNAPSHOT.jar com.serafinebot.p4.CLI benchmark /path/to/corpus 3 comparativa.csv");
     }
 
-    private static String formatBytes(long bytes) {
-        String[] units = {"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"};
-        double value = bytes;
-        int unitIndex = 0;
-
-        while (value >= 1024.0 && unitIndex < units.length - 1) {
-            value /= 1024.0;
-            unitIndex++;
-        }
-
-        if (unitIndex == 0) {
-            return bytes + " " + units[unitIndex];
-        }
-        return String.format("%.2f %s", value, units[unitIndex]);
-    }
-
     private static final class CliBenchmarkProgressPrinter {
 
         private final PrintStream err;
@@ -239,7 +224,7 @@ public final class CLI {
                 snapshot.totalSteps(),
                 snapshot.sourceName(),
                 snapshot.strategy(),
-                formatBytes(snapshot.sizeBytes())
+                ByteFormat.format(snapshot.sizeBytes())
             );
 
             int padding = Math.max(0, previousLength - line.length());
@@ -314,8 +299,8 @@ public final class CLI {
             return String.format("%s %6.2f%% (%s / %s) %s",
                 formatPhase(snapshot.phase()),
                 percent,
-                formatBytes(processedBytes),
-                formatBytes(totalBytes),
+                ByteFormat.format(processedBytes),
+                ByteFormat.format(totalBytes),
                 eta);
         }
 

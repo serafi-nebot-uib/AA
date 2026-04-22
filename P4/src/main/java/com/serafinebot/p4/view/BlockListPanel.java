@@ -2,6 +2,7 @@ package com.serafinebot.p4.view;
 
 import com.serafinebot.p4.model.archive.CompressionMode;
 import com.serafinebot.p4.model.report.BlockReport;
+import com.serafinebot.p4.util.ByteFormat;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
@@ -17,7 +18,6 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.text.DecimalFormat;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -26,7 +26,6 @@ import java.util.function.Consumer;
  */
 public final class BlockListPanel extends JPanel {
 
-    private static final DecimalFormat SIZE_FORMAT = new DecimalFormat("0.00");
     private static final Color COLOR_1_BYTE = new Color(77, 139, 211);
     private static final Color COLOR_2_BYTE = new Color(215, 128, 51);
     private static final Color COLOR_STORED = new Color(127, 134, 145);
@@ -106,7 +105,7 @@ public final class BlockListPanel extends JPanel {
     }
 
     private void updateHeader(int index, BlockReport block) {
-        header.setText(String.format("Bloc %d — %s — %s", index + 1, modeLabel(block.mode()), formatBytes(block.blockSize())));
+        header.setText(String.format("Bloc %d — %s — %s", index + 1, modeLabel(block.mode()), ByteFormat.format(block.blockSize())));
     }
 
     private static String modeLabel(CompressionMode mode) {
@@ -115,6 +114,7 @@ public final class BlockListPanel extends JPanel {
             case HUFFMAN_2_BYTE -> "2 bytes";
             case STORED -> "emmagatzemat";
             case HUFFMAN_BLOCK -> "blocs";
+            default -> mode.toString();
         };
     }
 
@@ -124,20 +124,6 @@ public final class BlockListPanel extends JPanel {
             case HUFFMAN_2_BYTE -> COLOR_2_BYTE;
             default -> COLOR_STORED;
         };
-    }
-
-    private static String formatBytes(long bytes) {
-        String[] units = {"B", "KiB", "MiB", "GiB"};
-        double value = bytes;
-        int unitIndex = 0;
-        while (value >= 1024.0 && unitIndex < units.length - 1) {
-            value /= 1024.0;
-            unitIndex++;
-        }
-        if (unitIndex == 0) {
-            return bytes + " " + units[unitIndex];
-        }
-        return SIZE_FORMAT.format(value) + " " + units[unitIndex];
     }
 
     private static final class BlockRenderer extends DefaultListCellRenderer {
@@ -158,7 +144,7 @@ public final class BlockListPanel extends JPanel {
                 label.setText(String.format("<html>Bloc %d<br/>%s — %s</html>",
                     index + 1,
                     modeLabel(block.mode()),
-                    formatBytes(block.blockSize())));
+                    ByteFormat.format(block.blockSize())));
             }
             return label;
         }

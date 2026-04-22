@@ -117,6 +117,10 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
 
     /**
      * Combines two code entries into one deterministic merged entry.
+     *
+     * <p>Huffman coding can produce several equally optimal trees when frequencies tie. The
+     * implementation deliberately orders ties by the smallest symbol in each subtree so every queue
+     * strategy produces the same archive bytes.</p>
      */
     public static HuffmanCode merge(HuffmanCode c1, HuffmanCode c2) {
         if (c1 == null || c2 == null) throw new IllegalArgumentException("c1 i c2 no poden ser null");
@@ -133,6 +137,8 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
      * @return the root of the constructed tree, or {@code null} for an empty table
      */
     public static HuffmanCode buildFromFrequencies(FrequencyTable table, NodeQueue<HuffmanCode> queue) {
+        // Queue choice is injected here so benchmarking can compare data structures without
+        // changing the Huffman algorithm itself.
         for (int symbol = 0; symbol < table.symbolSpaceSize(); symbol++) {
             long frequency = table.frequencyOf(symbol);
             if (frequency > 0L) queue.add(single(symbol, frequency));
@@ -140,6 +146,8 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
 
         if (queue.size() == 0) return null;
 
+        // The two least frequent subtrees are merged until a single root remains. Deterministic
+        // tie-breaking happens inside compareTo/merge, not in each queue implementation.
         while (queue.size() > 1) {
             HuffmanCode min = queue.removeMin();
             HuffmanCode max = queue.removeMin();
@@ -157,6 +165,8 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
         HuffmanCode root = this;
         while (root.parent != null) root = root.parent;
 
+        // Encoding needs direct symbol -> leaf access. Building this array once avoids repeatedly
+        // walking the tree for every byte or word emitted to the compressed payload.
         HuffmanCode[] codesBySymbol = new HuffmanCode[symbolSpaceSize];
         ArrayDeque<HuffmanCode> queue = new ArrayDeque<>();
         queue.add(root);

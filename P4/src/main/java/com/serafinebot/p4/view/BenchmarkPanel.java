@@ -1,12 +1,12 @@
 package com.serafinebot.p4.view;
 
+import com.serafinebot.p4.model.archive.CompressionMode;
 import com.serafinebot.p4.model.benchmark.BenchmarkConfig;
 import com.serafinebot.p4.model.benchmark.BenchmarkCsvWriter;
-import com.serafinebot.p4.model.benchmark.BenchmarkModePoint;
-import com.serafinebot.p4.model.benchmark.BenchmarkPoint;
+import com.serafinebot.p4.model.benchmark.CompressionModeBenchmarkPoint;
+import com.serafinebot.p4.model.benchmark.QueueBenchmarkPoint;
 import com.serafinebot.p4.model.benchmark.BenchmarkProgressSnapshot;
 import com.serafinebot.p4.model.benchmark.BenchmarkReport;
-import com.serafinebot.p4.model.benchmark.BenchmarkVariant;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
 
 import javax.swing.BorderFactory;
@@ -42,11 +42,11 @@ public final class BenchmarkPanel extends JPanel {
         PriorityQueueStrategy.DICHOTOMIC_LIST, new Color(232, 126, 39),
         PriorityQueueStrategy.FIBONACCI_HEAP, new Color(142, 84, 201)
     );
-    private static final Map<BenchmarkVariant, Color> VARIANT_COLORS = Map.of(
-        BenchmarkVariant.HUFFMAN_1_BYTE, new Color(54, 111, 214),
-        BenchmarkVariant.HUFFMAN_2_BYTE, new Color(232, 126, 39),
-        BenchmarkVariant.HUFFMAN_BLOCK_1_BYTE, new Color(55, 156, 91),
-        BenchmarkVariant.HUFFMAN_BLOCK_2_BYTE, new Color(142, 84, 201)
+    private static final Map<CompressionMode, Color> MODE_COLORS = Map.of(
+        CompressionMode.HUFFMAN_1_BYTE, new Color(54, 111, 214),
+        CompressionMode.HUFFMAN_2_BYTE, new Color(232, 126, 39),
+        CompressionMode.HUFFMAN_BLOCK_1_BYTE, new Color(55, 156, 91),
+        CompressionMode.HUFFMAN_BLOCK_2_BYTE, new Color(142, 84, 201)
     );
 
     private final JTextField corpusDirectoryField = new JTextField(DEFAULT_CORPUS_DIRECTORY, 28);
@@ -252,7 +252,7 @@ public final class BenchmarkPanel extends JPanel {
     }
 
     private void refreshGraphs() {
-        if (report == null || report.points().isEmpty()) {
+        if (report == null || report.queuePoints().isEmpty()) {
             showEmptyState();
             return;
         }
@@ -314,63 +314,63 @@ public final class BenchmarkPanel extends JPanel {
     private List<BenchmarkGraphPanel.Series> treeBuildSeries(boolean compression) {
         List<BenchmarkGraphPanel.Series> series = new ArrayList<>();
         for (PriorityQueueStrategy strategy : PriorityQueueStrategy.values()) {
-            List<BenchmarkGraphPanel.GraphPoint> points = new ArrayList<>();
-            for (BenchmarkPoint point : report.points()) {
+            List<BenchmarkGraphPanel.GraphPoint> graphPoints = new ArrayList<>();
+            for (QueueBenchmarkPoint point : report.queuePoints()) {
                 if (point.strategy() == strategy) {
-                    points.add(new BenchmarkGraphPanel.GraphPoint(
+                    graphPoints.add(new BenchmarkGraphPanel.GraphPoint(
                         point.sizeBytes(),
-                        compression ? point.compressionMillis() : point.decompressionMillis(),
+                        compression ? point.compressionTreeBuildMillis() : point.decompressionTreeBuildMillis(),
                         strategy == PriorityQueueStrategy.BINARY_HEAP ? point.sourceName() : null
                     ));
                 }
             }
-            series.add(new BenchmarkGraphPanel.Series(strategy.toString(), STRATEGY_COLORS.get(strategy), true, points));
+            series.add(new BenchmarkGraphPanel.Series(strategy.toString(), STRATEGY_COLORS.get(strategy), true, graphPoints));
         }
         return series;
     }
 
     private List<BenchmarkGraphPanel.Series> modeTimeSeries(boolean compression) {
         List<BenchmarkGraphPanel.Series> series = new ArrayList<>();
-        for (BenchmarkVariant variant : BenchmarkVariant.values()) {
-            List<BenchmarkGraphPanel.GraphPoint> points = new ArrayList<>();
-            for (BenchmarkModePoint point : report.modePoints()) {
-                if (point.variant() == variant) {
-                    points.add(new BenchmarkGraphPanel.GraphPoint(
+        for (CompressionMode mode : CompressionMode.benchmarkModes()) {
+            List<BenchmarkGraphPanel.GraphPoint> graphPoints = new ArrayList<>();
+            for (CompressionModeBenchmarkPoint point : report.modePoints()) {
+                if (point.mode() == mode) {
+                    graphPoints.add(new BenchmarkGraphPanel.GraphPoint(
                         point.sizeBytes(),
                         compression ? point.compressionMillis() : point.decompressionMillis(),
-                        variant == BenchmarkVariant.HUFFMAN_1_BYTE ? point.sourceName() : null
+                        mode == CompressionMode.HUFFMAN_1_BYTE ? point.sourceName() : null
                     ));
                 }
             }
-            series.add(new BenchmarkGraphPanel.Series(variant.toString(), VARIANT_COLORS.get(variant), true, points));
+            series.add(new BenchmarkGraphPanel.Series(mode.toString(), MODE_COLORS.get(mode), true, graphPoints));
         }
         return series;
     }
 
     private List<BenchmarkGraphPanel.Series> entropySeries() {
-        List<BenchmarkGraphPanel.GraphPoint> points = new ArrayList<>();
-        for (BenchmarkPoint point : report.points()) {
+        List<BenchmarkGraphPanel.GraphPoint> graphPoints = new ArrayList<>();
+        for (QueueBenchmarkPoint point : report.queuePoints()) {
             if (point.strategy() == PriorityQueueStrategy.BINARY_HEAP) {
-                points.add(new BenchmarkGraphPanel.GraphPoint(point.entropy(), point.averageCodeLength(), point.sourceName()));
+                graphPoints.add(new BenchmarkGraphPanel.GraphPoint(point.entropy(), point.averageCodeLength(), point.sourceName()));
             }
         }
-        return List.of(new BenchmarkGraphPanel.Series("Fitxers", new Color(54, 111, 214), false, points));
+        return List.of(new BenchmarkGraphPanel.Series("Fitxers", new Color(54, 111, 214), false, graphPoints));
     }
 
     private List<BenchmarkGraphPanel.Series> compressionRateSeries() {
         List<BenchmarkGraphPanel.Series> series = new ArrayList<>();
-        for (BenchmarkVariant variant : BenchmarkVariant.values()) {
-            List<BenchmarkGraphPanel.GraphPoint> points = new ArrayList<>();
-            for (BenchmarkModePoint point : report.modePoints()) {
-                if (point.variant() == variant) {
-                    points.add(new BenchmarkGraphPanel.GraphPoint(
+        for (CompressionMode mode : CompressionMode.benchmarkModes()) {
+            List<BenchmarkGraphPanel.GraphPoint> graphPoints = new ArrayList<>();
+            for (CompressionModeBenchmarkPoint point : report.modePoints()) {
+                if (point.mode() == mode) {
+                    graphPoints.add(new BenchmarkGraphPanel.GraphPoint(
                         point.sizeBytes(),
                         compressionRatio(point.compressionPercentage()),
-                        variant == BenchmarkVariant.HUFFMAN_1_BYTE ? point.sourceName() : null
+                        mode == CompressionMode.HUFFMAN_1_BYTE ? point.sourceName() : null
                     ));
                 }
             }
-            series.add(new BenchmarkGraphPanel.Series(variant.toString(), VARIANT_COLORS.get(variant), true, points));
+            series.add(new BenchmarkGraphPanel.Series(mode.toString(), MODE_COLORS.get(mode), true, graphPoints));
         }
         return series;
     }

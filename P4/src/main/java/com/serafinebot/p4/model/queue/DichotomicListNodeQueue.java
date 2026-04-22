@@ -6,6 +6,10 @@ import java.util.Collections;
 /**
  * {@link NodeQueue} implementation backed by a sorted array list using binary-search insertion.
  *
+ * <p>This is intentionally simple: insertion pays O(n) for the array shift, but remove-min is O(1)
+ * apart from the list compaction. It gives the benchmark a useful contrast against heap-based
+ * structures on small and medium inputs.</p>
+ *
  * @param <T> element type stored in the queue
  */
 public final class DichotomicListNodeQueue<T extends Comparable<? super T>> implements NodeQueue<T> {
@@ -14,6 +18,8 @@ public final class DichotomicListNodeQueue<T extends Comparable<? super T>> impl
 
     @Override
     public void add(T node) {
+        // binarySearch returns an arbitrary equal-position for duplicates, which is fine because
+        // HuffmanCode.compareTo already encodes the deterministic frequency/symbol ordering.
         int insertionIndex = Collections.binarySearch(elements, node);
         if (insertionIndex < 0) {
             insertionIndex = -insertionIndex - 1;

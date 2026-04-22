@@ -4,6 +4,11 @@ import java.util.Arrays;
 
 /**
  * Frequency table for Huffman coding over a fixed symbol space.
+ *
+ * <p>The same structure is used for byte symbols ({@code 0..255}) and two-byte symbols
+ * ({@code 0..65535}). Keeping the symbol space fixed makes lookups O(1), which is more useful here
+ * than a sparse map because the table is read repeatedly while estimating encoded sizes and writing
+ * archive metadata.</p>
  */
 public final class FrequencyTable {
 
@@ -28,6 +33,9 @@ public final class FrequencyTable {
 
     /**
      * Increments the counter for one symbol.
+     *
+     * <p>{@code distinctSymbolCount} is cached because header-size estimation needs it often. It is
+     * updated only on the transition from zero to one occurrence.</p>
      */
     public void addSymbol(int symbol) {
         if (frequencies[symbol] == 0L) distinctSymbolCount++;
@@ -80,6 +88,10 @@ public final class FrequencyTable {
 
     /**
      * Computes the Shannon entropy of the observed symbol distribution.
+     *
+     * <p>The value is not used to build the Huffman tree directly. It is kept as a lower-bound
+     * reference for the report so the implementation can compare observed entropy with the average
+     * generated code length.</p>
      */
     public double entropy() {
         if (totalCount == 0L) return 0.0;
@@ -94,6 +106,10 @@ public final class FrequencyTable {
 
     /**
      * Builds a frequency table from an already-known array of counts.
+     *
+     * <p>Archive headers store sparse frequency entries. During decompression those entries are
+     * expanded back into a full fixed-size table so the exact same tree-construction code is reused
+     * for compression and decompression.</p>
      */
     public static FrequencyTable fromFrequencies(long[] frequencies) {
         FrequencyTable table = new FrequencyTable(frequencies.length);

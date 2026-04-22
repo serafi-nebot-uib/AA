@@ -8,7 +8,8 @@ import java.io.OutputStream;
  * Writes individual bits to an output stream.
  *
  * <p>Bits are packed most-significant-bit first. The last byte is padded with zeros on close if it
- * was not completely filled.</p>
+ * was not completely filled. The archive header stores the original byte count, so the decoder
+ * knows when to stop and never interprets those padding zeros as real symbols.</p>
  */
 public final class BitOutputStream implements Closeable {
 

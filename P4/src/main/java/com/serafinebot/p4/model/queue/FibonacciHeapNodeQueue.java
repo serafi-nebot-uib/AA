@@ -6,6 +6,15 @@ import java.util.List;
 /**
  * {@link NodeQueue} implementation backed by a Fibonacci heap.
  *
+ * <p>This implementation only supports the operations required by Huffman construction. A complete
+ * Fibonacci heap usually also exposes decrease-key and delete, but those would add complexity
+ * without helping this assignment because Huffman nodes are inserted once and then removed by
+ * priority.</p>
+ *
+ * <p>Each root list and child list is represented as a circular doubly linked list. That keeps
+ * insertion and splicing cheap, but it also means every detach/link operation must leave the moved
+ * node as a valid one-node circular list before it is inserted somewhere else.</p>
+ *
  * @param <T> element type stored in the queue
  */
 public final class FibonacciHeapNodeQueue<T extends Comparable<? super T>> implements NodeQueue<T> {
@@ -67,6 +76,9 @@ public final class FibonacciHeapNodeQueue<T extends Comparable<? super T>> imple
         List<FibonacciNode<T>> roots = collectCircularList(min);
         ArrayList<FibonacciNode<T>> degreeTable = new ArrayList<>();
 
+        // After removing the minimum, there may be many roots with the same degree. Consolidation
+        // repeatedly links equal-degree roots so at most one root of each degree remains; this is
+        // what keeps future remove-min operations logarithmic in the number of stored nodes.
         for (FibonacciNode<T> root : roots) {
             FibonacciNode<T> x = root;
             int degree = x.degree;
@@ -107,6 +119,9 @@ public final class FibonacciHeapNodeQueue<T extends Comparable<? super T>> imple
     }
 
     private void link(FibonacciNode<T> child, FibonacciNode<T> parent) {
+        // The higher-priority root stays a root; the other root becomes one of its children. The
+        // child is detached first so its old siblings are not accidentally carried into the new
+        // child list.
         detach(child);
         child.parent = parent;
         child.left = child;
@@ -132,6 +147,8 @@ public final class FibonacciHeapNodeQueue<T extends Comparable<? super T>> imple
     }
 
     private void detach(FibonacciNode<T> node) {
+        // Detaching rewires the old neighbors and then resets the node to a self-loop. The self-loop
+        // invariant makes it safe to insert the node into any other circular list immediately after.
         node.left.right = node.right;
         node.right.left = node.left;
         node.left = node;
@@ -141,6 +158,8 @@ public final class FibonacciHeapNodeQueue<T extends Comparable<? super T>> imple
     private List<FibonacciNode<T>> collectCircularList(FibonacciNode<T> start) {
         List<FibonacciNode<T>> nodes = new ArrayList<>();
         FibonacciNode<T> current = start;
+        // Snapshot the ring before mutating it. Consolidation and child promotion both change links,
+        // so iterating directly over the circular list while mutating would be error-prone.
         do {
             nodes.add(current);
             current = current.right;

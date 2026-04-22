@@ -13,6 +13,7 @@ import com.serafinebot.p4.model.report.DecompressionReport;
 import com.serafinebot.p4.model.report.DecompressionResult;
 import com.serafinebot.p4.model.report.HuffmanSymbolInfo;
 import com.serafinebot.p4.model.report.HuffmanTreeNodeInfo;
+import com.serafinebot.p4.util.ByteFormat;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -50,7 +51,6 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Main Swing window for the compressor application.
@@ -61,13 +61,12 @@ public class MainWindow extends JFrame {
     private static final Color FRAME_BACKGROUND = new Color(238, 241, 245);
     private static final Color PANEL_BACKGROUND = new Color(248, 250, 252);
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.000000");
-    private static final DecimalFormat SIZE_FORMAT = new DecimalFormat("0.00");
 
     private final JTextField inputField = new JTextField(42);
     private final JTextField outputField = new JTextField(42);
     private final JButton processButton = new JButton("Comprimeix a .hff");
     private final JComboBox<PriorityQueueStrategy> queueCombo = new JComboBox<>();
-    private final JComboBox<ModeChoice> modeCombo = new JComboBox<>();
+    private final JComboBox<CompressionMode> modeCombo = new JComboBox<>();
     private final JTextArea statsArea = new JTextArea();
     private final JTextArea filesHintArea = new JTextArea();
     private final DefaultTableModel symbolTableModel = new DefaultTableModel(new Object[] {"Simbol", "Hex", "Freq", "Probabilitat", "Codi"}, 0) {
@@ -101,7 +100,7 @@ public class MainWindow extends JFrame {
         setLayout(new BorderLayout());
 
         queueCombo.setModel(new DefaultComboBoxModel<>(PriorityQueueStrategy.values()));
-        modeCombo.setModel(new DefaultComboBoxModel<>(ModeChoice.values()));
+        modeCombo.setModel(new DefaultComboBoxModel<>(CompressionMode.requestModes()));
         configureTextAreas();
         configureTables();
         installInputAutoSync();
@@ -148,8 +147,8 @@ public class MainWindow extends JFrame {
         progressTextLabel.setText(String.format("%s • %d%% (%s / %s)",
             formatPhase(snapshot),
             percent,
-            formatBytes(snapshot.processedBytes()),
-            formatBytes(snapshot.totalBytes())));
+            ByteFormat.format(snapshot.processedBytes()),
+            ByteFormat.format(snapshot.totalBytes())));
         phaseLabel.setText("Fase: " + formatPhase(snapshot));
         etaLabel.setText(snapshot.estimatedRemainingMillis() < 0L ? "Temps restant --" : "Temps restant " + formatDuration(snapshot.estimatedRemainingMillis()));
     }
@@ -584,10 +583,8 @@ public class MainWindow extends JFrame {
         if (isArchiveInput(inputField.getText())) {
             viewListener.onDecompressRequested(inputPath, outputPath, strategy);
         } else {
-            ModeChoice modeChoice = (ModeChoice) modeCombo.getSelectedItem();
-            CompressionMode preferredMode = modeChoice == null ? null : modeChoice.mode;
-            Set<CompressionMode> allowedBlockModes = modeChoice == null ? null : modeChoice.allowedBlockModes;
-            viewListener.onCompressRequested(inputPath, outputPath, strategy, preferredMode, allowedBlockModes);
+            CompressionMode requestedMode = (CompressionMode) modeCombo.getSelectedItem();
+            viewListener.onCompressRequested(inputPath, outputPath, strategy, requestedMode);
         }
     }
 
@@ -674,20 +671,6 @@ public class MainWindow extends JFrame {
         };
     }
 
-    private String formatBytes(long bytes) {
-        String[] units = {"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"};
-        double value = bytes;
-        int unitIndex = 0;
-        while (value >= 1024.0 && unitIndex < units.length - 1) {
-            value /= 1024.0;
-            unitIndex++;
-        }
-        if (unitIndex == 0) {
-            return bytes + " " + units[unitIndex];
-        }
-        return SIZE_FORMAT.format(value) + " " + units[unitIndex];
-    }
-
     private String formatDuration(long millis) {
         long totalSeconds = millis / 1000L;
         long minutes = totalSeconds / 60L;
@@ -729,30 +712,6 @@ public class MainWindow extends JFrame {
             return String.format("0x%02X", symbol);
         }
         return String.format("0x%04X", symbol);
-    }
-
-    private enum ModeChoice {
-        AUTO(null, null, "Automatic"),
-        STORED(CompressionMode.STORED, null, "Emmagatzemat"),
-        HUFFMAN_1_BYTE(CompressionMode.HUFFMAN_1_BYTE, null, "Huffman 1 byte"),
-        HUFFMAN_2_BYTE(CompressionMode.HUFFMAN_2_BYTE, null, "Huffman 2 bytes"),
-        HUFFMAN_BLOCK_1_BYTE(CompressionMode.HUFFMAN_BLOCK, Set.of(CompressionMode.HUFFMAN_1_BYTE), "Huffman per blocs (1 byte)"),
-        HUFFMAN_BLOCK_2_BYTE(CompressionMode.HUFFMAN_BLOCK, Set.of(CompressionMode.HUFFMAN_2_BYTE), "Huffman per blocs (2 bytes)");
-
-        private final CompressionMode mode;
-        private final Set<CompressionMode> allowedBlockModes;
-        private final String label;
-
-        ModeChoice(CompressionMode mode, Set<CompressionMode> allowedBlockModes, String label) {
-            this.mode = mode;
-            this.allowedBlockModes = allowedBlockModes;
-            this.label = label;
-        }
-
-        @Override
-        public String toString() {
-            return label;
-        }
     }
 
 }

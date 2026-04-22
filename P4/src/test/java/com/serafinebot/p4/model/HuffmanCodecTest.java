@@ -4,6 +4,8 @@ import com.serafinebot.p4.model.archive.ArchiveFormatException;
 import com.serafinebot.p4.model.archive.CompressionMode;
 import com.serafinebot.p4.model.benchmark.BenchmarkConfig;
 import com.serafinebot.p4.model.benchmark.BenchmarkCsvWriter;
+import com.serafinebot.p4.model.benchmark.CompressionModeBenchmarkPoint;
+import com.serafinebot.p4.model.benchmark.QueueBenchmarkPoint;
 import com.serafinebot.p4.model.benchmark.BenchmarkProgressSnapshot;
 import com.serafinebot.p4.model.benchmark.BenchmarkReport;
 import com.serafinebot.p4.model.benchmark.BenchmarkService;
@@ -137,13 +139,62 @@ class HuffmanCodecTest {
         }
     }
 
-    // TODO: benchmark tests disabled — BenchmarkConfig API changed to (Path, int)
-    // @Test
-    // void benchmarkServiceProducesPointsForAllProfilesAndStrategies() { }
-    // @Test
-    // void benchmarkCsvWriterProducesHeaderAndRows() { }
-    // @Test
-    // void benchmarkServiceReportsProgress() { }
+    @Test
+    void benchmarkServiceProducesPointsForAllStrategiesAndModeVariants() throws IOException {
+        Path corpusDirectory = createBenchmarkCorpus();
+
+        BenchmarkReport report = new BenchmarkService().run(new BenchmarkConfig(corpusDirectory, 1));
+
+        assertEquals(2 * PriorityQueueStrategy.values().length, report.queuePoints().size());
+        assertEquals(2 * CompressionMode.benchmarkModes().size(), report.modePoints().size());
+        assertTrue(report.queuePoints().stream().allMatch(point -> point.sizeBytes() > 0L));
+        assertTrue(report.modePoints().stream().allMatch(point -> point.sizeBytes() > 0L));
+    }
+
+    @Test
+    void benchmarkCsvWriterProducesHeaderAndRows() {
+        BenchmarkReport report = new BenchmarkReport(
+            new BenchmarkConfig(tempDir, 1),
+            List.of(new QueueBenchmarkPoint(
+                "sample.txt",
+                PriorityQueueStrategy.BINARY_HEAP,
+                128L,
+                1.25,
+                0.75,
+                3.5,
+                4.0,
+                12.5
+            )),
+            List.of(new CompressionModeBenchmarkPoint(
+                "sample.txt",
+                CompressionMode.HUFFMAN_1_BYTE,
+                128L,
+                12.5,
+                2.0,
+                1.0
+            ))
+        );
+
+        String csv = BenchmarkCsvWriter.toCsv(report);
+
+        assertTrue(csv.contains("source_name,strategy,size_bytes"));
+        assertTrue(csv.contains("sample.txt,BINARY_HEAP,128"));
+        assertTrue(csv.contains("source_name,mode,size_bytes"));
+        assertTrue(csv.contains("sample.txt,HUFFMAN_1_BYTE,128"));
+    }
+
+    @Test
+    void benchmarkServiceReportsProgress() throws IOException {
+        Path corpusDirectory = createBenchmarkCorpus();
+        List<BenchmarkProgressSnapshot> snapshots = new ArrayList<>();
+
+        new BenchmarkService().run(new BenchmarkConfig(corpusDirectory, 1), snapshots::add);
+
+        int expectedSteps = 2 * PriorityQueueStrategy.values().length;
+        assertEquals(expectedSteps, snapshots.size());
+        assertEquals(expectedSteps, snapshots.get(snapshots.size() - 1).completedSteps());
+        assertEquals(1.0, snapshots.get(snapshots.size() - 1).completion(), 1.0e-9);
+    }
 
     @Test
     void codecChoosesTwoByteStrategyWhenRepeatedPairsDominate() throws IOException {
@@ -189,6 +240,22 @@ class HuffmanCodecTest {
         assertEquals(CompressionMode.HUFFMAN_BLOCK, compressionResult.mode());
         assertEquals(CompressionMode.HUFFMAN_BLOCK, decompressionResult.mode());
         assertArrayEquals(data, Files.readAllBytes(restoredPath));
+    }
+
+    @Test
+    void requestedBlockSubModesRestrictBlockEncodingChoices() throws IOException {
+        byte[] data = "AB".repeat(8192).getBytes(StandardCharsets.UTF_8);
+        Path inputPath = writeInput("restricted-block-modes", data);
+
+        CompressionReport byteOnlyReport = new HuffmanCodec(PriorityQueueStrategy.BINARY_HEAP, CompressionMode.HUFFMAN_BLOCK_1_BYTE)
+            .compressWithReport(inputPath, tempDir.resolve("restricted-byte.hff"));
+        CompressionReport wordOnlyReport = new HuffmanCodec(PriorityQueueStrategy.BINARY_HEAP, CompressionMode.HUFFMAN_BLOCK_2_BYTE)
+            .compressWithReport(inputPath, tempDir.resolve("restricted-word.hff"));
+
+        assertEquals(CompressionMode.HUFFMAN_BLOCK, byteOnlyReport.result().mode());
+        assertEquals(CompressionMode.HUFFMAN_BLOCK, wordOnlyReport.result().mode());
+        assertTrue(byteOnlyReport.blocks().stream().noneMatch(block -> block.mode() == CompressionMode.HUFFMAN_2_BYTE));
+        assertTrue(wordOnlyReport.blocks().stream().noneMatch(block -> block.mode() == CompressionMode.HUFFMAN_1_BYTE));
     }
 
     @Test
@@ -353,6 +420,16 @@ class HuffmanCodecTest {
         Path inputPath = tempDir.resolve(fileName + ".bin");
         Files.write(inputPath, data);
         return inputPath;
+    }
+
+    private Path createBenchmarkCorpus() throws IOException {
+        Path corpusDirectory = tempDir.resolve("corpus");
+        Files.createDirectories(corpusDirectory);
+        Files.writeString(corpusDirectory.resolve("text.txt"), "benchmark text ".repeat(40));
+        Files.write(corpusDirectory.resolve("binary.bin"), new byte[] {
+            1, 1, 1, 1, 2, 2, 3, 5, 8, 13, 21, 34, 55, 89
+        });
+        return corpusDirectory;
     }
 
     private record RoundTrip(

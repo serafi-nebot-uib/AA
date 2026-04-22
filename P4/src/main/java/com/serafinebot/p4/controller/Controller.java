@@ -17,7 +17,6 @@ import javax.swing.SwingWorker;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -26,7 +25,6 @@ import java.util.concurrent.ExecutionException;
 public class Controller implements ViewListener {
 
     private final MainWindow view;
-    private SwingWorker<?, ?> worker;
 
     public Controller(MainWindow view) {
         this.view = view;
@@ -37,8 +35,7 @@ public class Controller implements ViewListener {
     public void onCompressRequested(Path inputPath,
                                     Path outputPath,
                                     PriorityQueueStrategy strategy,
-                                    CompressionMode preferredMode,
-                                    Set<CompressionMode> allowedBlockHuffmanModes) {
+                                    CompressionMode requestedMode) {
         if (!validateInputPath(inputPath) || !validateOutputPath(outputPath)) {
             return;
         }
@@ -47,10 +44,10 @@ public class Controller implements ViewListener {
         view.showStatus("Compressio en curs...");
         view.setRunning(true);
 
-        worker = new SwingWorker<CompressionReport, ProgressSnapshot>() {
+        SwingWorker<CompressionReport, ProgressSnapshot> compressionWorker = new SwingWorker<>() {
             @Override
             protected CompressionReport doInBackground() throws Exception {
-                return new HuffmanCodec(strategy, preferredMode, allowedBlockHuffmanModes)
+                return new HuffmanCodec(strategy, requestedMode)
                     .compressWithReport(inputPath, outputPath, snapshot -> publish(snapshot));
             }
 
@@ -62,10 +59,10 @@ public class Controller implements ViewListener {
             @Override
             protected void done() {
                 view.setRunning(false);
-                handleCompressionResult(inputPath, outputPath);
+                handleCompressionResult(this, inputPath, outputPath);
             }
         };
-        worker.execute();
+        compressionWorker.execute();
     }
 
     @Override
@@ -78,7 +75,7 @@ public class Controller implements ViewListener {
         view.showStatus("Descompressio en curs...");
         view.setRunning(true);
 
-        worker = new SwingWorker<DecompressionReport, ProgressSnapshot>() {
+        SwingWorker<DecompressionReport, ProgressSnapshot> decompressionWorker = new SwingWorker<>() {
             @Override
             protected DecompressionReport doInBackground() throws Exception {
                 return new HuffmanCodec(strategy).decompressWithReport(inputPath, outputPath, snapshot -> publish(snapshot));
@@ -92,10 +89,10 @@ public class Controller implements ViewListener {
             @Override
             protected void done() {
                 view.setRunning(false);
-                handleDecompressionResult(inputPath, outputPath);
+                handleDecompressionResult(this, inputPath, outputPath);
             }
         };
-        worker.execute();
+        decompressionWorker.execute();
     }
 
     @Override
@@ -103,7 +100,7 @@ public class Controller implements ViewListener {
         view.setRunning(true);
         view.resetBenchmarkProgress();
 
-        worker = new SwingWorker<BenchmarkReport, BenchmarkProgressSnapshot>() {
+        SwingWorker<BenchmarkReport, BenchmarkProgressSnapshot> benchmarkWorker = new SwingWorker<>() {
             @Override
             protected BenchmarkReport doInBackground() throws Exception {
                 return new BenchmarkService().run(config, this::publish);
@@ -117,15 +114,17 @@ public class Controller implements ViewListener {
             @Override
             protected void done() {
                 view.setRunning(false);
-                handleBenchmarkResult();
+                handleBenchmarkResult(this);
             }
         };
-        worker.execute();
+        benchmarkWorker.execute();
     }
 
-    private void handleCompressionResult(Path inputPath, Path outputPath) {
+    private void handleCompressionResult(SwingWorker<CompressionReport, ProgressSnapshot> worker,
+                                         Path inputPath,
+                                         Path outputPath) {
         try {
-            CompressionReport report = (CompressionReport) worker.get();
+            CompressionReport report = worker.get();
             view.showCompressionReport(report);
             view.refreshFileExplorer();
             view.showStatus("S'ha comprimit " + inputPath.getFileName() + " a " + outputPath.getFileName() + ".");
@@ -137,9 +136,11 @@ public class Controller implements ViewListener {
         }
     }
 
-    private void handleDecompressionResult(Path inputPath, Path outputPath) {
+    private void handleDecompressionResult(SwingWorker<DecompressionReport, ProgressSnapshot> worker,
+                                           Path inputPath,
+                                           Path outputPath) {
         try {
-            DecompressionReport report = (DecompressionReport) worker.get();
+            DecompressionReport report = worker.get();
             view.showDecompressionReport(report);
             view.refreshFileExplorer();
             view.showStatus("S'ha descomprimit " + inputPath.getFileName() + " a " + outputPath.getFileName() + ".");
@@ -151,9 +152,9 @@ public class Controller implements ViewListener {
         }
     }
 
-    private void handleBenchmarkResult() {
+    private void handleBenchmarkResult(SwingWorker<BenchmarkReport, BenchmarkProgressSnapshot> worker) {
         try {
-            BenchmarkReport report = (BenchmarkReport) worker.get();
+            BenchmarkReport report = worker.get();
             view.showBenchmarkReport(report);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();

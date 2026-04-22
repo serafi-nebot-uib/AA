@@ -1,18 +1,20 @@
 package com.serafinebot.p4.model.benchmark;
 
+import com.serafinebot.p4.model.archive.CompressionMode;
+
 /**
- * One benchmark measurement focused on compression variant comparison.
+ * One benchmark measurement focused on requested compression mode comparison.
  *
  * @param sourceName corpus file name used for the measurement
- * @param variant compression variant used for the run
+ * @param mode requested compression mode used for the run
  * @param sizeBytes input file size in bytes
  * @param compressionPercentage average compression gain in percent
  * @param compressionMillis average wall-clock compression time in milliseconds
  * @param decompressionMillis average wall-clock decompression time in milliseconds
  */
-public record BenchmarkModePoint(
+public record CompressionModeBenchmarkPoint(
     String sourceName,
-    BenchmarkVariant variant,
+    CompressionMode mode,
     long sizeBytes,
     double compressionPercentage,
     double compressionMillis,

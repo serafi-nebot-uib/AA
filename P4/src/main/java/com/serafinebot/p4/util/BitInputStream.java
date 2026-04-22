@@ -7,7 +7,8 @@ import java.io.InputStream;
  * Reads individual bits from an input stream.
  *
  * <p>Bits are exposed most-significant-bit first. Each call consumes exactly one bit until the
- * underlying stream reaches EOF.</p>
+ * underlying stream reaches EOF. This matches {@link BitOutputStream}'s packing order, so decoder
+ * tree walks see the exact bit sequence that was emitted by the encoder.</p>
  */
 public final class BitInputStream {
 

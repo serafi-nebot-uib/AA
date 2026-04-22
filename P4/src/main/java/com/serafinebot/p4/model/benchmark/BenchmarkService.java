@@ -1,5 +1,6 @@
 package com.serafinebot.p4.model.benchmark;
 
+import com.serafinebot.p4.model.archive.CompressionMode;
 import com.serafinebot.p4.model.codec.HuffmanCodec;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
 import com.serafinebot.p4.model.report.CompressionResult;
@@ -28,8 +29,8 @@ public final class BenchmarkService {
      * Executes the benchmark described by {@code config} and optionally reports progress.
      */
     public BenchmarkReport run(BenchmarkConfig config, BenchmarkProgressListener progressListener) throws IOException {
-        List<BenchmarkPoint> points = new ArrayList<>();
-        List<BenchmarkModePoint> modePoints = new ArrayList<>();
+        List<QueueBenchmarkPoint> queuePoints = new ArrayList<>();
+        List<CompressionModeBenchmarkPoint> modePoints = new ArrayList<>();
         List<CorpusInput> corpusInputs = loadCorpusInputs(config.corpusDirectory());
         int totalSteps = corpusInputs.size() * PriorityQueueStrategy.values().length * config.repetitions();
         int completedSteps = 0;
@@ -74,7 +75,7 @@ public final class BenchmarkService {
                         Files.deleteIfExists(restoredPath);
                     }
 
-                    points.add(new BenchmarkPoint(
+                    queuePoints.add(new QueueBenchmarkPoint(
                         input.sourceName(),
                         strategy,
                         input.sizeBytes(),
@@ -98,22 +99,22 @@ public final class BenchmarkService {
             }
         }
 
-        return new BenchmarkReport(config, points, modePoints);
+        return new BenchmarkReport(config, queuePoints, modePoints);
     }
 
-    private List<BenchmarkModePoint> measureModeCompression(CorpusInput input,
+    private List<CompressionModeBenchmarkPoint> measureModeCompression(CorpusInput input,
                                                             int inputIndex,
                                                             Path tempDirectory,
                                                             int repetitions) throws IOException {
-        List<BenchmarkModePoint> points = new ArrayList<>();
-        for (BenchmarkVariant variant : BenchmarkVariant.values()) {
+        List<CompressionModeBenchmarkPoint> modePoints = new ArrayList<>();
+        for (CompressionMode mode : CompressionMode.benchmarkModes()) {
             double totalCompressionPercentage = 0.0;
             double totalCompressionMillis = 0.0;
             double totalDecompressionMillis = 0.0;
             for (int repetition = 0; repetition < repetitions; repetition++) {
-                Path archivePath = tempDirectory.resolve("mode-archive-" + inputIndex + '-' + variant.name() + '-' + repetition + ".hff");
-                Path restoredPath = tempDirectory.resolve("mode-restored-" + inputIndex + '-' + variant.name() + '-' + repetition + ".bin");
-                HuffmanCodec codec = variant.createCodec(PriorityQueueStrategy.BINARY_HEAP);
+                Path archivePath = tempDirectory.resolve("mode-archive-" + inputIndex + '-' + mode.name() + '-' + repetition + ".hff");
+                Path restoredPath = tempDirectory.resolve("mode-restored-" + inputIndex + '-' + mode.name() + '-' + repetition + ".bin");
+                HuffmanCodec codec = new HuffmanCodec(PriorityQueueStrategy.BINARY_HEAP, mode);
 
                 long startCompression = System.nanoTime();
                 CompressionResult compressionResult = codec.compress(input.path(), archivePath);
@@ -128,16 +129,16 @@ public final class BenchmarkService {
                 Files.deleteIfExists(restoredPath);
             }
 
-            points.add(new BenchmarkModePoint(
+            modePoints.add(new CompressionModeBenchmarkPoint(
                 input.sourceName(),
-                variant,
+                mode,
                 input.sizeBytes(),
                 totalCompressionPercentage / repetitions,
                 totalCompressionMillis / repetitions,
                 totalDecompressionMillis / repetitions
             ));
         }
-        return points;
+        return modePoints;
     }
 
     private void reportProgress(BenchmarkProgressListener listener,
