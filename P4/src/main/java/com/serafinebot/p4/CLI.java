@@ -202,7 +202,7 @@ public final class CLI {
         stream.println("Examples:");
         stream.println("  java -cp target/P4-1.0-SNAPSHOT.jar com.serafinebot.p4.CLI compress input.txt input.hff");
         stream.println("  java -cp target/P4-1.0-SNAPSHOT.jar com.serafinebot.p4.CLI decompress input.hff restored.bin");
-        stream.println("  java -cp target/P4-1.0-SNAPSHOT.jar com.serafinebot.p4.CLI benchmark /path/to/silesia-corpus 3 comparativa.csv");
+        stream.println("  java -cp target/P4-1.0-SNAPSHOT.jar com.serafinebot.p4.CLI benchmark /path/to/corpus 3 comparativa.csv");
     }
 
     private static String formatBytes(long bytes) {

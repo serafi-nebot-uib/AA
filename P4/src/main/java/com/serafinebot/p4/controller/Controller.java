@@ -1,5 +1,6 @@
 package com.serafinebot.p4.controller;
 
+import com.serafinebot.p4.model.archive.CompressionMode;
 import com.serafinebot.p4.model.benchmark.BenchmarkConfig;
 import com.serafinebot.p4.model.benchmark.BenchmarkProgressSnapshot;
 import com.serafinebot.p4.model.benchmark.BenchmarkReport;
@@ -16,6 +17,7 @@ import javax.swing.SwingWorker;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -32,7 +34,11 @@ public class Controller implements ViewListener {
     }
 
     @Override
-    public void onCompressRequested(Path inputPath, Path outputPath, PriorityQueueStrategy strategy) {
+    public void onCompressRequested(Path inputPath,
+                                    Path outputPath,
+                                    PriorityQueueStrategy strategy,
+                                    CompressionMode preferredMode,
+                                    Set<CompressionMode> allowedBlockHuffmanModes) {
         if (!validateInputPath(inputPath) || !validateOutputPath(outputPath)) {
             return;
         }
@@ -44,7 +50,8 @@ public class Controller implements ViewListener {
         worker = new SwingWorker<CompressionReport, ProgressSnapshot>() {
             @Override
             protected CompressionReport doInBackground() throws Exception {
-                return new HuffmanCodec(strategy).compressWithReport(inputPath, outputPath, snapshot -> publish(snapshot));
+                return new HuffmanCodec(strategy, preferredMode, allowedBlockHuffmanModes)
+                    .compressWithReport(inputPath, outputPath, snapshot -> publish(snapshot));
             }
 
             @Override

@@ -164,12 +164,16 @@ public final class BenchmarkService {
                 if (!Files.isRegularFile(path)) {
                     continue;
                 }
-                inputs.add(new CorpusInput(path, path.getFileName().toString(), Files.size(path)));
+                String name = path.getFileName().toString();
+                if (name.toLowerCase().endsWith(".hff")) {
+                    continue;
+                }
+                inputs.add(new CorpusInput(path, name, Files.size(path)));
             }
         }
 
         if (inputs.isEmpty()) {
-            throw new IOException("No s'ha trobat cap fitxer regular dins el directori del corpus: " + normalizedDirectory);
+            throw new IOException("No s'ha trobat cap fitxer regular (no .hff) dins el directori: " + normalizedDirectory);
         }
 
         inputs.sort(Comparator.comparingLong(CorpusInput::sizeBytes).thenComparing(CorpusInput::sourceName));

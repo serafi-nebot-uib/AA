@@ -50,6 +50,7 @@ public final class BenchmarkPanel extends JPanel {
     );
 
     private final JTextField corpusDirectoryField = new JTextField(DEFAULT_CORPUS_DIRECTORY, 28);
+    private final JButton corpusBrowseButton = new JButton("Examina...");
     private final JTextField repetitionsField = new JTextField("3", 6);
     private final JButton runButton = new JButton("Executa comparatives");
     private final JButton exportButton = new JButton("Exporta CSV");
@@ -71,7 +72,32 @@ public final class BenchmarkPanel extends JPanel {
         add(createGraphsPanel(), BorderLayout.CENTER);
         progressBar.setStringPainted(false);
         exportButton.addActionListener(event -> exportCsv());
+        corpusBrowseButton.addActionListener(event -> browseForCorpus());
         showEmptyState();
+    }
+
+    private void browseForCorpus() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Selecciona el directori de fitxers");
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        String current = corpusDirectoryField.getText().trim();
+        if (!current.isEmpty()) {
+            try {
+                Path currentPath = resolveCorpusDirectory(current);
+                if (Files.isDirectory(currentPath)) {
+                    chooser.setCurrentDirectory(currentPath.toFile());
+                }
+            } catch (InvalidPathException ignored) {
+                // Fall back to default directory.
+            }
+        }
+        if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+        java.io.File selected = chooser.getSelectedFile();
+        if (selected != null) {
+            corpusDirectoryField.setText(selected.getAbsolutePath());
+        }
     }
 
     public void addRunListener(java.awt.event.ActionListener listener) {
@@ -81,6 +107,7 @@ public final class BenchmarkPanel extends JPanel {
     public void setRunning(boolean running) {
         runButton.setEnabled(!running);
         corpusDirectoryField.setEnabled(!running);
+        corpusBrowseButton.setEnabled(!running);
         repetitionsField.setEnabled(!running);
         exportButton.setEnabled(!running && report != null);
     }
@@ -107,7 +134,7 @@ public final class BenchmarkPanel extends JPanel {
     public BenchmarkConfig readConfig() {
         String corpusText = corpusDirectoryField.getText().trim();
         if (corpusText.isEmpty()) {
-            throw new IllegalArgumentException("Indica el directori on has descomprimit el corpus Silesia.");
+            throw new IllegalArgumentException("Indica un directori amb els fitxers a provar.");
         }
 
         try {
@@ -176,16 +203,19 @@ public final class BenchmarkPanel extends JPanel {
 
         gbc.gridx = 0;
         gbc.weightx = 0.0;
-        panel.add(new JLabel("Directori del corpus:"), gbc);
+        panel.add(new JLabel("Directori de fitxers:"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
-        gbc.gridwidth = 4;
+        gbc.gridwidth = 3;
         panel.add(corpusDirectoryField, gbc);
 
-        gbc.gridx = 5;
+        gbc.gridx = 4;
         gbc.gridwidth = 1;
         gbc.weightx = 0.0;
+        panel.add(corpusBrowseButton, gbc);
+
+        gbc.gridx = 5;
         panel.add(exportButton, gbc);
 
         gbc.gridx = 6;
@@ -324,7 +354,7 @@ public final class BenchmarkPanel extends JPanel {
                 points.add(new BenchmarkGraphPanel.GraphPoint(point.entropy(), point.averageCodeLength(), point.sourceName()));
             }
         }
-        return List.of(new BenchmarkGraphPanel.Series("Corpus Silesia", new Color(54, 111, 214), false, points));
+        return List.of(new BenchmarkGraphPanel.Series("Fitxers", new Color(54, 111, 214), false, points));
     }
 
     private List<BenchmarkGraphPanel.Series> compressionRateSeries() {

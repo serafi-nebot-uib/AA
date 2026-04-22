@@ -1,15 +1,18 @@
 package com.serafinebot.p4.view;
 
+import com.serafinebot.p4.model.archive.CompressionMode;
 import com.serafinebot.p4.model.benchmark.BenchmarkConfig;
 import com.serafinebot.p4.model.benchmark.BenchmarkProgressSnapshot;
 import com.serafinebot.p4.model.benchmark.BenchmarkReport;
 import com.serafinebot.p4.model.progress.ProgressSnapshot;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
+import com.serafinebot.p4.model.report.BlockReport;
 import com.serafinebot.p4.model.report.CompressionReport;
 import com.serafinebot.p4.model.report.CompressionResult;
 import com.serafinebot.p4.model.report.DecompressionReport;
 import com.serafinebot.p4.model.report.DecompressionResult;
 import com.serafinebot.p4.model.report.HuffmanSymbolInfo;
+import com.serafinebot.p4.model.report.HuffmanTreeNodeInfo;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -47,6 +50,7 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Main Swing window for the compressor application.
@@ -63,6 +67,7 @@ public class MainWindow extends JFrame {
     private final JTextField outputField = new JTextField(42);
     private final JButton processButton = new JButton("Comprimeix a .hff");
     private final JComboBox<PriorityQueueStrategy> queueCombo = new JComboBox<>();
+    private final JComboBox<ModeChoice> modeCombo = new JComboBox<>();
     private final JTextArea statsArea = new JTextArea();
     private final JTextArea filesHintArea = new JTextArea();
     private final DefaultTableModel symbolTableModel = new DefaultTableModel(new Object[] {"Simbol", "Hex", "Freq", "Probabilitat", "Codi"}, 0) {
@@ -73,6 +78,8 @@ public class MainWindow extends JFrame {
     };
     private final JTable symbolTable = new JTable(symbolTableModel);
     private final HuffmanTreePanel treePanel = new HuffmanTreePanel();
+    private final BlockListPanel blockListPanel = new BlockListPanel();
+    private final BlockListPanel codeBlockListPanel = new BlockListPanel();
     private final BenchmarkPanel benchmarkPanel = new BenchmarkPanel();
     private final FileBrowserPanel fileBrowserPanel = new FileBrowserPanel();
     private final JLabel progressTextLabel = new JLabel("Inactiu • 0% (0 B / 0 B)");
@@ -94,6 +101,7 @@ public class MainWindow extends JFrame {
         setLayout(new BorderLayout());
 
         queueCombo.setModel(new DefaultComboBoxModel<>(PriorityQueueStrategy.values()));
+        modeCombo.setModel(new DefaultComboBoxModel<>(ModeChoice.values()));
         configureTextAreas();
         configureTables();
         installInputAutoSync();
@@ -127,6 +135,7 @@ public class MainWindow extends JFrame {
     public void setRunning(boolean running) {
         processButton.setEnabled(!running);
         queueCombo.setEnabled(!running);
+        modeCombo.setEnabled(!running);
         inputField.setEnabled(!running);
         outputField.setEnabled(!running);
         fileBrowserPanel.setBrowserEnabled(!running);
@@ -147,43 +156,123 @@ public class MainWindow extends JFrame {
 
     public void showCompressionReport(CompressionReport report) {
         CompressionResult result = report.result();
-        statsArea.setText(String.join("\n",
-            "Operacio: Compressio",
-            "Estrategia: " + result.mode(),
-            "Cua: " + result.priorityQueueStrategy(),
-            "Mida original: " + result.originalSize() + " bytes",
-            "Mida de l'arxiu: " + result.archiveSize() + " bytes",
-            "Mida de la capcalera: " + result.overheadSize() + " bytes",
-            "Mida de la carrega: " + result.payloadSize() + " bytes",
-            "Simbols diferents: " + result.distinctSymbolCount(),
-            "Entropia: " + formatDecimal(result.entropy()) + " bits/simbol",
-            "Longitud mitjana Huffman: " + formatDecimal(result.averageHuffmanCodeLength()) + " bits/simbol",
-            "Compressio: " + formatDecimal(result.compressionPercentage()) + "%",
-            "Temps: " + result.elapsedMillis() + " ms"
-        ));
-        populateSymbols(report.symbols());
-        treePanel.setTree(report.tree(), "No hi ha cap arbre de Huffman disponible.");
+        StringBuilder stats = new StringBuilder();
+        stats.append("Operacio: Compressio\n");
+        stats.append("Estrategia: ").append(formatMode(result.mode(), report.blocks())).append('\n');
+        stats.append("Cua: ").append(result.priorityQueueStrategy()).append('\n');
+        stats.append("Mida original: ").append(result.originalSize()).append(" bytes\n");
+        stats.append("Mida de l'arxiu: ").append(result.archiveSize()).append(" bytes\n");
+        stats.append("Mida de la capcalera: ").append(result.overheadSize()).append(" bytes\n");
+        stats.append("Mida de la carrega: ").append(result.payloadSize()).append(" bytes\n");
+        stats.append("Simbols diferents: ").append(result.distinctSymbolCount()).append('\n');
+        stats.append("Entropia: ").append(formatDecimal(result.entropy())).append(" bits/simbol\n");
+        stats.append("Longitud mitjana Huffman: ").append(formatDecimal(result.averageHuffmanCodeLength())).append(" bits/simbol\n");
+        stats.append("Ratio de compressio: ").append(formatDecimal(compressionRatio(result))).append(" : 1\n");
+        stats.append("Temps: ").append(result.elapsedMillis()).append(" ms");
+        appendBlockBreakdown(stats, result.mode(), report.blocks());
+        statsArea.setText(stats.toString());
+        applyReportContent(report.symbols(), report.tree(), report.blocks(),
+            "No hi ha cap arbre de Huffman disponible.",
+            result.mode() == CompressionMode.HUFFMAN_2_BYTE);
         contentTabs.setSelectedIndex(0);
     }
 
     public void showDecompressionReport(DecompressionReport report) {
         DecompressionResult result = report.result();
-        statsArea.setText(String.join("\n",
-            "Operacio: Descompressio",
-            "Estrategia: " + result.mode(),
-            "Mida de l'arxiu: " + result.archiveSize() + " bytes",
-            "Mida restaurada: " + result.restoredSize() + " bytes",
-            "Temps: " + result.elapsedMillis() + " ms"
-        ));
-        populateSymbols(report.symbols());
-        treePanel.setTree(report.tree(), "Arxiu en mode emmagatzemat: no hi ha cap arbre de Huffman disponible.");
+        StringBuilder stats = new StringBuilder();
+        stats.append("Operacio: Descompressio\n");
+        stats.append("Estrategia: ").append(formatMode(result.mode(), report.blocks())).append('\n');
+        stats.append("Mida de l'arxiu: ").append(result.archiveSize()).append(" bytes\n");
+        stats.append("Mida restaurada: ").append(result.restoredSize()).append(" bytes\n");
+        stats.append("Temps: ").append(result.elapsedMillis()).append(" ms");
+        appendBlockBreakdown(stats, result.mode(), report.blocks());
+        statsArea.setText(stats.toString());
+        applyReportContent(report.symbols(), report.tree(), report.blocks(),
+            "Arxiu en mode emmagatzemat: no hi ha cap arbre de Huffman disponible.",
+            result.mode() == CompressionMode.HUFFMAN_2_BYTE);
         contentTabs.setSelectedIndex(0);
+    }
+
+    private double compressionRatio(CompressionResult result) {
+        if (result.archiveSize() <= 0L) {
+            return 0.0;
+        }
+        return result.originalSize() / (double) result.archiveSize();
+    }
+
+    private String formatMode(CompressionMode mode, List<BlockReport> blocks) {
+        if (mode != CompressionMode.HUFFMAN_BLOCK || blocks == null || blocks.isEmpty()) {
+            return mode.toString();
+        }
+        int byteBlocks = 0;
+        int wordBlocks = 0;
+        for (BlockReport block : blocks) {
+            if (block.mode() == CompressionMode.HUFFMAN_1_BYTE) {
+                byteBlocks++;
+            } else if (block.mode() == CompressionMode.HUFFMAN_2_BYTE) {
+                wordBlocks++;
+            }
+        }
+        if (byteBlocks > 0 && wordBlocks == 0) {
+            return mode + " (1 byte)";
+        }
+        if (wordBlocks > 0 && byteBlocks == 0) {
+            return mode + " (2 bytes)";
+        }
+        if (wordBlocks > 0) {
+            return mode + " (mixt 1+2 bytes)";
+        }
+        return mode.toString();
+    }
+
+    private void appendBlockBreakdown(StringBuilder stats, CompressionMode mode, List<BlockReport> blocks) {
+        if (mode != CompressionMode.HUFFMAN_BLOCK || blocks == null || blocks.isEmpty()) {
+            return;
+        }
+        int byteBlocks = 0;
+        int wordBlocks = 0;
+        int storedBlocks = 0;
+        for (BlockReport block : blocks) {
+            switch (block.mode()) {
+                case HUFFMAN_1_BYTE -> byteBlocks++;
+                case HUFFMAN_2_BYTE -> wordBlocks++;
+                case STORED -> storedBlocks++;
+                default -> { }
+            }
+        }
+        stats.append('\n').append("Blocs: ").append(blocks.size())
+            .append(" (1 byte: ").append(byteBlocks)
+            .append(", 2 bytes: ").append(wordBlocks)
+            .append(", emmagatzemat: ").append(storedBlocks).append(')');
+    }
+
+    private void applyReportContent(List<HuffmanSymbolInfo> symbols,
+                                    HuffmanTreeNodeInfo tree,
+                                    List<BlockReport> blocks,
+                                    String emptyTreeMessage,
+                                    boolean wordMode) {
+        boolean hasBlocks = blocks != null && !blocks.isEmpty();
+        blockListPanel.setVisible(hasBlocks);
+        codeBlockListPanel.setVisible(hasBlocks);
+        if (hasBlocks) {
+            blockListPanel.setBlocks(blocks);
+            codeBlockListPanel.setBlocks(blocks);
+        } else {
+            blockListPanel.clear();
+            codeBlockListPanel.clear();
+            populateSymbols(symbols, wordMode);
+            treePanel.setTree(tree, emptyTreeMessage, wordMode);
+        }
     }
 
     public void clearResults() {
         statsArea.setText("Encara no s'ha executat cap operacio. Fes doble clic damunt un fitxer de l'explorador per carregar-lo a la ruta d'entrada. La ruta de sortida es deriva automaticament de l'entrada, pero la pots editar manualment despres.");
         symbolTableModel.setRowCount(0);
         treePanel.setTree(null, "No hi ha cap arbre de Huffman disponible.");
+        blockListPanel.clear();
+        blockListPanel.setVisible(false);
+        codeBlockListPanel.clear();
+        codeBlockListPanel.setVisible(false);
         progressBar.setValue(0);
         progressTextLabel.setText("Inactiu • 0% (0 B / 0 B)");
         phaseLabel.setText("Fase: Inactiu");
@@ -270,7 +359,7 @@ public class MainWindow extends JFrame {
         center.setBackground(FRAME_BACKGROUND);
 
         contentTabs.addTab("Fitxers", createFilesTab());
-        contentTabs.addTab("Taula de codis", wrapPanel("Codis Huffman assignats", new JScrollPane(symbolTable)));
+        contentTabs.addTab("Taula de codis", createCodeTableTab());
         contentTabs.addTab("Arbre", createTreeTab());
         contentTabs.addTab("Comparatives", benchmarkPanel);
         contentTabs.addChangeListener(event -> updateBottomPanelsVisibility());
@@ -323,13 +412,23 @@ public class MainWindow extends JFrame {
 
         gbc.gridy = 2;
         gbc.gridx = 0;
+        gbc.gridwidth = 1;
         selectorsPanel.add(new JLabel("Estrategia de cua:"), gbc);
 
         gbc.gridx = 1;
         selectorsPanel.add(queueCombo, gbc);
 
-        gbc.gridx = 2;
+        gbc.gridy = 3;
+        gbc.gridx = 0;
+        selectorsPanel.add(new JLabel("Mode de compressio:"), gbc);
+
+        gbc.gridx = 1;
+        selectorsPanel.add(modeCombo, gbc);
+
+        gbc.gridy = 4;
+        gbc.gridx = 1;
         gbc.anchor = GridBagConstraints.EAST;
+        gbc.fill = GridBagConstraints.NONE;
         selectorsPanel.add(processButton, gbc);
 
         JPanel statsPanel = wrapPanel("Estadistiques", new JScrollPane(statsArea));
@@ -351,6 +450,27 @@ public class MainWindow extends JFrame {
         splitPane.setContinuousLayout(true);
         root.add(splitPane, BorderLayout.CENTER);
         return root;
+    }
+
+    private JPanel createCodeTableTab() {
+        JPanel root = new JPanel(new BorderLayout(10, 0));
+        root.setBackground(FRAME_BACKGROUND);
+
+        codeBlockListPanel.setSelectionListener(block -> {
+            renderBlock(block);
+            blockListPanel.setSelectedIndex(codeBlockListPanel.getSelectedIndex());
+        });
+
+        JPanel table = wrapPanel("Codis Huffman assignats", new JScrollPane(symbolTable));
+        root.add(codeBlockListPanel, BorderLayout.WEST);
+        root.add(table, BorderLayout.CENTER);
+        return root;
+    }
+
+    private void renderBlock(BlockReport block) {
+        boolean wordMode = block.mode() == CompressionMode.HUFFMAN_2_BYTE;
+        populateSymbols(block.symbols(), wordMode);
+        treePanel.setTree(block.tree(), "Aquest bloc no te arbre de Huffman (mode emmagatzemat).", wordMode);
     }
 
     private JPanel createTreeTab() {
@@ -375,9 +495,20 @@ public class MainWindow extends JFrame {
         controls.add(Box.createHorizontalStrut(12));
         controls.add(hint);
 
-        JPanel panel = wrapPanel("Arbre de Huffman", treePanel);
+        JPanel treeSection = wrapPanel("Arbre de Huffman", treePanel);
+
+        blockListPanel.setSelectionListener(block -> {
+            renderBlock(block);
+            codeBlockListPanel.setSelectedIndex(blockListPanel.getSelectedIndex());
+        });
+
+        JPanel content = new JPanel(new BorderLayout(10, 0));
+        content.setBackground(FRAME_BACKGROUND);
+        content.add(blockListPanel, BorderLayout.WEST);
+        content.add(treeSection, BorderLayout.CENTER);
+
         root.add(controls, BorderLayout.NORTH);
-        root.add(panel, BorderLayout.CENTER);
+        root.add(content, BorderLayout.CENTER);
         return root;
     }
 
@@ -453,7 +584,10 @@ public class MainWindow extends JFrame {
         if (isArchiveInput(inputField.getText())) {
             viewListener.onDecompressRequested(inputPath, outputPath, strategy);
         } else {
-            viewListener.onCompressRequested(inputPath, outputPath, strategy);
+            ModeChoice modeChoice = (ModeChoice) modeCombo.getSelectedItem();
+            CompressionMode preferredMode = modeChoice == null ? null : modeChoice.mode;
+            Set<CompressionMode> allowedBlockModes = modeChoice == null ? null : modeChoice.allowedBlockModes;
+            viewListener.onCompressRequested(inputPath, outputPath, strategy, preferredMode, allowedBlockModes);
         }
     }
 
@@ -519,12 +653,12 @@ public class MainWindow extends JFrame {
         }
     }
 
-    private void populateSymbols(List<HuffmanSymbolInfo> symbols) {
+    private void populateSymbols(List<HuffmanSymbolInfo> symbols, boolean wordMode) {
         symbolTableModel.setRowCount(0);
         for (HuffmanSymbolInfo symbol : symbols) {
             symbolTableModel.addRow(new Object[] {
-                formatSymbol(symbol.symbol()),
-                formatHex(symbol.symbol()),
+                formatSymbol(symbol.symbol(), wordMode),
+                formatHex(symbol.symbol(), wordMode),
                 symbol.frequency(),
                 formatProbability(symbol.probability()),
                 symbol.code().isEmpty() ? "<buit>" : symbol.code()
@@ -569,7 +703,10 @@ public class MainWindow extends JFrame {
         return DECIMAL_FORMAT.format(probability);
     }
 
-    private String formatSymbol(int symbol) {
+    private String formatSymbol(int symbol, boolean wordMode) {
+        if (wordMode) {
+            return String.format("parella[%02X %02X]", (symbol >>> 8) & 0xFF, symbol & 0xFF);
+        }
         if (symbol > 0xFF) {
             return String.format("parella[%02X %02X]", (symbol >>> 8) & 0xFF, symbol & 0xFF);
         }
@@ -584,11 +721,38 @@ public class MainWindow extends JFrame {
         };
     }
 
-    private String formatHex(int symbol) {
+    private String formatHex(int symbol, boolean wordMode) {
+        if (wordMode) {
+            return String.format("0x%04X", symbol & 0xFFFF);
+        }
         if (symbol <= 0xFF) {
             return String.format("0x%02X", symbol);
         }
         return String.format("0x%04X", symbol);
+    }
+
+    private enum ModeChoice {
+        AUTO(null, null, "Automatic"),
+        STORED(CompressionMode.STORED, null, "Emmagatzemat"),
+        HUFFMAN_1_BYTE(CompressionMode.HUFFMAN_1_BYTE, null, "Huffman 1 byte"),
+        HUFFMAN_2_BYTE(CompressionMode.HUFFMAN_2_BYTE, null, "Huffman 2 bytes"),
+        HUFFMAN_BLOCK_1_BYTE(CompressionMode.HUFFMAN_BLOCK, Set.of(CompressionMode.HUFFMAN_1_BYTE), "Huffman per blocs (1 byte)"),
+        HUFFMAN_BLOCK_2_BYTE(CompressionMode.HUFFMAN_BLOCK, Set.of(CompressionMode.HUFFMAN_2_BYTE), "Huffman per blocs (2 bytes)");
+
+        private final CompressionMode mode;
+        private final Set<CompressionMode> allowedBlockModes;
+        private final String label;
+
+        ModeChoice(CompressionMode mode, Set<CompressionMode> allowedBlockModes, String label) {
+            this.mode = mode;
+            this.allowedBlockModes = allowedBlockModes;
+            this.label = label;
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
     }
 
 }

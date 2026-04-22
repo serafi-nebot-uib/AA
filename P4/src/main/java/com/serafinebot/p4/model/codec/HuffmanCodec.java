@@ -11,6 +11,7 @@ import com.serafinebot.p4.model.queue.DichotomicListNodeQueue;
 import com.serafinebot.p4.model.queue.FibonacciHeapNodeQueue;
 import com.serafinebot.p4.model.queue.NodeQueue;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
+import com.serafinebot.p4.model.report.BlockReport;
 import com.serafinebot.p4.model.report.CompressionReport;
 import com.serafinebot.p4.model.report.CompressionResult;
 import com.serafinebot.p4.model.report.DecompressionReport;
@@ -166,6 +167,7 @@ public class HuffmanCodec {
             List<HuffmanSymbolInfo> symbolInfos = List.of();
             HuffmanTreeNodeInfo treeInfo = null;
 
+            List<BlockReport> blockReports = List.of();
             switch (header.mode()) {
                 case STORED -> copyExact(input, output, header.originalSize(), tracker);
                 case HUFFMAN_1_BYTE -> {
@@ -184,14 +186,14 @@ public class HuffmanCodec {
                     treeInfo = buildTreeInfo(root, table.totalCount(), "");
                     decompressWordPayload(input, output, table, root, header.originalSize(), tracker);
                 }
-                case HUFFMAN_BLOCK -> decompressBlockArchive(input, output, header.originalSize(), tracker);
+                case HUFFMAN_BLOCK -> blockReports = decompressBlockArchive(input, output, header.originalSize(), tracker);
             }
 
             output.flush();
             long elapsedMillis = (System.nanoTime() - startNanos) / 1_000_000L;
             long treeBuildMillis = treeBuildNanos / 1_000_000L;
             DecompressionResult result = new DecompressionResult(header.mode(), archiveSize, header.originalSize(), elapsedMillis, treeBuildMillis);
-            return new DecompressionReport(result, symbolInfos, treeInfo);
+            return new DecompressionReport(result, symbolInfos, treeInfo, blockReports);
         }
     }
 
@@ -250,12 +252,13 @@ public class HuffmanCodec {
             while ((read = readBlock(input, buffer, selectedBlockSize)) > 0) {
                 FrequencyTable byteTable = new FrequencyTable();
                 byteTable.add(buffer, read);
+                HuffmanCode byteRoot = null;
                 HuffmanCode[] byteLeaves = null;
                 long byteBitCount = 0L;
                 long byteMetadata = 0L;
                 long byteSize = Long.MAX_VALUE;
                 if (blockAllowsByteSubMode()) {
-                    HuffmanCode byteRoot = buildTreeAndTrack(byteTable);
+                    byteRoot = buildTreeAndTrack(byteTable);
                     byteLeaves = byteRoot == null ? new HuffmanCode[byteTable.symbolSpaceSize()] : byteRoot.lookupBySymbol(byteTable.symbolSpaceSize());
                     byteBitCount = totalBitCount(byteTable, byteLeaves);
                     byteMetadata = BLOCK_HEADER_SIZE + Integer.BYTES + (long) byteTable.distinctSymbolCount() * BLOCK_BYTE_FREQUENCY_ENTRY_SIZE;
@@ -263,6 +266,7 @@ public class HuffmanCodec {
                 }
 
                 FrequencyTable wordTable = null;
+                HuffmanCode wordRoot = null;
                 HuffmanCode[] wordLeaves = null;
                 long wordBitCount = 0L;
                 long wordMetadata = 0L;
@@ -270,7 +274,7 @@ public class HuffmanCodec {
                 if (blockAllowsWordSubMode() && read >= 2) {
                     wordTable = buildBlockWordFrequencyTable(buffer, read);
                     if (wordTable.totalCount() > 0L) {
-                        HuffmanCode wordRoot = buildTreeAndTrack(wordTable);
+                        wordRoot = buildTreeAndTrack(wordTable);
                         wordLeaves = wordRoot == null ? new HuffmanCode[wordTable.symbolSpaceSize()] : wordRoot.lookupBySymbol(wordTable.symbolSpaceSize());
                         wordBitCount = totalBitCount(wordTable, wordLeaves);
                         wordMetadata = BLOCK_HEADER_SIZE + Integer.BYTES + (long) wordTable.distinctSymbolCount() * BLOCK_WORD_FREQUENCY_ENTRY_SIZE;
@@ -302,7 +306,7 @@ public class HuffmanCodec {
                     blockEncodedBits = 0L;
                 }
 
-                blocks.add(new BlockUnit(read, blockMode, byteTable, byteLeaves, wordTable, wordLeaves, blockEncodedBits, blockMetadata, blockEncodedSize));
+                blocks.add(new BlockUnit(read, blockMode, byteTable, byteRoot, byteLeaves, wordTable, wordRoot, wordLeaves, blockEncodedBits, blockMetadata, blockEncodedSize));
                 metadataOverhead += blockMetadata;
                 estimatedArchiveSize += blockEncodedSize;
                 if (blockMode != CompressionMode.STORED) {
@@ -625,7 +629,29 @@ public class HuffmanCodec {
             elapsedMillis,
             treeBuildMillis
         );
-        return new CompressionReport(result, List.of(), null);
+        List<BlockReport> blockReports = new ArrayList<>(blockPlan.blocks.size());
+        for (BlockUnit block : blockPlan.blocks) {
+            blockReports.add(buildBlockReportEntry(block));
+        }
+        return new CompressionReport(result, List.of(), null, blockReports);
+    }
+
+    private BlockReport buildBlockReportEntry(BlockUnit block) {
+        return switch (block.mode) {
+            case HUFFMAN_1_BYTE -> new BlockReport(
+                block.blockSize,
+                block.mode,
+                buildTreeInfo(block.byteRoot, block.byteTable.totalCount(), ""),
+                buildSymbolInfos(block.byteTable, block.byteLeaves)
+            );
+            case HUFFMAN_2_BYTE -> new BlockReport(
+                block.blockSize,
+                block.mode,
+                buildTreeInfo(block.wordRoot, block.wordTable.totalCount(), ""),
+                buildSymbolInfos(block.wordTable, block.wordLeaves)
+            );
+            default -> new BlockReport(block.blockSize, block.mode, null, List.of());
+        };
     }
 
     private FrequencyTable analyzeByteFrequencies(Path inputPath, long totalBytes, ProgressListener listener) throws IOException {
@@ -1010,10 +1036,11 @@ public class HuffmanCodec {
         tracker.complete(restoredBytes);
     }
 
-    private void decompressBlockArchive(DataInputStream input,
-                                        OutputStream output,
-                                        long originalSize,
-                                        ProgressTracker tracker) throws IOException {
+    private List<BlockReport> decompressBlockArchive(DataInputStream input,
+                                                     OutputStream output,
+                                                     long originalSize,
+                                                     ProgressTracker tracker) throws IOException {
+        List<BlockReport> blockReports = new ArrayList<>();
         long restoredBytes = 0L;
         while (restoredBytes < originalSize) {
             int blockSize = input.readInt();
@@ -1023,17 +1050,29 @@ public class HuffmanCodec {
             CompressionMode blockMode = CompressionMode.fromId(input.readUnsignedByte());
 
             switch (blockMode) {
-                case STORED -> restoredBytes += copyExact(input, output, blockSize);
-                case HUFFMAN_1_BYTE -> restoredBytes += decompressByteBlock(input, output, blockSize);
-                case HUFFMAN_2_BYTE -> restoredBytes += decompressWordBlock(input, output, blockSize);
+                case STORED -> {
+                    restoredBytes += copyExact(input, output, blockSize);
+                    blockReports.add(new BlockReport(blockSize, blockMode, null, List.of()));
+                }
+                case HUFFMAN_1_BYTE -> {
+                    BlockDecodeResult result = decompressByteBlock(input, output, blockSize);
+                    restoredBytes += result.bytesWritten;
+                    blockReports.add(new BlockReport(blockSize, blockMode, result.tree, result.symbols));
+                }
+                case HUFFMAN_2_BYTE -> {
+                    BlockDecodeResult result = decompressWordBlock(input, output, blockSize);
+                    restoredBytes += result.bytesWritten;
+                    blockReports.add(new BlockReport(blockSize, blockMode, result.tree, result.symbols));
+                }
                 default -> throw new ArchiveFormatException("Mode de bloc no valid: " + blockMode);
             }
             tracker.update(restoredBytes);
         }
         tracker.complete(restoredBytes);
+        return List.copyOf(blockReports);
     }
 
-    private long decompressByteBlock(DataInputStream input, OutputStream output, int blockSize) throws IOException {
+    private BlockDecodeResult decompressByteBlock(DataInputStream input, OutputStream output, int blockSize) throws IOException {
         int symbolCount = input.readInt();
         if (symbolCount < 0) {
             throw new ArchiveFormatException("El nombre de simbols del bloc no pot ser negatiu.");
@@ -1056,13 +1095,19 @@ public class HuffmanCodec {
 
         FrequencyTable table = FrequencyTable.fromFrequencies(frequencies);
         HuffmanCode root = buildTreeAndTrack(table);
+        HuffmanCode[] leaves = root == null ? new HuffmanCode[table.symbolSpaceSize()] : root.lookupBySymbol(table.symbolSpaceSize());
+        List<HuffmanSymbolInfo> symbols = buildSymbolInfos(table, leaves);
+        HuffmanTreeNodeInfo tree = buildTreeInfo(root, table.totalCount(), "");
+        long written;
         if (table.distinctSymbolCount() == 1) {
-            return writeRepeatedByte(output, table.singleSymbol(), blockSize);
+            written = writeRepeatedByte(output, table.singleSymbol(), blockSize);
+        } else {
+            written = decodeByteBlock(input, output, root, blockSize);
         }
-        return decodeByteBlock(input, output, root, blockSize);
+        return new BlockDecodeResult(written, tree, symbols);
     }
 
-    private long decompressWordBlock(DataInputStream input, OutputStream output, int blockSize) throws IOException {
+    private BlockDecodeResult decompressWordBlock(DataInputStream input, OutputStream output, int blockSize) throws IOException {
         int symbolCount = input.readInt();
         if (symbolCount < 0) {
             throw new ArchiveFormatException("El nombre de simbols del bloc no pot ser negatiu.");
@@ -1086,8 +1131,13 @@ public class HuffmanCodec {
 
         FrequencyTable table = FrequencyTable.fromFrequencies(frequencies);
         long restoredBytes = 0L;
+        HuffmanTreeNodeInfo tree = null;
+        List<HuffmanSymbolInfo> symbols = List.of();
         if (pairCount > 0L) {
             HuffmanCode root = buildTreeAndTrack(table);
+            HuffmanCode[] leaves = root == null ? new HuffmanCode[table.symbolSpaceSize()] : root.lookupBySymbol(table.symbolSpaceSize());
+            symbols = buildSymbolInfos(table, leaves);
+            tree = buildTreeInfo(root, table.totalCount(), "");
             if (table.distinctSymbolCount() == 1) {
                 int symbol = table.singleSymbol();
                 for (long i = 0; i < pairCount; i++) {
@@ -1108,7 +1158,7 @@ public class HuffmanCodec {
             output.write(trailing);
             restoredBytes++;
         }
-        return restoredBytes;
+        return new BlockDecodeResult(restoredBytes, tree, symbols);
     }
 
     private long decodeWordBlock(DataInputStream input, OutputStream output, HuffmanCode root, long pairCount) throws IOException {
@@ -1275,8 +1325,10 @@ public class HuffmanCodec {
     private record BlockUnit(int blockSize,
                              CompressionMode mode,
                              FrequencyTable byteTable,
+                             HuffmanCode byteRoot,
                              HuffmanCode[] byteLeaves,
                              FrequencyTable wordTable,
+                             HuffmanCode wordRoot,
                              HuffmanCode[] wordLeaves,
                              long bitCount,
                              long metadataOverhead,
@@ -1291,5 +1343,8 @@ public class HuffmanCodec {
                              long totalCompressedBits,
                              double entropy,
                              double averageCodeLength) {
+    }
+
+    private record BlockDecodeResult(long bytesWritten, HuffmanTreeNodeInfo tree, List<HuffmanSymbolInfo> symbols) {
     }
 }

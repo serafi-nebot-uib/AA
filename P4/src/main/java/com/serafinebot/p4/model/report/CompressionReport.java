@@ -8,13 +8,20 @@ import java.util.List;
  * @param result raw compression statistics
  * @param symbols symbol frequencies and assigned codes, possibly empty for empty input
  * @param tree generated Huffman tree, or {@code null} for empty input
+ * @param blocks per-block reports (possibly one entry for single-tree modes, multiple for block mode)
  */
 public record CompressionReport(
     CompressionResult result,
     List<HuffmanSymbolInfo> symbols,
-    HuffmanTreeNodeInfo tree
+    HuffmanTreeNodeInfo tree,
+    List<BlockReport> blocks
 ) {
     public CompressionReport {
         symbols = List.copyOf(symbols);
+        blocks = List.copyOf(blocks);
+    }
+
+    public CompressionReport(CompressionResult result, List<HuffmanSymbolInfo> symbols, HuffmanTreeNodeInfo tree) {
+        this(result, symbols, tree, List.of());
     }
 }

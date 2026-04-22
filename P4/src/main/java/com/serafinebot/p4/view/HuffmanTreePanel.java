@@ -3,6 +3,7 @@ package com.serafinebot.p4.view;
 import com.serafinebot.p4.model.report.HuffmanTreeNodeInfo;
 
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import javax.swing.event.MouseInputAdapter;
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -32,8 +33,8 @@ public final class HuffmanTreePanel extends JPanel {
     private static final int HORIZONTAL_GAP = 28;
     private static final int VERTICAL_GAP = 128;
     private static final double ZOOM_STEP = 1.12;
-    private static final double MIN_SCALE = 0.25;
-    private static final double MAX_SCALE = 3.5;
+    private static final double MIN_SCALE = 0.05;
+    private static final double MAX_SCALE = 12.0;
     private static final Stroke EDGE_STROKE = new BasicStroke(1.8f);
     private static final int TEXT_LINE_HEIGHT = 16;
     private static final int TEXT_TOP_PADDING = 18;
@@ -44,6 +45,7 @@ public final class HuffmanTreePanel extends JPanel {
     private HuffmanTreeNodeInfo root;
     private LayoutNode layout;
     private String emptyMessage = "No hi ha cap arbre de Huffman disponible.";
+    private boolean wordMode = false;
     private double scale = 1.0;
     private double offsetX = 60.0;
     private double offsetY = 40.0;
@@ -89,10 +91,16 @@ public final class HuffmanTreePanel extends JPanel {
     }
 
     public void setTree(HuffmanTreeNodeInfo root, String emptyMessage) {
+        setTree(root, emptyMessage, false);
+    }
+
+    public void setTree(HuffmanTreeNodeInfo root, String emptyMessage, boolean wordMode) {
         this.root = root;
         this.emptyMessage = emptyMessage;
+        this.wordMode = wordMode;
         this.layout = root == null ? null : buildLayout(root, 0.0, 0);
-        resetView();
+        fitToView();
+        SwingUtilities.invokeLater(this::fitToView);
     }
 
     public void zoomIn() {
@@ -104,10 +112,48 @@ public final class HuffmanTreePanel extends JPanel {
     }
 
     public void resetView() {
-        scale = 1.0;
-        offsetX = 60.0;
-        offsetY = 40.0;
+        fitToView();
+    }
+
+    private void fitToView() {
+        if (layout == null) {
+            scale = 1.0;
+            offsetX = 60.0;
+            offsetY = 40.0;
+            repaint();
+            return;
+        }
+        int viewWidth = getWidth();
+        int viewHeight = getHeight();
+        if (viewWidth <= 0) {
+            viewWidth = getPreferredSize().width;
+        }
+        if (viewHeight <= 0) {
+            viewHeight = getPreferredSize().height;
+        }
+        double padding = 40.0;
+        double treeWidth = layout.subtreeWidth;
+        double treeHeight = computeTreeHeight(layout);
+        double availableWidth = Math.max(1.0, viewWidth - 2 * padding);
+        double availableHeight = Math.max(1.0, viewHeight - 2 * padding);
+        double fitScale = Math.min(availableWidth / treeWidth, availableHeight / treeHeight);
+        scale = clamp(fitScale, MIN_SCALE, MAX_SCALE);
+        double treeCenterX = treeWidth / 2.0;
+        double treeCenterY = treeHeight / 2.0;
+        offsetX = viewWidth / 2.0 - treeCenterX * scale;
+        offsetY = viewHeight / 2.0 - treeCenterY * scale;
         repaint();
+    }
+
+    private double computeTreeHeight(LayoutNode node) {
+        double bottom = node.y + node.height / 2.0;
+        if (node.zeroChild != null) {
+            bottom = Math.max(bottom, computeTreeHeight(node.zeroChild));
+        }
+        if (node.oneChild != null) {
+            bottom = Math.max(bottom, computeTreeHeight(node.oneChild));
+        }
+        return bottom;
     }
 
     @Override
@@ -261,6 +307,9 @@ public final class HuffmanTreePanel extends JPanel {
     }
 
     private String formatSymbol(int symbol) {
+        if (wordMode) {
+            return String.format("parella[%02X %02X]", (symbol >>> 8) & 0xFF, symbol & 0xFF);
+        }
         if (symbol > 0xFF) {
             return String.format("parella[%02X %02X]", (symbol >>> 8) & 0xFF, symbol & 0xFF);
         }
@@ -276,6 +325,9 @@ public final class HuffmanTreePanel extends JPanel {
     }
 
     private String formatHex(int symbol) {
+        if (wordMode) {
+            return String.format("0x%04X", symbol & 0xFFFF);
+        }
         if (symbol <= 0xFF) {
             return String.format("0x%02X", symbol);
         }

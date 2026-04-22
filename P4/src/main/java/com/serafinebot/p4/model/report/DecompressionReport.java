@@ -9,13 +9,20 @@ import java.util.List;
  * @param symbols symbol frequencies and assigned codes reconstructed from the archive, or an empty
  *     list for stored archives
  * @param tree reconstructed Huffman tree, or {@code null} for stored archives
+ * @param blocks per-block reports (populated for block-mode archives, empty otherwise)
  */
 public record DecompressionReport(
     DecompressionResult result,
     List<HuffmanSymbolInfo> symbols,
-    HuffmanTreeNodeInfo tree
+    HuffmanTreeNodeInfo tree,
+    List<BlockReport> blocks
 ) {
     public DecompressionReport {
         symbols = List.copyOf(symbols);
+        blocks = List.copyOf(blocks);
+    }
+
+    public DecompressionReport(DecompressionResult result, List<HuffmanSymbolInfo> symbols, HuffmanTreeNodeInfo tree) {
+        this(result, symbols, tree, List.of());
     }
 }
