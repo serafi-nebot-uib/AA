@@ -1,4 +1,4 @@
-package com.serafinebot.p4.model.report;
+package com.serafinebot.p4.model.info;
 
 /**
  * Immutable view-model representation of a Huffman tree node.

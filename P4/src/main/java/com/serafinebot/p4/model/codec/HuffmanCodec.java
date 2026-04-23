@@ -1,13 +1,12 @@
 package com.serafinebot.p4.model.codec;
 
-import com.serafinebot.p4.model.archive.ArchiveHeader;
 import com.serafinebot.p4.model.archive.CompressionMode;
 import com.serafinebot.p4.model.progress.ProgressListener;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
-import com.serafinebot.p4.model.report.CompressionReport;
-import com.serafinebot.p4.model.report.CompressionStats;
-import com.serafinebot.p4.model.report.DecompressionReport;
-import com.serafinebot.p4.model.report.DecompressionStats;
+import com.serafinebot.p4.model.info.CompressionInfo;
+import com.serafinebot.p4.model.info.CompressionStats;
+import com.serafinebot.p4.model.info.DecompressionInfo;
+import com.serafinebot.p4.model.info.DecompressionStats;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -17,7 +16,7 @@ import java.nio.file.Path;
  * Public model service for compressing and decompressing files with the supported Huffman modes.
  *
  * <p>This class is intentionally a facade. It owns the stable API used by the controller, CLI, and
- * benchmarks, while mode-specific analysis, archive I/O, mode selection, and report construction
+ * benchmarks, while mode-specific analysis, archive I/O, mode selection, and info construction
  * live in package-private collaborators.</p>
  */
 public class HuffmanCodec {
@@ -39,18 +38,18 @@ public class HuffmanCodec {
     }
 
     public CompressionStats compress(Path inputPath, Path outputPath) throws IOException {
-        return compressWithReport(inputPath, outputPath).result();
+        return compressWithInfo(inputPath, outputPath).stats();
     }
 
     public CompressionStats compress(Path inputPath, Path outputPath, ProgressListener listener) throws IOException {
-        return compressWithReport(inputPath, outputPath, listener).result();
+        return compressWithInfo(inputPath, outputPath, listener).stats();
     }
 
-    public CompressionReport compressWithReport(Path inputPath, Path outputPath) throws IOException {
-        return compressWithReport(inputPath, outputPath, null);
+    public CompressionInfo compressWithInfo(Path inputPath, Path outputPath) throws IOException {
+        return compressWithInfo(inputPath, outputPath, null);
     }
 
-    public CompressionReport compressWithReport(Path inputPath, Path outputPath, ProgressListener listener) throws IOException {
+    public CompressionInfo compressWithInfo(Path inputPath, Path outputPath, ProgressListener listener) throws IOException {
         validatePaths(inputPath, outputPath);
 
         long startNanos = System.nanoTime();
@@ -62,27 +61,35 @@ public class HuffmanCodec {
             requestedCompressionMode.allowedBlockHuffmanModes()
         );
 
-        // The compressor estimates every supported representation before writing. STORED is always
-        // the fallback candidate and Huffman modes must beat it to be selected automatically.
+        // The compressor estimates every supported Huffman representation before writing. Whole-file
+        // STORED is intentionally excluded; if no Huffman archive is at most as small as the input,
+        // compression fails without producing an oversized file.
         WholePlan bytePlan = wholeFileAnalyzer.analyzeByte(inputPath, originalSize, listener);
         WholePlan wordPlan = wholeFileAnalyzer.analyzeWord(inputPath, originalSize, listener);
         BlockPlan blockPlan = blockAnalyzer.analyze(inputPath, originalSize, listener);
-        long storedArchiveSize = ArchiveHeader.stored(originalSize).sizeInBytes() + originalSize;
 
-        CompressionMode selectedMode = HuffmanModeSelector.select(
+        HuffmanArchive archive = HuffmanModeSelector.select(
             requestedCompressionMode,
-            storedArchiveSize,
             bytePlan,
             wordPlan,
             blockPlan
         );
-        writeSelectedPlan(inputPath, outputPath, originalSize, listener, selectedMode, bytePlan, wordPlan, blockPlan);
+        if (archive.estimatedArchiveSize() > originalSize) {
+            throw new IOException("La compressio generaria un arxiu mes gran que l'original; no s'ha escrit cap fitxer.");
+        }
+
+        HuffmanArchiveWriter.write(inputPath, outputPath, archive, listener);
 
         long archiveSize = Files.size(outputPath);
+        if (archiveSize > originalSize) {
+            Files.deleteIfExists(outputPath);
+            throw new IOException("La compressio ha generat un arxiu mes gran que l'original; s'ha eliminat el fitxer de sortida.");
+        }
+
         long elapsedMillis = (System.nanoTime() - startNanos) / 1_000_000L;
         long treeBuildMillis = (wholeFileAnalyzer.treeBuildNanos() + blockAnalyzer.treeBuildNanos()) / 1_000_000L;
-        return HuffmanReport.compressionReport(
-            selectedMode,
+        return HuffmanInfoFactory.compressionInfo(
+            archive.mode(),
             priorityQueueStrategy,
             originalSize,
             archiveSize,
@@ -95,51 +102,34 @@ public class HuffmanCodec {
     }
 
     public DecompressionStats decompress(Path inputPath, Path outputPath) throws IOException {
-        return decompressWithReport(inputPath, outputPath).result();
+        return decompressWithInfo(inputPath, outputPath).stats();
     }
 
     public DecompressionStats decompress(Path inputPath, Path outputPath, ProgressListener listener) throws IOException {
-        return decompressWithReport(inputPath, outputPath, listener).result();
+        return decompressWithInfo(inputPath, outputPath, listener).stats();
     }
 
-    public DecompressionReport decompressWithReport(Path inputPath, Path outputPath) throws IOException {
-        return decompressWithReport(inputPath, outputPath, null);
+    public DecompressionInfo decompressWithInfo(Path inputPath, Path outputPath) throws IOException {
+        return decompressWithInfo(inputPath, outputPath, null);
     }
 
-    public DecompressionReport decompressWithReport(Path inputPath, Path outputPath, ProgressListener listener) throws IOException {
+    public DecompressionInfo decompressWithInfo(Path inputPath, Path outputPath, ProgressListener listener) throws IOException {
         validatePaths(inputPath, outputPath);
 
         long startNanos = System.nanoTime();
         long archiveSize = Files.size(inputPath);
 
         HuffmanArchiveReader reader = new HuffmanArchiveReader(priorityQueueStrategy);
-        DecodedArchive archive = reader.read(inputPath, outputPath, listener);
+        HuffmanArchive archive = reader.read(inputPath, outputPath, listener);
         long elapsedMillis = (System.nanoTime() - startNanos) / 1_000_000L;
-        DecompressionStats result = new DecompressionStats(
+        DecompressionStats stats = new DecompressionStats(
             archive.mode(),
             archiveSize,
             archive.originalSize(),
             elapsedMillis,
             reader.treeBuildMillis()
         );
-        return new DecompressionReport(result, archive.symbols(), archive.tree(), archive.blocks());
-    }
-
-    private void writeSelectedPlan(Path inputPath,
-                                   Path outputPath,
-                                   long originalSize,
-                                   ProgressListener listener,
-                                   CompressionMode selectedMode,
-                                   WholePlan bytePlan,
-                                   WholePlan wordPlan,
-                                   BlockPlan blockPlan) throws IOException {
-        switch (selectedMode) {
-            case STORED -> HuffmanArchiveWriter.writeStored(inputPath, outputPath, originalSize, listener);
-            case HUFFMAN_1_BYTE -> HuffmanArchiveWriter.writeByte(inputPath, outputPath, bytePlan, listener);
-            case HUFFMAN_2_BYTE -> HuffmanArchiveWriter.writeWord(inputPath, outputPath, wordPlan, listener);
-            case HUFFMAN_BLOCK -> HuffmanArchiveWriter.writeBlock(inputPath, outputPath, blockPlan, listener);
-            default -> throw new IllegalStateException("Mode d'arxiu seleccionat no valid: " + selectedMode);
-        }
+        return new DecompressionInfo(stats, archive.symbols(), archive.tree(), archive.blocks());
     }
 
     private static void validatePaths(Path inputPath, Path outputPath) {

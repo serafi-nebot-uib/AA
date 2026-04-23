@@ -1,4 +1,4 @@
-package com.serafinebot.p4.model.report;
+package com.serafinebot.p4.model.info;
 
 /**
  * Symbol information derived from a Huffman tree.

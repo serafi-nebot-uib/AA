@@ -1,7 +1,7 @@
 package com.serafinebot.p4.view;
 
 import com.serafinebot.p4.model.archive.CompressionMode;
-import com.serafinebot.p4.model.report.BlockReport;
+import com.serafinebot.p4.model.info.BlockInfo;
 import com.serafinebot.p4.util.ByteFormat;
 
 import javax.swing.BorderFactory;
@@ -30,11 +30,11 @@ public final class BlockListPanel extends JPanel {
     private static final Color COLOR_2_BYTE = new Color(215, 128, 51);
     private static final Color COLOR_STORED = new Color(127, 134, 145);
 
-    private final DefaultListModel<BlockReport> listModel = new DefaultListModel<>();
-    private final JList<BlockReport> list = new JList<>(listModel);
+    private final DefaultListModel<BlockInfo> listModel = new DefaultListModel<>();
+    private final JList<BlockInfo> list = new JList<>(listModel);
     private final JLabel header = new JLabel("Cap bloc seleccionat");
 
-    private Consumer<BlockReport> selectionListener = report -> {
+    private Consumer<BlockInfo> selectionListener = info -> {
     };
 
     public BlockListPanel() {
@@ -55,7 +55,7 @@ public final class BlockListPanel extends JPanel {
             if (event.getValueIsAdjusting()) {
                 return;
             }
-            BlockReport selected = list.getSelectedValue();
+            BlockInfo selected = list.getSelectedValue();
             if (selected != null) {
                 updateHeader(list.getSelectedIndex(), selected);
                 selectionListener.accept(selected);
@@ -69,13 +69,13 @@ public final class BlockListPanel extends JPanel {
         add(scroll, BorderLayout.CENTER);
     }
 
-    public void setSelectionListener(Consumer<BlockReport> listener) {
-        this.selectionListener = listener == null ? report -> { } : listener;
+    public void setSelectionListener(Consumer<BlockInfo> listener) {
+        this.selectionListener = listener == null ? info -> { } : listener;
     }
 
-    public void setBlocks(List<BlockReport> blocks) {
+    public void setBlocks(List<BlockInfo> blocks) {
         listModel.clear();
-        for (BlockReport block : blocks) {
+        for (BlockInfo block : blocks) {
             listModel.addElement(block);
         }
         if (!blocks.isEmpty()) {
@@ -104,7 +104,7 @@ public final class BlockListPanel extends JPanel {
         header.setText("Cap bloc seleccionat");
     }
 
-    private void updateHeader(int index, BlockReport block) {
+    private void updateHeader(int index, BlockInfo block) {
         header.setText(String.format("Bloc %d — %s — %s", index + 1, modeLabel(block.mode()), ByteFormat.format(block.blockSize())));
     }
 
@@ -134,7 +134,7 @@ public final class BlockListPanel extends JPanel {
                                                        boolean isSelected,
                                                        boolean cellHasFocus) {
             JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-            if (value instanceof BlockReport block) {
+            if (value instanceof BlockInfo block) {
                 Color base = modeColor(block.mode());
                 label.setOpaque(true);
                 label.setBackground(isSelected ? base.darker() : base);

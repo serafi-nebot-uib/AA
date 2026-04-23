@@ -2,10 +2,6 @@ package com.serafinebot.p4.model.codec;
 
 import com.serafinebot.p4.model.archive.ArchiveHeader;
 import com.serafinebot.p4.model.archive.CompressionMode;
-import com.serafinebot.p4.model.report.BlockReport;
-import com.serafinebot.p4.model.report.HuffmanSymbolInfo;
-import com.serafinebot.p4.model.report.HuffmanTreeNodeInfo;
-
 import java.util.List;
 
 /**
@@ -46,9 +42,9 @@ record BlockUnit(int blockSize,
 /**
  * Complete plan for block mode.
  *
- * <p>The archive writer needs the per-block decisions, while the final compression report needs
+ * <p>The archive writer needs the per-block decisions, while the final compression info needs
  * aggregate values such as total encoded bits, weighted entropy, and metadata overhead. Keeping both
- * in one immutable value prevents the writer and report builder from recomputing analysis data.</p>
+ * in one immutable value prevents the writer and info factory from recomputing analysis data.</p>
  */
 record BlockPlan(int blockSize,
                  List<BlockUnit> blocks,
@@ -58,27 +54,4 @@ record BlockPlan(int blockSize,
                  long totalCompressedBits,
                  double entropy,
                  double averageCodeLength) {
-}
-
-/**
- * Result of decoding one Huffman-compressed block.
- *
- * <p>During decompression the reader writes bytes directly to the output stream, so it cannot infer
- * the block report later from an in-memory payload. This DTO returns only the information still
- * needed after streaming: bytes written and the tree/symbol data for the GUI report.</p>
- */
-record BlockDecodeResult(long bytesWritten, HuffmanTreeNodeInfo tree, List<HuffmanSymbolInfo> symbols) {
-}
-
-/**
- * Reader-side summary used to build the public decompression report.
- *
- * <p>The archive reader owns the file format details, but {@link HuffmanCodec} owns timing and the
- * public report objects. This record is the narrow hand-off between those two responsibilities.</p>
- */
-record DecodedArchive(CompressionMode mode,
-                      long originalSize,
-                      List<HuffmanSymbolInfo> symbols,
-                      HuffmanTreeNodeInfo tree,
-                      List<BlockReport> blocks) {
 }

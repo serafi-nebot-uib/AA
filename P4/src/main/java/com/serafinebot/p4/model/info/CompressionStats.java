@@ -1,4 +1,4 @@
-package com.serafinebot.p4.model.report;
+package com.serafinebot.p4.model.info;
 
 import com.serafinebot.p4.model.archive.CompressionMode;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;

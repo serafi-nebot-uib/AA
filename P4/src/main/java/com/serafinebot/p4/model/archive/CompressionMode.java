@@ -7,10 +7,9 @@ import java.util.Set;
  * Compression mode requested by the user or stored inside an archive.
  *
  * <p>{@link #AUTO}, {@link #HUFFMAN_BLOCK_1_BYTE}, and {@link #HUFFMAN_BLOCK_2_BYTE} are request
- * profiles: they guide compression but are never written to the archive header. The physical
- * archive header only stores {@link #STORED}, {@link #HUFFMAN_1_BYTE}, {@link #HUFFMAN_2_BYTE}, or
- * {@link #HUFFMAN_BLOCK}, because those are the formats the decompressor can read later without
- * knowing the user's original selection.</p>
+ * profiles: they guide compression but are never written to the archive header. {@link #STORED}
+ * remains an archive/block mode so older stored archives and stored blocks can be read, but it is
+ * not offered as a whole-file compression request.</p>
  */
 public enum CompressionMode {
     /**
@@ -72,7 +71,6 @@ public enum CompressionMode {
     public static CompressionMode[] requestModes() {
         return new CompressionMode[] {
             AUTO,
-            STORED,
             HUFFMAN_1_BYTE,
             HUFFMAN_2_BYTE,
             HUFFMAN_BLOCK,

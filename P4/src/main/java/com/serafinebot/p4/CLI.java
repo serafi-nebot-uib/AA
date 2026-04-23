@@ -8,8 +8,8 @@ import com.serafinebot.p4.model.benchmark.BenchmarkService;
 import com.serafinebot.p4.model.codec.HuffmanCodec;
 import com.serafinebot.p4.model.progress.ProgressPhase;
 import com.serafinebot.p4.model.progress.ProgressSnapshot;
-import com.serafinebot.p4.model.report.CompressionStats;
-import com.serafinebot.p4.model.report.DecompressionStats;
+import com.serafinebot.p4.model.info.CompressionStats;
+import com.serafinebot.p4.model.info.DecompressionStats;
 import com.serafinebot.p4.util.ByteFormat;
 
 import java.io.PrintStream;

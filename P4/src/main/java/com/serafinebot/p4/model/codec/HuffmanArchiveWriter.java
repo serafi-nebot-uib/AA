@@ -1,6 +1,5 @@
 package com.serafinebot.p4.model.codec;
 
-import com.serafinebot.p4.model.archive.ArchiveHeader;
 import com.serafinebot.p4.model.archive.CompressionMode;
 import com.serafinebot.p4.model.progress.ProgressListener;
 import com.serafinebot.p4.model.progress.ProgressPhase;
@@ -29,15 +28,16 @@ final class HuffmanArchiveWriter {
     private HuffmanArchiveWriter() {
     }
 
-    static void writeStored(Path inputPath, Path outputPath, long originalSize, ProgressListener listener) throws IOException {
-        try (OutputStream rawOutput = new BufferedOutputStream(Files.newOutputStream(outputPath), BUFFER_SIZE);
-             DataOutputStream output = new DataOutputStream(rawOutput)) {
-            ArchiveHeader.stored(originalSize).write(output);
-            writeStoredPayload(inputPath, output, originalSize, listener);
+    static void write(Path inputPath, Path outputPath, HuffmanArchive archive, ProgressListener listener) throws IOException {
+        switch (archive.mode()) {
+            case HUFFMAN_1_BYTE -> writeByte(inputPath, outputPath, archive.requireWholePlan(), listener);
+            case HUFFMAN_2_BYTE -> writeWord(inputPath, outputPath, archive.requireWholePlan(), listener);
+            case HUFFMAN_BLOCK -> writeBlock(inputPath, outputPath, archive.requireBlockPlan(), listener);
+            default -> throw new IllegalStateException("Mode d'arxiu no escrivible: " + archive.mode());
         }
     }
 
-    static void writeByte(Path inputPath, Path outputPath, WholePlan plan, ProgressListener listener) throws IOException {
+    private static void writeByte(Path inputPath, Path outputPath, WholePlan plan, ProgressListener listener) throws IOException {
         try (OutputStream rawOutput = new BufferedOutputStream(Files.newOutputStream(outputPath), BUFFER_SIZE);
              DataOutputStream output = new DataOutputStream(rawOutput)) {
             plan.header().write(output);
@@ -49,7 +49,7 @@ final class HuffmanArchiveWriter {
         }
     }
 
-    static void writeWord(Path inputPath, Path outputPath, WholePlan plan, ProgressListener listener) throws IOException {
+    private static void writeWord(Path inputPath, Path outputPath, WholePlan plan, ProgressListener listener) throws IOException {
         try (OutputStream rawOutput = new BufferedOutputStream(Files.newOutputStream(outputPath), BUFFER_SIZE);
              DataOutputStream output = new DataOutputStream(rawOutput)) {
             plan.header().write(output);
@@ -89,7 +89,7 @@ final class HuffmanArchiveWriter {
         }
     }
 
-    static void writeBlock(Path inputPath, Path outputPath, BlockPlan blockPlan, ProgressListener listener) throws IOException {
+    private static void writeBlock(Path inputPath, Path outputPath, BlockPlan blockPlan, ProgressListener listener) throws IOException {
         try (OutputStream rawOutput = new BufferedOutputStream(Files.newOutputStream(outputPath), BUFFER_SIZE);
              DataOutputStream output = new DataOutputStream(rawOutput);
              InputStream input = new BufferedInputStream(Files.newInputStream(inputPath), BUFFER_SIZE)) {
@@ -100,7 +100,7 @@ final class HuffmanArchiveWriter {
             long processedBytes = 0L;
 
             for (BlockUnit block : blockPlan.blocks()) {
-                int read = readBlock(input, buffer, block.blockSize());
+                int read = input.readNBytes(buffer, 0, block.blockSize());
                 if (read != block.blockSize()) {
                     throw new IOException("No s'ha pogut rellegir un bloc durant la compressio.");
                 }
@@ -201,33 +201,4 @@ final class HuffmanArchiveWriter {
         }
     }
 
-    private static void writeStoredPayload(Path inputPath,
-                                           OutputStream output,
-                                           long totalBytes,
-                                           ProgressListener listener) throws IOException {
-        ProgressTracker tracker = new ProgressTracker(listener, ProgressPhase.COMPRESSING, totalBytes);
-        try (InputStream input = new BufferedInputStream(Files.newInputStream(inputPath), BUFFER_SIZE)) {
-            byte[] buffer = new byte[BUFFER_SIZE];
-            long processedBytes = 0L;
-            int read;
-            while ((read = input.read(buffer)) >= 0) {
-                output.write(buffer, 0, read);
-                processedBytes += read;
-                tracker.update(processedBytes);
-            }
-            tracker.complete(processedBytes);
-        }
-    }
-
-    private static int readBlock(InputStream input, byte[] buffer, int maxBytes) throws IOException {
-        int totalRead = 0;
-        while (totalRead < maxBytes) {
-            int read = input.read(buffer, totalRead, maxBytes - totalRead);
-            if (read < 0) {
-                break;
-            }
-            totalRead += read;
-        }
-        return totalRead;
-    }
 }

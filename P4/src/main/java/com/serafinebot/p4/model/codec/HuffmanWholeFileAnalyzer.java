@@ -15,16 +15,14 @@ import java.nio.file.Path;
 /**
  * Builds plans for Huffman modes that use one global tree for the whole file.
  */
-final class HuffmanWholeFileAnalyzer {
+final class HuffmanWholeFileAnalyzer extends HuffmanAnalyzer {
 
     private static final int BUFFER_SIZE = 8192;
+    private static final int BYTE_SYMBOL_SPACE = 256;
     private static final int WORD_SYMBOL_SPACE = 65536;
 
-    private final PriorityQueueStrategy priorityQueueStrategy;
-    private long treeBuildNanos;
-
     HuffmanWholeFileAnalyzer(PriorityQueueStrategy priorityQueueStrategy) {
-        this.priorityQueueStrategy = priorityQueueStrategy;
+        super(priorityQueueStrategy);
     }
 
     WholePlan analyzeByte(Path inputPath, long totalBytes, ProgressListener listener) throws IOException {
@@ -81,7 +79,7 @@ final class HuffmanWholeFileAnalyzer {
     }
 
     private FrequencyTable analyzeByteFrequencies(Path inputPath, long totalBytes, ProgressListener listener) throws IOException {
-        FrequencyTable table = new FrequencyTable();
+        FrequencyTable table = new FrequencyTable(BYTE_SYMBOL_SPACE);
         ProgressTracker tracker = new ProgressTracker(listener, ProgressPhase.ANALYZING, totalBytes);
 
         try (InputStream input = new BufferedInputStream(Files.newInputStream(inputPath), BUFFER_SIZE)) {
@@ -127,17 +125,4 @@ final class HuffmanWholeFileAnalyzer {
         return table;
     }
 
-    long treeBuildNanos() {
-        return treeBuildNanos;
-    }
-
-    private HuffmanCode buildTree(FrequencyTable table) {
-        long t0 = System.nanoTime();
-        HuffmanCode root = HuffmanCode.buildFromFrequencies(
-            table,
-            priorityQueueStrategy.createQueue()
-        );
-        treeBuildNanos += System.nanoTime() - t0;
-        return root;
-    }
 }

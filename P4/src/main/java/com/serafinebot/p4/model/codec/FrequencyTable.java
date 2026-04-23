@@ -16,12 +16,21 @@ public final class FrequencyTable {
     private long totalCount;
     private int distinctSymbolCount;
 
-    public FrequencyTable() {
-        this(256);
-    }
-
     public FrequencyTable(int symbolSpaceSize) {
         this.frequencies = new long[symbolSpaceSize];
+    }
+
+    /**
+     * Removes all observations while keeping the allocated symbol array.
+     *
+     * <p>This is useful in hot paths that repeatedly reuse a table with the same symbol space, such
+     * as block-size selection. Clearing the existing array avoids allocating new 65,536-entry word
+     * tables every time a synthetic candidate block is finished.</p>
+     */
+    public void clear() {
+        Arrays.fill(frequencies, 0L);
+        totalCount = 0L;
+        distinctSymbolCount = 0;
     }
 
     /**
@@ -90,7 +99,7 @@ public final class FrequencyTable {
      * Computes the Shannon entropy of the observed symbol distribution.
      *
      * <p>The value is not used to build the Huffman tree directly. It is kept as a lower-bound
-     * reference for the report so the implementation can compare observed entropy with the average
+     * reference for the UI info so the implementation can compare observed entropy with the average
      * generated code length.</p>
      */
     public double entropy() {

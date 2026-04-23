@@ -8,12 +8,13 @@ import com.serafinebot.p4.model.benchmark.BenchmarkService;
 import com.serafinebot.p4.model.codec.HuffmanCodec;
 import com.serafinebot.p4.model.progress.ProgressSnapshot;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
-import com.serafinebot.p4.model.report.CompressionReport;
-import com.serafinebot.p4.model.report.DecompressionReport;
+import com.serafinebot.p4.model.info.CompressionInfo;
+import com.serafinebot.p4.model.info.DecompressionInfo;
 import com.serafinebot.p4.view.MainWindow;
 import com.serafinebot.p4.view.ViewListener;
 
 import javax.swing.SwingWorker;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -44,11 +45,11 @@ public class Controller implements ViewListener {
         view.showStatus("Compressio en curs...");
         view.setRunning(true);
 
-        SwingWorker<CompressionReport, ProgressSnapshot> compressionWorker = new SwingWorker<>() {
+        SwingWorker<CompressionInfo, ProgressSnapshot> compressionWorker = new SwingWorker<>() {
             @Override
-            protected CompressionReport doInBackground() throws Exception {
+            protected CompressionInfo doInBackground() throws Exception {
                 return new HuffmanCodec(strategy, requestedMode)
-                    .compressWithReport(inputPath, outputPath, snapshot -> publish(snapshot));
+                    .compressWithInfo(inputPath, outputPath, snapshot -> publish(snapshot));
             }
 
             @Override
@@ -75,10 +76,10 @@ public class Controller implements ViewListener {
         view.showStatus("Descompressio en curs...");
         view.setRunning(true);
 
-        SwingWorker<DecompressionReport, ProgressSnapshot> decompressionWorker = new SwingWorker<>() {
+        SwingWorker<DecompressionInfo, ProgressSnapshot> decompressionWorker = new SwingWorker<>() {
             @Override
-            protected DecompressionReport doInBackground() throws Exception {
-                return new HuffmanCodec(strategy).decompressWithReport(inputPath, outputPath, snapshot -> publish(snapshot));
+            protected DecompressionInfo doInBackground() throws Exception {
+                return new HuffmanCodec(strategy).decompressWithInfo(inputPath, outputPath, snapshot -> publish(snapshot));
             }
 
             @Override
@@ -120,12 +121,15 @@ public class Controller implements ViewListener {
         benchmarkWorker.execute();
     }
 
-    private void handleCompressionResult(SwingWorker<CompressionReport, ProgressSnapshot> worker,
+    private void handleCompressionResult(SwingWorker<CompressionInfo, ProgressSnapshot> worker,
                                          Path inputPath,
                                          Path outputPath) {
         try {
-            CompressionReport report = worker.get();
-            view.showCompressionReport(report);
+            CompressionInfo info = worker.get();
+            if (rejectOversizedArchive(info, outputPath)) {
+                return;
+            }
+            view.showCompressionInfo(info);
             view.refreshFileExplorer();
             view.showStatus("S'ha comprimit " + inputPath.getFileName() + " a " + outputPath.getFileName() + ".");
         } catch (InterruptedException exception) {
@@ -136,12 +140,27 @@ public class Controller implements ViewListener {
         }
     }
 
-    private void handleDecompressionResult(SwingWorker<DecompressionReport, ProgressSnapshot> worker,
+    private boolean rejectOversizedArchive(CompressionInfo info, Path outputPath) {
+        if (info.stats().archiveSize() <= info.stats().originalSize()) {
+            return false;
+        }
+
+        try {
+            Files.deleteIfExists(outputPath);
+            view.refreshFileExplorer();
+            view.showError("La compressio generaria un arxiu mes gran que l'original; s'ha eliminat el fitxer de sortida.");
+        } catch (IOException exception) {
+            view.showError("La compressio generaria un arxiu mes gran que l'original, pero no s'ha pogut eliminar el fitxer de sortida: " + exception.getMessage());
+        }
+        return true;
+    }
+
+    private void handleDecompressionResult(SwingWorker<DecompressionInfo, ProgressSnapshot> worker,
                                            Path inputPath,
                                            Path outputPath) {
         try {
-            DecompressionReport report = worker.get();
-            view.showDecompressionReport(report);
+            DecompressionInfo info = worker.get();
+            view.showDecompressionInfo(info);
             view.refreshFileExplorer();
             view.showStatus("S'ha descomprimit " + inputPath.getFileName() + " a " + outputPath.getFileName() + ".");
         } catch (InterruptedException exception) {

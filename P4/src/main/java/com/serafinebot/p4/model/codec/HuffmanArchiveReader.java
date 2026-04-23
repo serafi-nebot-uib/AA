@@ -7,9 +7,9 @@ import com.serafinebot.p4.model.progress.ProgressListener;
 import com.serafinebot.p4.model.progress.ProgressPhase;
 import com.serafinebot.p4.model.progress.ProgressTracker;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
-import com.serafinebot.p4.model.report.BlockReport;
-import com.serafinebot.p4.model.report.HuffmanSymbolInfo;
-import com.serafinebot.p4.model.report.HuffmanTreeNodeInfo;
+import com.serafinebot.p4.model.info.BlockInfo;
+import com.serafinebot.p4.model.info.HuffmanSymbolInfo;
+import com.serafinebot.p4.model.info.HuffmanTreeNodeInfo;
 import com.serafinebot.p4.util.BitInputStream;
 
 import java.io.BufferedInputStream;
@@ -40,7 +40,7 @@ final class HuffmanArchiveReader {
         this.priorityQueueStrategy = priorityQueueStrategy;
     }
 
-    DecodedArchive read(Path inputPath, Path outputPath, ProgressListener listener) throws IOException {
+    HuffmanArchive read(Path inputPath, Path outputPath, ProgressListener listener) throws IOException {
         try (InputStream rawInput = new BufferedInputStream(Files.newInputStream(inputPath), BUFFER_SIZE);
              DataInputStream input = new DataInputStream(rawInput);
              OutputStream output = new BufferedOutputStream(Files.newOutputStream(outputPath), BUFFER_SIZE)) {
@@ -50,7 +50,7 @@ final class HuffmanArchiveReader {
 
             List<HuffmanSymbolInfo> symbolInfos = List.of();
             HuffmanTreeNodeInfo treeInfo = null;
-            List<BlockReport> blockReports = List.of();
+            List<BlockInfo> blockInfos = List.of();
 
             switch (header.mode()) {
                 case STORED -> copyExact(input, output, header.originalSize(), tracker);
@@ -58,23 +58,23 @@ final class HuffmanArchiveReader {
                     FrequencyTable table = FrequencyTable.fromFrequencies(header.frequencies());
                     HuffmanCode root = buildTree(table);
                     HuffmanCode[] leaves = HuffmanCode.lookupBySymbol(root, table.symbolSpaceSize());
-                    symbolInfos = HuffmanReport.symbols(table, leaves);
-                    treeInfo = HuffmanReport.tree(root, table.totalCount());
+                    symbolInfos = HuffmanInfoFactory.symbols(table, leaves);
+                    treeInfo = HuffmanInfoFactory.tree(root, table.totalCount());
                     decompressBytePayload(input, output, table, root, header.originalSize(), tracker);
                 }
                 case HUFFMAN_2_BYTE -> {
                     FrequencyTable table = FrequencyTable.fromFrequencies(header.frequencies());
                     HuffmanCode root = buildTree(table);
                     HuffmanCode[] leaves = HuffmanCode.lookupBySymbol(root, table.symbolSpaceSize());
-                    symbolInfos = HuffmanReport.symbols(table, leaves);
-                    treeInfo = HuffmanReport.tree(root, table.totalCount());
+                    symbolInfos = HuffmanInfoFactory.symbols(table, leaves);
+                    treeInfo = HuffmanInfoFactory.tree(root, table.totalCount());
                     decompressWordPayload(input, output, table, root, header.originalSize(), tracker);
                 }
-                case HUFFMAN_BLOCK -> blockReports = decompressBlockArchive(input, output, header.originalSize(), tracker);
+                case HUFFMAN_BLOCK -> blockInfos = decompressBlockArchive(input, output, header.originalSize(), tracker);
             }
 
             output.flush();
-            return new DecodedArchive(header.mode(), header.originalSize(), symbolInfos, treeInfo, blockReports);
+            return HuffmanArchive.decoded(header, symbolInfos, treeInfo, blockInfos);
         }
     }
 
@@ -161,11 +161,11 @@ final class HuffmanArchiveReader {
         tracker.complete(restoredBytes);
     }
 
-    private List<BlockReport> decompressBlockArchive(DataInputStream input,
+    private List<BlockInfo> decompressBlockArchive(DataInputStream input,
                                                      OutputStream output,
                                                      long originalSize,
                                                      ProgressTracker tracker) throws IOException {
-        List<BlockReport> blockReports = new ArrayList<>();
+        List<BlockInfo> blockInfos = new ArrayList<>();
         long restoredBytes = 0L;
         while (restoredBytes < originalSize) {
             int blockSize = input.readInt();
@@ -177,39 +177,36 @@ final class HuffmanArchiveReader {
             switch (blockMode) {
                 case STORED -> {
                     restoredBytes += copyExact(input, output, blockSize);
-                    blockReports.add(new BlockReport(blockSize, blockMode, null, List.of()));
+                    blockInfos.add(new BlockInfo(blockSize, blockMode, null, List.of()));
                 }
                 case HUFFMAN_1_BYTE -> {
-                    BlockDecodeResult result = decompressByteBlock(input, output, blockSize);
-                    restoredBytes += result.bytesWritten();
-                    blockReports.add(new BlockReport(blockSize, blockMode, result.tree(), result.symbols()));
+                    blockInfos.add(decompressByteBlock(input, output, blockSize));
+                    restoredBytes += blockSize;
                 }
                 case HUFFMAN_2_BYTE -> {
-                    BlockDecodeResult result = decompressWordBlock(input, output, blockSize);
-                    restoredBytes += result.bytesWritten();
-                    blockReports.add(new BlockReport(blockSize, blockMode, result.tree(), result.symbols()));
+                    blockInfos.add(decompressWordBlock(input, output, blockSize));
+                    restoredBytes += blockSize;
                 }
                 default -> throw new ArchiveFormatException("Mode de bloc no valid: " + blockMode);
             }
             tracker.update(restoredBytes);
         }
         tracker.complete(restoredBytes);
-        return List.copyOf(blockReports);
+        return List.copyOf(blockInfos);
     }
 
-    private BlockDecodeResult decompressByteBlock(DataInputStream input, OutputStream output, int blockSize) throws IOException {
+    private BlockInfo decompressByteBlock(DataInputStream input, OutputStream output, int blockSize) throws IOException {
         FrequencyTable table = readByteBlockFrequencyTable(input, blockSize);
         HuffmanCode root = buildTree(table);
         HuffmanCode[] leaves = HuffmanCode.lookupBySymbol(root, table.symbolSpaceSize());
-        List<HuffmanSymbolInfo> symbols = HuffmanReport.symbols(table, leaves);
-        HuffmanTreeNodeInfo tree = HuffmanReport.tree(root, table.totalCount());
-        long written;
+        List<HuffmanSymbolInfo> symbols = HuffmanInfoFactory.symbols(table, leaves);
+        HuffmanTreeNodeInfo tree = HuffmanInfoFactory.tree(root, table.totalCount());
         if (table.distinctSymbolCount() == 1) {
-            written = writeRepeatedByte(output, table.singleSymbol(), blockSize);
+            writeRepeatedByte(output, table.singleSymbol(), blockSize);
         } else {
-            written = decodeByteBlock(input, output, root, blockSize);
+            decodeByteBlock(input, output, root, blockSize);
         }
-        return new BlockDecodeResult(written, tree, symbols);
+        return new BlockInfo(blockSize, CompressionMode.HUFFMAN_1_BYTE, tree, symbols);
     }
 
     private FrequencyTable readByteBlockFrequencyTable(DataInputStream input, int blockSize) throws IOException {
@@ -236,26 +233,24 @@ final class HuffmanArchiveReader {
         return FrequencyTable.fromFrequencies(frequencies);
     }
 
-    private BlockDecodeResult decompressWordBlock(DataInputStream input, OutputStream output, int blockSize) throws IOException {
+    private BlockInfo decompressWordBlock(DataInputStream input, OutputStream output, int blockSize) throws IOException {
         FrequencyTable table = readWordBlockFrequencyTable(input, blockSize);
         long pairCount = (long) blockSize / 2L;
-        long restoredBytes = 0L;
         HuffmanTreeNodeInfo tree = null;
         List<HuffmanSymbolInfo> symbols = List.of();
         if (pairCount > 0L) {
             HuffmanCode root = buildTree(table);
             HuffmanCode[] leaves = HuffmanCode.lookupBySymbol(root, table.symbolSpaceSize());
-            symbols = HuffmanReport.symbols(table, leaves);
-            tree = HuffmanReport.tree(root, table.totalCount());
+            symbols = HuffmanInfoFactory.symbols(table, leaves);
+            tree = HuffmanInfoFactory.tree(root, table.totalCount());
             if (table.distinctSymbolCount() == 1) {
                 int symbol = table.singleSymbol();
                 for (long i = 0; i < pairCount; i++) {
                     output.write((symbol >>> 8) & 0xFF);
                     output.write(symbol & 0xFF);
                 }
-                restoredBytes += pairCount * 2L;
             } else {
-                restoredBytes += decodeWordBlock(input, output, root, pairCount);
+                decodeWordBlock(input, output, root, pairCount);
             }
         }
 
@@ -265,9 +260,8 @@ final class HuffmanArchiveReader {
                 throw new ArchiveFormatException("Final inesperat del byte final del bloc de 2 bytes.");
             }
             output.write(trailing);
-            restoredBytes++;
         }
-        return new BlockDecodeResult(restoredBytes, tree, symbols);
+        return new BlockInfo(blockSize, CompressionMode.HUFFMAN_2_BYTE, tree, symbols);
     }
 
     private FrequencyTable readWordBlockFrequencyTable(DataInputStream input, int blockSize) throws IOException {

@@ -6,13 +6,13 @@ import com.serafinebot.p4.model.benchmark.BenchmarkProgressSnapshot;
 import com.serafinebot.p4.model.benchmark.BenchmarkReport;
 import com.serafinebot.p4.model.progress.ProgressSnapshot;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
-import com.serafinebot.p4.model.report.BlockReport;
-import com.serafinebot.p4.model.report.CompressionReport;
-import com.serafinebot.p4.model.report.CompressionStats;
-import com.serafinebot.p4.model.report.DecompressionReport;
-import com.serafinebot.p4.model.report.DecompressionStats;
-import com.serafinebot.p4.model.report.HuffmanSymbolInfo;
-import com.serafinebot.p4.model.report.HuffmanTreeNodeInfo;
+import com.serafinebot.p4.model.info.BlockInfo;
+import com.serafinebot.p4.model.info.CompressionInfo;
+import com.serafinebot.p4.model.info.CompressionStats;
+import com.serafinebot.p4.model.info.DecompressionInfo;
+import com.serafinebot.p4.model.info.DecompressionStats;
+import com.serafinebot.p4.model.info.HuffmanSymbolInfo;
+import com.serafinebot.p4.model.info.HuffmanTreeNodeInfo;
 import com.serafinebot.p4.util.ByteFormat;
 
 import javax.swing.BorderFactory;
@@ -153,59 +153,59 @@ public class MainWindow extends JFrame {
         etaLabel.setText(snapshot.estimatedRemainingMillis() < 0L ? "Temps restant --" : "Temps restant " + formatDuration(snapshot.estimatedRemainingMillis()));
     }
 
-    public void showCompressionReport(CompressionReport report) {
-        CompressionStats result = report.result();
-        StringBuilder stats = new StringBuilder();
-        stats.append("Operacio: Compressio\n");
-        stats.append("Estrategia: ").append(formatMode(result.mode(), report.blocks())).append('\n');
-        stats.append("Cua: ").append(result.priorityQueueStrategy()).append('\n');
-        stats.append("Mida original: ").append(result.originalSize()).append(" bytes\n");
-        stats.append("Mida de l'arxiu: ").append(result.archiveSize()).append(" bytes\n");
-        stats.append("Mida de la capcalera: ").append(result.overheadSize()).append(" bytes\n");
-        stats.append("Mida de la carrega: ").append(result.payloadSize()).append(" bytes\n");
-        stats.append("Simbols diferents: ").append(result.distinctSymbolCount()).append('\n');
-        stats.append("Entropia: ").append(formatDecimal(result.entropy())).append(" bits/simbol\n");
-        stats.append("Longitud mitjana Huffman: ").append(formatDecimal(result.averageHuffmanCodeLength())).append(" bits/simbol\n");
-        stats.append("Ratio de compressio: ").append(formatDecimal(compressionRatio(result))).append(" : 1\n");
-        stats.append("Temps: ").append(result.elapsedMillis()).append(" ms");
-        appendBlockBreakdown(stats, result.mode(), report.blocks());
-        statsArea.setText(stats.toString());
-        applyReportContent(report.symbols(), report.tree(), report.blocks(),
+    public void showCompressionInfo(CompressionInfo info) {
+        CompressionStats stats = info.stats();
+        StringBuilder str = new StringBuilder();
+        str.append("Operacio: Compressio\n");
+        str.append("Estrategia: ").append(formatMode(stats.mode(), info.blocks())).append('\n');
+        str.append("Cua: ").append(stats.priorityQueueStrategy()).append('\n');
+        str.append("Mida original: ").append(stats.originalSize()).append(" bytes\n");
+        str.append("Mida de l'arxiu: ").append(stats.archiveSize()).append(" bytes\n");
+        str.append("Mida de la capcalera: ").append(stats.overheadSize()).append(" bytes\n");
+        str.append("Mida de la carrega: ").append(stats.payloadSize()).append(" bytes\n");
+        str.append("Simbols diferents: ").append(stats.distinctSymbolCount()).append('\n');
+        str.append("Entropia: ").append(formatDecimal(stats.entropy())).append(" bits/simbol\n");
+        str.append("Longitud mitjana Huffman: ").append(formatDecimal(stats.averageHuffmanCodeLength())).append(" bits/simbol\n");
+        str.append("Ratio de compressio: ").append(formatDecimal(compressionRatio(stats))).append(" : 1\n");
+        str.append("Temps: ").append(stats.elapsedMillis()).append(" ms");
+        appendBlockBreakdown(str, stats.mode(), info.blocks());
+        statsArea.setText(str.toString());
+        applyReportContent(info.symbols(), info.tree(), info.blocks(),
             "No hi ha cap arbre de Huffman disponible.",
-            result.mode() == CompressionMode.HUFFMAN_2_BYTE);
+            stats.mode() == CompressionMode.HUFFMAN_2_BYTE);
         contentTabs.setSelectedIndex(0);
     }
 
-    public void showDecompressionReport(DecompressionReport report) {
-        DecompressionStats result = report.result();
-        StringBuilder stats = new StringBuilder();
-        stats.append("Operacio: Descompressio\n");
-        stats.append("Estrategia: ").append(formatMode(result.mode(), report.blocks())).append('\n');
-        stats.append("Mida de l'arxiu: ").append(result.archiveSize()).append(" bytes\n");
-        stats.append("Mida restaurada: ").append(result.restoredSize()).append(" bytes\n");
-        stats.append("Temps: ").append(result.elapsedMillis()).append(" ms");
-        appendBlockBreakdown(stats, result.mode(), report.blocks());
-        statsArea.setText(stats.toString());
-        applyReportContent(report.symbols(), report.tree(), report.blocks(),
+    public void showDecompressionInfo(DecompressionInfo info) {
+        DecompressionStats stats = info.stats();
+        StringBuilder str = new StringBuilder();
+        str.append("Operacio: Descompressio\n");
+        str.append("Estrategia: ").append(formatMode(stats.mode(), info.blocks())).append('\n');
+        str.append("Mida de l'arxiu: ").append(stats.archiveSize()).append(" bytes\n");
+        str.append("Mida restaurada: ").append(stats.restoredSize()).append(" bytes\n");
+        str.append("Temps: ").append(stats.elapsedMillis()).append(" ms");
+        appendBlockBreakdown(str, stats.mode(), info.blocks());
+        statsArea.setText(str.toString());
+        applyReportContent(info.symbols(), info.tree(), info.blocks(),
             "Arxiu en mode emmagatzemat: no hi ha cap arbre de Huffman disponible.",
-            result.mode() == CompressionMode.HUFFMAN_2_BYTE);
+            stats.mode() == CompressionMode.HUFFMAN_2_BYTE);
         contentTabs.setSelectedIndex(0);
     }
 
-    private double compressionRatio(CompressionStats result) {
-        if (result.archiveSize() <= 0L) {
+    private double compressionRatio(CompressionStats stats) {
+        if (stats.archiveSize() <= 0L) {
             return 0.0;
         }
-        return result.originalSize() / (double) result.archiveSize();
+        return stats.originalSize() / (double) stats.archiveSize();
     }
 
-    private String formatMode(CompressionMode mode, List<BlockReport> blocks) {
+    private String formatMode(CompressionMode mode, List<BlockInfo> blocks) {
         if (mode != CompressionMode.HUFFMAN_BLOCK || blocks == null || blocks.isEmpty()) {
             return mode.toString();
         }
         int byteBlocks = 0;
         int wordBlocks = 0;
-        for (BlockReport block : blocks) {
+        for (BlockInfo block : blocks) {
             if (block.mode() == CompressionMode.HUFFMAN_1_BYTE) {
                 byteBlocks++;
             } else if (block.mode() == CompressionMode.HUFFMAN_2_BYTE) {
@@ -224,14 +224,14 @@ public class MainWindow extends JFrame {
         return mode.toString();
     }
 
-    private void appendBlockBreakdown(StringBuilder stats, CompressionMode mode, List<BlockReport> blocks) {
+    private void appendBlockBreakdown(StringBuilder stats, CompressionMode mode, List<BlockInfo> blocks) {
         if (mode != CompressionMode.HUFFMAN_BLOCK || blocks == null || blocks.isEmpty()) {
             return;
         }
         int byteBlocks = 0;
         int wordBlocks = 0;
         int storedBlocks = 0;
-        for (BlockReport block : blocks) {
+        for (BlockInfo block : blocks) {
             switch (block.mode()) {
                 case HUFFMAN_1_BYTE -> byteBlocks++;
                 case HUFFMAN_2_BYTE -> wordBlocks++;
@@ -247,7 +247,7 @@ public class MainWindow extends JFrame {
 
     private void applyReportContent(List<HuffmanSymbolInfo> symbols,
                                     HuffmanTreeNodeInfo tree,
-                                    List<BlockReport> blocks,
+                                    List<BlockInfo> blocks,
                                     String emptyTreeMessage,
                                     boolean wordMode) {
         boolean hasBlocks = blocks != null && !blocks.isEmpty();
@@ -466,7 +466,7 @@ public class MainWindow extends JFrame {
         return root;
     }
 
-    private void renderBlock(BlockReport block) {
+    private void renderBlock(BlockInfo block) {
         boolean wordMode = block.mode() == CompressionMode.HUFFMAN_2_BYTE;
         populateSymbols(block.symbols(), wordMode);
         treePanel.setTree(block.tree(), "Aquest bloc no te arbre de Huffman (mode emmagatzemat).", wordMode);

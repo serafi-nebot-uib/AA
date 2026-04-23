@@ -3,8 +3,8 @@ package com.serafinebot.p4.model.benchmark;
 import com.serafinebot.p4.model.archive.CompressionMode;
 import com.serafinebot.p4.model.codec.HuffmanCodec;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
-import com.serafinebot.p4.model.report.CompressionStats;
-import com.serafinebot.p4.model.report.DecompressionStats;
+import com.serafinebot.p4.model.info.CompressionStats;
+import com.serafinebot.p4.model.info.DecompressionStats;
 
 import java.io.IOException;
 import java.nio.file.Files;

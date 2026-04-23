@@ -1,6 +1,6 @@
 package com.serafinebot.p4.view;
 
-import com.serafinebot.p4.model.report.HuffmanTreeNodeInfo;
+import com.serafinebot.p4.model.info.HuffmanTreeNodeInfo;
 
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;

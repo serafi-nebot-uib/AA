@@ -1,6 +1,7 @@
 package com.serafinebot.p4.model;
 
 import com.serafinebot.p4.model.archive.ArchiveFormatException;
+import com.serafinebot.p4.model.archive.ArchiveHeader;
 import com.serafinebot.p4.model.archive.CompressionMode;
 import com.serafinebot.p4.model.benchmark.BenchmarkConfig;
 import com.serafinebot.p4.model.benchmark.BenchmarkCsvWriter;
@@ -13,9 +14,9 @@ import com.serafinebot.p4.model.codec.HuffmanCodec;
 import com.serafinebot.p4.model.progress.ProgressPhase;
 import com.serafinebot.p4.model.progress.ProgressSnapshot;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
-import com.serafinebot.p4.model.report.CompressionReport;
-import com.serafinebot.p4.model.report.CompressionStats;
-import com.serafinebot.p4.model.report.DecompressionStats;
+import com.serafinebot.p4.model.info.CompressionInfo;
+import com.serafinebot.p4.model.info.CompressionStats;
+import com.serafinebot.p4.model.info.DecompressionStats;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -46,15 +47,12 @@ class HuffmanCodecTest {
     private final HuffmanCodec codec = new HuffmanCodec();
 
     @Test
-    void roundTripEmptyFile() throws IOException {
-        RoundTrip roundTrip = roundTrip("empty", new byte[0]);
-        byte[] archive = Files.readAllBytes(roundTrip.archivePath);
+    void compressionRejectsEmptyFileBecauseArchiveWouldBeLarger() throws IOException {
+        Path inputPath = writeInput("empty-input", new byte[0]);
+        Path archivePath = tempDir.resolve("empty.hff");
 
-        assertEquals(CompressionMode.STORED, roundTrip.compressionStats.mode());
-        assertEquals(0L, roundTrip.compressionStats.originalSize());
-        assertEquals(13, archive.length);
-        assertEquals(CompressionMode.STORED.id(), archive[4]);
-        assertArrayEquals(new byte[0], Files.readAllBytes(roundTrip.restoredPath));
+        assertThrows(IOException.class, () -> codec.compress(inputPath, archivePath));
+        assertFalse(Files.exists(archivePath));
     }
 
     @Test
@@ -97,21 +95,22 @@ class HuffmanCodecTest {
     }
 
     @Test
-    void compressionReportIncludesTreeAndSymbolTable() throws IOException {
-        byte[] data = "banana bandana".getBytes(StandardCharsets.UTF_8);
-        Path inputPath = writeInput("report-input", data);
-        Path archivePath = tempDir.resolve("report.hff");
+    void compressionInfoIncludesTreeAndSymbolTable() throws IOException {
+        byte[] data = "banana bandana ".repeat(512).getBytes(StandardCharsets.UTF_8);
+        Path inputPath = writeInput("info-input", data);
+        Path archivePath = tempDir.resolve("info.hff");
 
-        CompressionReport report = codec.compressWithReport(inputPath, archivePath);
+        CompressionInfo info = new HuffmanCodec(PriorityQueueStrategy.BINARY_HEAP, CompressionMode.HUFFMAN_1_BYTE)
+            .compressWithInfo(inputPath, archivePath);
 
-        assertFalse(report.symbols().isEmpty());
-        assertTrue(report.symbols().stream().anyMatch(symbol -> symbol.symbol() == 'a' && symbol.probability() > 0.0 && !symbol.code().isEmpty()));
-        assertNotNull(report.tree());
-        assertEquals(data.length, report.tree().frequency());
-        assertEquals(1.0, report.tree().probability(), 1.0e-9);
-        assertEquals("", report.tree().code());
-        assertTrue(report.tree().zeroChild() == null || report.tree().zeroChild().code().startsWith("0"));
-        assertTrue(report.tree().oneChild() == null || report.tree().oneChild().code().startsWith("1"));
+        assertFalse(info.symbols().isEmpty());
+        assertTrue(info.symbols().stream().anyMatch(symbol -> symbol.symbol() == 'a' && symbol.probability() > 0.0 && !symbol.code().isEmpty()));
+        assertNotNull(info.tree());
+        assertEquals(data.length, info.tree().frequency());
+        assertEquals(1.0, info.tree().probability(), 1.0e-9);
+        assertEquals("", info.tree().code());
+        assertTrue(info.tree().zeroChild() == null || info.tree().zeroChild().code().startsWith("0"));
+        assertTrue(info.tree().oneChild() == null || info.tree().oneChild().code().startsWith("1"));
     }
 
     @Test
@@ -247,15 +246,15 @@ class HuffmanCodecTest {
         byte[] data = "AB".repeat(8192).getBytes(StandardCharsets.UTF_8);
         Path inputPath = writeInput("restricted-block-modes", data);
 
-        CompressionReport byteOnlyReport = new HuffmanCodec(PriorityQueueStrategy.BINARY_HEAP, CompressionMode.HUFFMAN_BLOCK_1_BYTE)
-            .compressWithReport(inputPath, tempDir.resolve("restricted-byte.hff"));
-        CompressionReport wordOnlyReport = new HuffmanCodec(PriorityQueueStrategy.BINARY_HEAP, CompressionMode.HUFFMAN_BLOCK_2_BYTE)
-            .compressWithReport(inputPath, tempDir.resolve("restricted-word.hff"));
+        CompressionInfo byteOnlyInfo = new HuffmanCodec(PriorityQueueStrategy.BINARY_HEAP, CompressionMode.HUFFMAN_BLOCK_1_BYTE)
+            .compressWithInfo(inputPath, tempDir.resolve("restricted-byte.hff"));
+        CompressionInfo wordOnlyInfo = new HuffmanCodec(PriorityQueueStrategy.BINARY_HEAP, CompressionMode.HUFFMAN_BLOCK_2_BYTE)
+            .compressWithInfo(inputPath, tempDir.resolve("restricted-word.hff"));
 
-        assertEquals(CompressionMode.HUFFMAN_BLOCK, byteOnlyReport.result().mode());
-        assertEquals(CompressionMode.HUFFMAN_BLOCK, wordOnlyReport.result().mode());
-        assertTrue(byteOnlyReport.blocks().stream().noneMatch(block -> block.mode() == CompressionMode.HUFFMAN_2_BYTE));
-        assertTrue(wordOnlyReport.blocks().stream().noneMatch(block -> block.mode() == CompressionMode.HUFFMAN_1_BYTE));
+        assertEquals(CompressionMode.HUFFMAN_BLOCK, byteOnlyInfo.stats().mode());
+        assertEquals(CompressionMode.HUFFMAN_BLOCK, wordOnlyInfo.stats().mode());
+        assertTrue(byteOnlyInfo.blocks().stream().noneMatch(block -> block.mode() == CompressionMode.HUFFMAN_2_BYTE));
+        assertTrue(wordOnlyInfo.blocks().stream().noneMatch(block -> block.mode() == CompressionMode.HUFFMAN_1_BYTE));
     }
 
     @Test
@@ -272,24 +271,29 @@ class HuffmanCodecTest {
     }
 
     @Test
-    void roundTripRandomBinaryFiles() throws IOException {
+    void compressionRejectsRandomBinaryFilesThatWouldExpand() throws IOException {
         int[] sizes = {1, 2, 7, 8, 31, 255, 1024, 8192};
         Random random = new Random(20260416L);
 
         for (int size : sizes) {
             byte[] data = new byte[size];
             random.nextBytes(data);
-            roundTrip("random-" + size, data);
+            Path inputPath = writeInput("random-" + size, data);
+            Path archivePath = tempDir.resolve("random-" + size + ".hff");
+
+            assertThrows(IOException.class, () -> codec.compress(inputPath, archivePath));
+            assertFalse(Files.exists(archivePath));
         }
     }
 
     @Test
-    void compressorFallsBackToStoredModeWhenHuffmanWouldBeWorse() throws IOException {
+    void compressorRejectsInputWhenHuffmanWouldBeWorse() throws IOException {
         byte[] data = {0, 1, 2, 3, 4, 5};
-        RoundTrip roundTrip = roundTrip("stored", data);
+        Path inputPath = writeInput("stored-rejected", data);
+        Path archivePath = tempDir.resolve("stored-rejected.hff");
 
-        assertEquals(CompressionMode.STORED, roundTrip.compressionStats.mode());
-        assertEquals(data.length + 13L, roundTrip.compressionStats.archiveSize());
+        assertThrows(IOException.class, () -> codec.compress(inputPath, archivePath));
+        assertFalse(Files.exists(archivePath));
     }
 
     @Test
@@ -343,7 +347,7 @@ class HuffmanCodecTest {
 
     @Test
     void decompressRejectsUnsupportedModeId() throws IOException {
-        RoundTrip roundTrip = roundTrip("mode", "version test".getBytes(StandardCharsets.UTF_8));
+        RoundTrip roundTrip = roundTrip("mode", "version test ".repeat(512).getBytes(StandardCharsets.UTF_8));
         byte[] archive = Files.readAllBytes(roundTrip.archivePath);
         archive[4] = 99;
 
@@ -357,9 +361,13 @@ class HuffmanCodecTest {
     @Test
     void decompressRejectsTruncatedStoredArchive() throws IOException {
         byte[] data = {1, 2, 3, 4, 5, 6};
-        RoundTrip roundTrip = roundTrip("truncated-stored", data);
+        Path archivePath = tempDir.resolve("stored-source.hff");
+        try (DataOutputStream output = new DataOutputStream(Files.newOutputStream(archivePath))) {
+            ArchiveHeader.stored(data.length).write(output);
+            output.write(data);
+        }
 
-        byte[] archive = Files.readAllBytes(roundTrip.archivePath);
+        byte[] archive = Files.readAllBytes(archivePath);
         Path truncatedArchive = tempDir.resolve("truncated-stored-copy.hff");
         Files.write(truncatedArchive, Arrays.copyOf(archive, archive.length - 1));
 
@@ -426,9 +434,7 @@ class HuffmanCodecTest {
         Path corpusDirectory = tempDir.resolve("corpus");
         Files.createDirectories(corpusDirectory);
         Files.writeString(corpusDirectory.resolve("text.txt"), "benchmark text ".repeat(40));
-        Files.write(corpusDirectory.resolve("binary.bin"), new byte[] {
-            1, 1, 1, 1, 2, 2, 3, 5, 8, 13, 21, 34, 55, 89
-        });
+        Files.writeString(corpusDirectory.resolve("binary.bin"), "AB".repeat(4096));
         return corpusDirectory;
     }
 

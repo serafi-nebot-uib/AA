@@ -23,22 +23,21 @@ import java.util.Set;
  * store the bytes directly, use a byte Huffman tree, or use a two-byte Huffman tree. This analyzer
  * owns that per-block decision so the public codec does not need to know the details.</p>
  */
-final class HuffmanBlockAnalyzer {
+final class HuffmanBlockAnalyzer extends HuffmanAnalyzer {
 
     private static final int BUFFER_SIZE = 8192;
+    private static final int BYTE_SYMBOL_SPACE = 256;
     private static final int WORD_SYMBOL_SPACE = 65536;
     private static final int BLOCK_HEADER_SIZE = Integer.BYTES + Byte.BYTES;
     private static final int BLOCK_BYTE_FREQUENCY_ENTRY_SIZE = Byte.BYTES + Long.BYTES;
     private static final int BLOCK_WORD_FREQUENCY_ENTRY_SIZE = Short.BYTES + Long.BYTES;
     private static final int ANALYSIS_BLOCK_SIZE = 4096;
 
-    private final PriorityQueueStrategy priorityQueueStrategy;
     private final boolean allowByteMode;
     private final boolean allowWordMode;
-    private long treeBuildNanos;
 
     HuffmanBlockAnalyzer(PriorityQueueStrategy priorityQueueStrategy, Set<CompressionMode> allowedBlockHuffmanModes) {
-        this.priorityQueueStrategy = priorityQueueStrategy;
+        super(priorityQueueStrategy);
         this.allowByteMode = allowedBlockHuffmanModes.contains(CompressionMode.HUFFMAN_1_BYTE);
         this.allowWordMode = allowedBlockHuffmanModes.contains(CompressionMode.HUFFMAN_2_BYTE);
     }
@@ -70,7 +69,7 @@ final class HuffmanBlockAnalyzer {
         List<BlockUnit> blocks = new ArrayList<>();
         ProgressTracker tracker = new ProgressTracker(listener, ProgressPhase.ANALYZING, totalBytes);
 
-        // These accumulators are built while scanning blocks so the report can be produced without
+        // These accumulators are built while scanning blocks so the final info can be produced without
         // re-reading the input. metadataOverhead counts only headers/frequency tables, while
         // estimatedArchiveSize also includes each block's estimated payload bytes.
         long processedBytes = 0L;
@@ -83,15 +82,15 @@ final class HuffmanBlockAnalyzer {
         try (InputStream input = new BufferedInputStream(Files.newInputStream(inputPath), BUFFER_SIZE)) {
             byte[] buffer = new byte[selectedBlockSize];
             int read;
-            while ((read = readBlock(input, buffer, selectedBlockSize)) > 0) {
+            while ((read = input.readNBytes(buffer, 0, selectedBlockSize)) > 0) {
                 // Each block chooses independently between byte Huffman, word Huffman, and stored.
                 // That local decision is what lets the compressor handle files whose distribution
                 // changes across the file instead of forcing one global tree to fit every region.
-                FrequencyTable byteTable = new FrequencyTable();
+                FrequencyTable byteTable = new FrequencyTable(BYTE_SYMBOL_SPACE);
                 byteTable.add(buffer, read);
 
                 // The byte table is always built, even when byte-Huffman blocks are disabled. It is
-                // cheap, it is needed for entropy reporting, and it gives stored blocks meaningful
+                // cheap, it is needed for entropy information, and it gives stored blocks meaningful
                 // statistics in the GUI instead of leaving block analysis visually empty.
                 HuffmanCode byteRoot = null;
                 HuffmanCode[] byteLeaves = null;
@@ -175,7 +174,7 @@ final class HuffmanBlockAnalyzer {
                 }
 
                 // Entropy is weighted by bytes so that one tiny unusual block does not affect the
-                // file-level block report as much as a large region of the input.
+                // file-level block information as much as a large region of the input.
                 weightedEntropy += byteTable.entropy() * read;
 
                 processedBytes += read;
@@ -211,29 +210,4 @@ final class HuffmanBlockAnalyzer {
         return table;
     }
 
-    long treeBuildNanos() {
-        return treeBuildNanos;
-    }
-
-    private HuffmanCode buildTree(FrequencyTable table) {
-        long t0 = System.nanoTime();
-        HuffmanCode root = HuffmanCode.buildFromFrequencies(
-            table,
-            priorityQueueStrategy.createQueue()
-        );
-        treeBuildNanos += System.nanoTime() - t0;
-        return root;
-    }
-
-    private static int readBlock(InputStream input, byte[] buffer, int maxBytes) throws IOException {
-        int totalRead = 0;
-        while (totalRead < maxBytes) {
-            int read = input.read(buffer, totalRead, maxBytes - totalRead);
-            if (read < 0) {
-                break;
-            }
-            totalRead += read;
-        }
-        return totalRead;
-    }
 }
