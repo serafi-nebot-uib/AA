@@ -8,9 +8,9 @@ import com.serafinebot.p4.model.progress.ProgressSnapshot;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
 import com.serafinebot.p4.model.report.BlockReport;
 import com.serafinebot.p4.model.report.CompressionReport;
-import com.serafinebot.p4.model.report.CompressionResult;
+import com.serafinebot.p4.model.report.CompressionStats;
 import com.serafinebot.p4.model.report.DecompressionReport;
-import com.serafinebot.p4.model.report.DecompressionResult;
+import com.serafinebot.p4.model.report.DecompressionStats;
 import com.serafinebot.p4.model.report.HuffmanSymbolInfo;
 import com.serafinebot.p4.model.report.HuffmanTreeNodeInfo;
 import com.serafinebot.p4.util.ByteFormat;
@@ -154,7 +154,7 @@ public class MainWindow extends JFrame {
     }
 
     public void showCompressionReport(CompressionReport report) {
-        CompressionResult result = report.result();
+        CompressionStats result = report.result();
         StringBuilder stats = new StringBuilder();
         stats.append("Operacio: Compressio\n");
         stats.append("Estrategia: ").append(formatMode(result.mode(), report.blocks())).append('\n');
@@ -177,7 +177,7 @@ public class MainWindow extends JFrame {
     }
 
     public void showDecompressionReport(DecompressionReport report) {
-        DecompressionResult result = report.result();
+        DecompressionStats result = report.result();
         StringBuilder stats = new StringBuilder();
         stats.append("Operacio: Descompressio\n");
         stats.append("Estrategia: ").append(formatMode(result.mode(), report.blocks())).append('\n');
@@ -192,7 +192,7 @@ public class MainWindow extends JFrame {
         contentTabs.setSelectedIndex(0);
     }
 
-    private double compressionRatio(CompressionResult result) {
+    private double compressionRatio(CompressionStats result) {
         if (result.archiveSize() <= 0L) {
             return 0.0;
         }

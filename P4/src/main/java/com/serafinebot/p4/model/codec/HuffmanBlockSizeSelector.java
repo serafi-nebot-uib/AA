@@ -12,7 +12,7 @@ import java.util.Arrays;
 /**
  * Estimates a good block size for block-mode Huffman compression.
  */
-final class BlockSizeSelector {
+final class HuffmanBlockSizeSelector {
 
     private static final int BUFFER_SIZE = 8192;
     private static final int BYTE_SYMBOL_SPACE = 256;
@@ -23,13 +23,21 @@ final class BlockSizeSelector {
     private static final int ANALYSIS_BLOCK_SIZE = 4096;
     private static final int[] CANDIDATE_BLOCK_SIZES = {4096, 16384, 65536, 262144, 1048576, 4194304, 16777216};
 
-    private BlockSizeSelector() {
+    private HuffmanBlockSizeSelector() {
     }
 
     static int select(Path inputPath, long totalBytes, boolean allowByteMode, boolean allowWordMode) throws IOException {
-        // Evaluate practical block sizes with 4 KiB samples. This avoids a full compression trial
-        // per candidate while still reflecting local symbol distributions.
+        // Try only a small set of practical block sizes. Running a full Huffman compression for
+        // every candidate would be expensive, so this method estimates the archive size instead.
+        // The estimate uses Shannon's ideal bit count from observed frequencies; it is not exact,
+        // but it is good enough to choose between "small blocks adapt better" and "large blocks pay
+        // less metadata overhead".
         int numCandidates = CANDIDATE_BLOCK_SIZES.length;
+
+        // Each candidate is simulated in one pass over the file. The running arrays hold the
+        // frequencies of the current synthetic block for that candidate. For example, the 4 KiB
+        // candidate flushes after every sample, while the 64 KiB candidate accumulates sixteen
+        // samples before estimating one larger block.
         long[][] runningByteFreqs = new long[numCandidates][BYTE_SYMBOL_SPACE];
         long[][] runningWordFreqs = new long[numCandidates][WORD_SYMBOL_SPACE];
         int[][] runningWordVisited = new int[numCandidates][WORD_SYMBOL_SPACE];
@@ -47,11 +55,16 @@ final class BlockSizeSelector {
             int[] miniWordVisited = new int[ANALYSIS_BLOCK_SIZE / 2 + 1];
             int read;
             while ((read = readBlock(input, buffer, ANALYSIS_BLOCK_SIZE)) > 0) {
+                // The file is read as fixed 4 KiB analysis samples. Those samples are small enough
+                // to keep memory predictable, and they can be combined to simulate every larger
+                // candidate block size without rereading the file.
                 Arrays.fill(miniByteFreqs, 0L);
                 for (int i = 0; i < read; i++) {
                     miniByteFreqs[buffer[i] & 0xFF]++;
                 }
 
+                // Word-mode frequencies live in a 65,536-symbol space. Tracking only the words
+                // that appeared lets us reset and iterate sparse word frequencies cheaply.
                 int miniWordCount = 0;
                 int pairEnd = read - (read & 1);
                 for (int i = 0; i < pairEnd; i += 2) {
@@ -63,6 +76,7 @@ final class BlockSizeSelector {
                 }
 
                 for (int c = 0; c < numCandidates; c++) {
+                    // Feed the same sample into every candidate's synthetic current block.
                     for (int s = 0; s < BYTE_SYMBOL_SPACE; s++) {
                         runningByteFreqs[c][s] += miniByteFreqs[s];
                     }
@@ -76,6 +90,9 @@ final class BlockSizeSelector {
                     runningBytes[c] += read;
 
                     if (runningBytes[c] >= CANDIDATE_BLOCK_SIZES[c]) {
+                        // Once a candidate has accumulated a full block, estimate the best local
+                        // representation for that block: stored, byte Huffman, or word Huffman.
+                        // This mirrors the real block compressor's choice without building trees.
                         totalEstimates[c] += estimateBlockCompressedSize(
                             runningByteFreqs[c],
                             runningWordFreqs[c],
@@ -94,6 +111,8 @@ final class BlockSizeSelector {
                     }
                 }
 
+                // Clear only the sparse word entries touched by this sample. Clearing the whole
+                // 65,536-element array for every 4 KiB sample is avoidable work.
                 for (int v = 0; v < miniWordCount; v++) {
                     miniWordFreqs[miniWordVisited[v]] = 0L;
                 }
@@ -102,6 +121,8 @@ final class BlockSizeSelector {
 
         for (int c = 0; c < numCandidates; c++) {
             if (runningBytes[c] > 0) {
+                // The last synthetic block for each candidate is usually partial. It still
+                // contributes to the archive, so include it before comparing candidates.
                 totalEstimates[c] += estimateBlockCompressedSize(
                     runningByteFreqs[c],
                     runningWordFreqs[c],
@@ -120,6 +141,9 @@ final class BlockSizeSelector {
                 bestIndex = c;
             }
         }
+
+        // The selected size is the candidate with the smallest estimated complete archive size,
+        // including the common block archive header and all estimated per-block payloads.
         return CANDIDATE_BLOCK_SIZES[bestIndex];
     }
 
@@ -130,8 +154,7 @@ final class BlockSizeSelector {
                                                     int blockBytes,
                                                     boolean allowByteMode,
                                                     boolean allowWordMode) {
-        long storedSize = (long) BLOCK_HEADER_SIZE + blockBytes;
-        long best = storedSize;
+        long best = (long) BLOCK_HEADER_SIZE + blockBytes;
 
         if (allowByteMode) {
             best = Math.min(best, estimateByteHuffmanBlockSize(byteFreqs));
@@ -158,7 +181,7 @@ final class BlockSizeSelector {
         }
 
         double totalBits = shannonBits(frequencies, totalSymbols);
-        return metadata + bytesForBits((long) Math.ceil(totalBits));
+        return metadata + (long) Math.ceil(totalBits / Byte.SIZE);
     }
 
     private static long estimateWordHuffmanBlockSize(long[] wordFreqs, int[] visited, int visitedCount, int blockBytes) {
@@ -185,7 +208,7 @@ final class BlockSizeSelector {
         }
         totalBits /= Math.log(2);
 
-        return metadata + bytesForBits((long) Math.ceil(totalBits)) + trailing;
+        return metadata + (long) Math.ceil(totalBits / Byte.SIZE) + trailing;
     }
 
     private static double shannonBits(long[] frequencies, long totalSymbols) {
@@ -197,10 +220,6 @@ final class BlockSizeSelector {
             }
         }
         return totalBits / Math.log(2);
-    }
-
-    private static long bytesForBits(long bitCount) {
-        return (bitCount + 7L) / 8L;
     }
 
     private static int readBlock(InputStream input, byte[] buffer, int maxBytes) throws IOException {

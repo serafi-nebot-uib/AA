@@ -61,28 +61,12 @@ public enum CompressionMode {
         return id >= 0;
     }
 
-    public boolean isUserSelectable() {
-        return this != STORED;
-    }
-
-    public CompressionMode archiveMode() {
-        return switch (this) {
-            case AUTO -> null;
-            case HUFFMAN_BLOCK_1_BYTE, HUFFMAN_BLOCK_2_BYTE -> HUFFMAN_BLOCK;
-            default -> this;
-        };
-    }
-
     public Set<CompressionMode> allowedBlockHuffmanModes() {
         return switch (this) {
             case HUFFMAN_BLOCK_1_BYTE -> Set.of(HUFFMAN_1_BYTE);
             case HUFFMAN_BLOCK_2_BYTE -> Set.of(HUFFMAN_2_BYTE);
             default -> Set.of(HUFFMAN_1_BYTE, HUFFMAN_2_BYTE);
         };
-    }
-
-    public boolean usesAutomaticSelection() {
-        return this == AUTO;
     }
 
     public static CompressionMode[] requestModes() {
@@ -103,16 +87,6 @@ public enum CompressionMode {
 
     public boolean usesGlobalFrequencyTable() {
         return this == HUFFMAN_1_BYTE || this == HUFFMAN_2_BYTE;
-    }
-
-    public int symbolWidthBytes() {
-        if (this == HUFFMAN_1_BYTE) {
-            return 1;
-        }
-        if (this == HUFFMAN_2_BYTE) {
-            return 2;
-        }
-        return 0;
     }
 
     public static CompressionMode fromId(int id) throws ArchiveFormatException {

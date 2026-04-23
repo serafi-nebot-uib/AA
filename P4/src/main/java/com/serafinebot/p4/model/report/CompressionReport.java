@@ -11,7 +11,7 @@ import java.util.List;
  * @param blocks per-block reports (possibly one entry for single-tree modes, multiple for block mode)
  */
 public record CompressionReport(
-    CompressionResult result,
+    CompressionStats result,
     List<HuffmanSymbolInfo> symbols,
     HuffmanTreeNodeInfo tree,
     List<BlockReport> blocks
@@ -21,7 +21,7 @@ public record CompressionReport(
         blocks = List.copyOf(blocks);
     }
 
-    public CompressionReport(CompressionResult result, List<HuffmanSymbolInfo> symbols, HuffmanTreeNodeInfo tree) {
+    public CompressionReport(CompressionStats result, List<HuffmanSymbolInfo> symbols, HuffmanTreeNodeInfo tree) {
         this(result, symbols, tree, List.of());
     }
 }

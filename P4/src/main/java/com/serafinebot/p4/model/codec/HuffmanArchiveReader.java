@@ -6,6 +6,7 @@ import com.serafinebot.p4.model.archive.CompressionMode;
 import com.serafinebot.p4.model.progress.ProgressListener;
 import com.serafinebot.p4.model.progress.ProgressPhase;
 import com.serafinebot.p4.model.progress.ProgressTracker;
+import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
 import com.serafinebot.p4.model.report.BlockReport;
 import com.serafinebot.p4.model.report.HuffmanSymbolInfo;
 import com.serafinebot.p4.model.report.HuffmanTreeNodeInfo;
@@ -32,12 +33,11 @@ final class HuffmanArchiveReader {
     private static final int BYTE_SYMBOL_SPACE = 256;
     private static final int WORD_SYMBOL_SPACE = 65536;
 
-    private final TreeBuilder treeBuilder;
+    private final PriorityQueueStrategy priorityQueueStrategy;
+    private long treeBuildNanos;
 
-    HuffmanArchiveReader(TreeBuilder treeBuilder) {
-        // Tree construction is injected so HuffmanCodec can keep one cumulative timing counter for
-        // every tree built during a decompression, including per-block trees.
-        this.treeBuilder = treeBuilder;
+    HuffmanArchiveReader(PriorityQueueStrategy priorityQueueStrategy) {
+        this.priorityQueueStrategy = priorityQueueStrategy;
     }
 
     DecodedArchive read(Path inputPath, Path outputPath, ProgressListener listener) throws IOException {
@@ -56,18 +56,18 @@ final class HuffmanArchiveReader {
                 case STORED -> copyExact(input, output, header.originalSize(), tracker);
                 case HUFFMAN_1_BYTE -> {
                     FrequencyTable table = FrequencyTable.fromFrequencies(header.frequencies());
-                    HuffmanCode root = treeBuilder.build(table);
-                    HuffmanCode[] leaves = lookupLeaves(table, root);
-                    symbolInfos = HuffmanReportBuilder.symbols(table, leaves);
-                    treeInfo = HuffmanReportBuilder.tree(root, table.totalCount());
+                    HuffmanCode root = buildTree(table);
+                    HuffmanCode[] leaves = HuffmanCode.lookupBySymbol(root, table.symbolSpaceSize());
+                    symbolInfos = HuffmanReport.symbols(table, leaves);
+                    treeInfo = HuffmanReport.tree(root, table.totalCount());
                     decompressBytePayload(input, output, table, root, header.originalSize(), tracker);
                 }
                 case HUFFMAN_2_BYTE -> {
                     FrequencyTable table = FrequencyTable.fromFrequencies(header.frequencies());
-                    HuffmanCode root = treeBuilder.build(table);
-                    HuffmanCode[] leaves = lookupLeaves(table, root);
-                    symbolInfos = HuffmanReportBuilder.symbols(table, leaves);
-                    treeInfo = HuffmanReportBuilder.tree(root, table.totalCount());
+                    HuffmanCode root = buildTree(table);
+                    HuffmanCode[] leaves = HuffmanCode.lookupBySymbol(root, table.symbolSpaceSize());
+                    symbolInfos = HuffmanReport.symbols(table, leaves);
+                    treeInfo = HuffmanReport.tree(root, table.totalCount());
                     decompressWordPayload(input, output, table, root, header.originalSize(), tracker);
                 }
                 case HUFFMAN_BLOCK -> blockReports = decompressBlockArchive(input, output, header.originalSize(), tracker);
@@ -76,12 +76,6 @@ final class HuffmanArchiveReader {
             output.flush();
             return new DecodedArchive(header.mode(), header.originalSize(), symbolInfos, treeInfo, blockReports);
         }
-    }
-
-    private HuffmanCode[] lookupLeaves(FrequencyTable table, HuffmanCode root) {
-        return root == null
-            ? new HuffmanCode[table.symbolSpaceSize()]
-            : root.lookupBySymbol(table.symbolSpaceSize());
     }
 
     private void decompressBytePayload(DataInputStream input,
@@ -205,10 +199,10 @@ final class HuffmanArchiveReader {
 
     private BlockDecodeResult decompressByteBlock(DataInputStream input, OutputStream output, int blockSize) throws IOException {
         FrequencyTable table = readByteBlockFrequencyTable(input, blockSize);
-        HuffmanCode root = treeBuilder.build(table);
-        HuffmanCode[] leaves = lookupLeaves(table, root);
-        List<HuffmanSymbolInfo> symbols = HuffmanReportBuilder.symbols(table, leaves);
-        HuffmanTreeNodeInfo tree = HuffmanReportBuilder.tree(root, table.totalCount());
+        HuffmanCode root = buildTree(table);
+        HuffmanCode[] leaves = HuffmanCode.lookupBySymbol(root, table.symbolSpaceSize());
+        List<HuffmanSymbolInfo> symbols = HuffmanReport.symbols(table, leaves);
+        HuffmanTreeNodeInfo tree = HuffmanReport.tree(root, table.totalCount());
         long written;
         if (table.distinctSymbolCount() == 1) {
             written = writeRepeatedByte(output, table.singleSymbol(), blockSize);
@@ -249,10 +243,10 @@ final class HuffmanArchiveReader {
         HuffmanTreeNodeInfo tree = null;
         List<HuffmanSymbolInfo> symbols = List.of();
         if (pairCount > 0L) {
-            HuffmanCode root = treeBuilder.build(table);
-            HuffmanCode[] leaves = lookupLeaves(table, root);
-            symbols = HuffmanReportBuilder.symbols(table, leaves);
-            tree = HuffmanReportBuilder.tree(root, table.totalCount());
+            HuffmanCode root = buildTree(table);
+            HuffmanCode[] leaves = HuffmanCode.lookupBySymbol(root, table.symbolSpaceSize());
+            symbols = HuffmanReport.symbols(table, leaves);
+            tree = HuffmanReport.tree(root, table.totalCount());
             if (table.distinctSymbolCount() == 1) {
                 int symbol = table.singleSymbol();
                 for (long i = 0; i < pairCount; i++) {
@@ -445,8 +439,17 @@ final class HuffmanArchiveReader {
         return copiedBytes;
     }
 
-    @FunctionalInterface
-    interface TreeBuilder {
-        HuffmanCode build(FrequencyTable table);
+    long treeBuildMillis() {
+        return treeBuildNanos / 1_000_000L;
+    }
+
+    private HuffmanCode buildTree(FrequencyTable table) {
+        long t0 = System.nanoTime();
+        HuffmanCode root = HuffmanCode.buildFromFrequencies(
+            table,
+            priorityQueueStrategy.createQueue()
+        );
+        treeBuildNanos += System.nanoTime() - t0;
+        return root;
     }
 }

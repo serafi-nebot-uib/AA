@@ -8,8 +8,8 @@ import com.serafinebot.p4.model.benchmark.BenchmarkService;
 import com.serafinebot.p4.model.codec.HuffmanCodec;
 import com.serafinebot.p4.model.progress.ProgressPhase;
 import com.serafinebot.p4.model.progress.ProgressSnapshot;
-import com.serafinebot.p4.model.report.CompressionResult;
-import com.serafinebot.p4.model.report.DecompressionResult;
+import com.serafinebot.p4.model.report.CompressionStats;
+import com.serafinebot.p4.model.report.DecompressionStats;
 import com.serafinebot.p4.util.ByteFormat;
 
 import java.io.PrintStream;
@@ -69,7 +69,7 @@ public final class CLI {
         CliProgressPrinter progressPrinter = new CliProgressPrinter(err);
 
         try {
-            CompressionResult result = codec.compress(inputPath, outputPath, progressPrinter::print);
+            CompressionStats result = codec.compress(inputPath, outputPath, progressPrinter::print);
             progressPrinter.finish();
             printCompressionResult(out, inputPath, outputPath, result);
             return 0;
@@ -93,7 +93,7 @@ public final class CLI {
         CliProgressPrinter progressPrinter = new CliProgressPrinter(err);
 
         try {
-            DecompressionResult result = codec.decompress(inputPath, outputPath, progressPrinter::print);
+            DecompressionStats result = codec.decompress(inputPath, outputPath, progressPrinter::print);
             progressPrinter.finish();
             printDecompressionResult(out, inputPath, outputPath, result);
             return 0;
@@ -142,7 +142,7 @@ public final class CLI {
     private static void printCompressionResult(PrintStream out,
                                                Path inputPath,
                                                Path outputPath,
-                                               CompressionResult result) {
+                                               CompressionStats result) {
         out.printf("Compressed %s -> %s%n", inputPath, outputPath);
         out.printf("Mode: %s%n", result.mode());
         out.printf("Queue: %s%n", result.priorityQueueStrategy());
@@ -158,7 +158,7 @@ public final class CLI {
     private static void printDecompressionResult(PrintStream out,
                                                   Path inputPath,
                                                   Path outputPath,
-                                                  DecompressionResult result) {
+                                                  DecompressionStats result) {
         out.printf("Decompressed %s -> %s%n", inputPath, outputPath);
         out.printf("Mode: %s%n", result.mode());
         out.printf("Archive size: %d bytes%n", result.archiveSize());

@@ -18,7 +18,7 @@ import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
  * @param elapsedMillis wall-clock compression time in milliseconds
  * @param treeBuildMillis cumulative time spent building Huffman trees in milliseconds
  */
-public record CompressionResult(
+public record CompressionStats(
     CompressionMode mode,
     PriorityQueueStrategy priorityQueueStrategy,
     long originalSize,

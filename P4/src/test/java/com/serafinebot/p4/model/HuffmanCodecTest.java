@@ -14,8 +14,8 @@ import com.serafinebot.p4.model.progress.ProgressPhase;
 import com.serafinebot.p4.model.progress.ProgressSnapshot;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
 import com.serafinebot.p4.model.report.CompressionReport;
-import com.serafinebot.p4.model.report.CompressionResult;
-import com.serafinebot.p4.model.report.DecompressionResult;
+import com.serafinebot.p4.model.report.CompressionStats;
+import com.serafinebot.p4.model.report.DecompressionStats;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -50,8 +50,8 @@ class HuffmanCodecTest {
         RoundTrip roundTrip = roundTrip("empty", new byte[0]);
         byte[] archive = Files.readAllBytes(roundTrip.archivePath);
 
-        assertEquals(CompressionMode.STORED, roundTrip.compressionResult.mode());
-        assertEquals(0L, roundTrip.compressionResult.originalSize());
+        assertEquals(CompressionMode.STORED, roundTrip.compressionStats.mode());
+        assertEquals(0L, roundTrip.compressionStats.originalSize());
         assertEquals(13, archive.length);
         assertEquals(CompressionMode.STORED.id(), archive[4]);
         assertArrayEquals(new byte[0], Files.readAllBytes(roundTrip.restoredPath));
@@ -65,10 +65,10 @@ class HuffmanCodecTest {
         RoundTrip roundTrip = roundTrip("repeated", data);
         byte[] archive = Files.readAllBytes(roundTrip.archivePath);
 
-        assertEquals(CompressionMode.HUFFMAN_1_BYTE, roundTrip.compressionResult.mode());
-        assertEquals(1, roundTrip.compressionResult.distinctSymbolCount());
-        assertEquals(0.0, roundTrip.compressionResult.entropy(), 1.0e-9);
-        assertEquals(0.0, roundTrip.compressionResult.averageHuffmanCodeLength(), 1.0e-9);
+        assertEquals(CompressionMode.HUFFMAN_1_BYTE, roundTrip.compressionStats.mode());
+        assertEquals(1, roundTrip.compressionStats.distinctSymbolCount());
+        assertEquals(0.0, roundTrip.compressionStats.entropy(), 1.0e-9);
+        assertEquals(0.0, roundTrip.compressionStats.averageHuffmanCodeLength(), 1.0e-9);
         assertEquals(CompressionMode.HUFFMAN_1_BYTE.id(), archive[4]);
     }
 
@@ -81,7 +81,7 @@ class HuffmanCodecTest {
 
         RoundTrip roundTrip = roundTrip("all-bytes", data);
 
-        assertTrue(roundTrip.compressionResult.distinctSymbolCount() >= 128);
+        assertTrue(roundTrip.compressionStats.distinctSymbolCount() >= 128);
     }
 
     @Test
@@ -91,9 +91,9 @@ class HuffmanCodecTest {
 
         RoundTrip roundTrip = roundTrip("text", data);
 
-        assertNotNull(roundTrip.compressionResult.mode());
-        assertTrue(roundTrip.compressionResult.averageHuffmanCodeLength() >= roundTrip.compressionResult.entropy());
-        assertTrue(roundTrip.compressionResult.averageHuffmanCodeLength() < roundTrip.compressionResult.entropy() + 1.0);
+        assertNotNull(roundTrip.compressionStats.mode());
+        assertTrue(roundTrip.compressionStats.averageHuffmanCodeLength() >= roundTrip.compressionStats.entropy());
+        assertTrue(roundTrip.compressionStats.averageHuffmanCodeLength() < roundTrip.compressionStats.entropy() + 1.0);
     }
 
     @Test
@@ -202,7 +202,7 @@ class HuffmanCodecTest {
         Path inputPath = writeInput("two-byte-strategy", data);
         Path archivePath = tempDir.resolve("two-byte-strategy.hff");
 
-        CompressionResult result = codec.compress(inputPath, archivePath);
+        CompressionStats result = codec.compress(inputPath, archivePath);
 
         assertEquals(CompressionMode.HUFFMAN_2_BYTE, result.mode());
     }
@@ -234,11 +234,11 @@ class HuffmanCodecTest {
         Path archivePath = tempDir.resolve("two-byte-block.hff");
         Path restoredPath = tempDir.resolve("two-byte-block-restored.bin");
 
-        CompressionResult compressionResult = blockCodec.compress(inputPath, archivePath);
-        DecompressionResult decompressionResult = blockCodec.decompress(archivePath, restoredPath);
+        CompressionStats compressionStats = blockCodec.compress(inputPath, archivePath);
+        DecompressionStats decompressionStats = blockCodec.decompress(archivePath, restoredPath);
 
-        assertEquals(CompressionMode.HUFFMAN_BLOCK, compressionResult.mode());
-        assertEquals(CompressionMode.HUFFMAN_BLOCK, decompressionResult.mode());
+        assertEquals(CompressionMode.HUFFMAN_BLOCK, compressionStats.mode());
+        assertEquals(CompressionMode.HUFFMAN_BLOCK, decompressionStats.mode());
         assertArrayEquals(data, Files.readAllBytes(restoredPath));
     }
 
@@ -266,7 +266,7 @@ class HuffmanCodecTest {
         Path inputPath = writeInput("block-strategy", data);
         Path archivePath = tempDir.resolve("block-strategy.hff");
 
-        CompressionResult result = codec.compress(inputPath, archivePath);
+        CompressionStats result = codec.compress(inputPath, archivePath);
 
         assertEquals(CompressionMode.HUFFMAN_BLOCK, result.mode());
     }
@@ -288,8 +288,8 @@ class HuffmanCodecTest {
         byte[] data = {0, 1, 2, 3, 4, 5};
         RoundTrip roundTrip = roundTrip("stored", data);
 
-        assertEquals(CompressionMode.STORED, roundTrip.compressionResult.mode());
-        assertEquals(data.length + 13L, roundTrip.compressionResult.archiveSize());
+        assertEquals(CompressionMode.STORED, roundTrip.compressionStats.mode());
+        assertEquals(data.length + 13L, roundTrip.compressionStats.archiveSize());
     }
 
     @Test
@@ -375,7 +375,7 @@ class HuffmanCodecTest {
         }
 
         RoundTrip roundTrip = roundTrip("truncated-huffman", data);
-        assertTrue(roundTrip.compressionResult.mode() != CompressionMode.STORED);
+        assertTrue(roundTrip.compressionStats.mode() != CompressionMode.STORED);
 
         byte[] archive = Files.readAllBytes(roundTrip.archivePath);
         Path truncatedArchive = tempDir.resolve("truncated-huffman-copy.hff");
@@ -406,14 +406,14 @@ class HuffmanCodecTest {
         Path archivePath = tempDir.resolve(baseName + ".hff");
         Path restoredPath = tempDir.resolve(baseName + "-restored.bin");
 
-        CompressionResult compressionResult = codec.compress(inputPath, archivePath);
-        DecompressionResult decompressionResult = codec.decompress(archivePath, restoredPath);
+        CompressionStats compressionStats = codec.compress(inputPath, archivePath);
+        DecompressionStats decompressionStats = codec.decompress(archivePath, restoredPath);
 
-        assertEquals(compressionResult.mode(), decompressionResult.mode());
-        assertEquals(data.length, decompressionResult.restoredSize());
+        assertEquals(compressionStats.mode(), decompressionStats.mode());
+        assertEquals(data.length, decompressionStats.restoredSize());
         assertArrayEquals(data, Files.readAllBytes(restoredPath));
 
-        return new RoundTrip(inputPath, archivePath, restoredPath, compressionResult, decompressionResult);
+        return new RoundTrip(inputPath, archivePath, restoredPath, compressionStats, decompressionStats);
     }
 
     private Path writeInput(String fileName, byte[] data) throws IOException {
@@ -436,8 +436,8 @@ class HuffmanCodecTest {
         Path inputPath,
         Path archivePath,
         Path restoredPath,
-        CompressionResult compressionResult,
-        DecompressionResult decompressionResult
+        CompressionStats compressionStats,
+        DecompressionStats decompressionStats
     ) {
     }
 }

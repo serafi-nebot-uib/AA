@@ -3,8 +3,8 @@ package com.serafinebot.p4.model.benchmark;
 import com.serafinebot.p4.model.archive.CompressionMode;
 import com.serafinebot.p4.model.codec.HuffmanCodec;
 import com.serafinebot.p4.model.queue.PriorityQueueStrategy;
-import com.serafinebot.p4.model.report.CompressionResult;
-import com.serafinebot.p4.model.report.DecompressionResult;
+import com.serafinebot.p4.model.report.CompressionStats;
+import com.serafinebot.p4.model.report.DecompressionStats;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -54,19 +54,19 @@ public final class BenchmarkService {
 
                         HuffmanCodec codec = new HuffmanCodec(strategy);
 
-                        CompressionResult compressionResult = codec.compress(input.path(), archivePath);
-                        totalCompressionTreeBuildMillis += compressionResult.treeBuildMillis();
+                        CompressionStats compressionStats = codec.compress(input.path(), archivePath);
+                        totalCompressionTreeBuildMillis += compressionStats.treeBuildMillis();
 
-                        DecompressionResult decompressionResult = codec.decompress(archivePath, restoredPath);
-                        totalDecompressionTreeBuildMillis += decompressionResult.treeBuildMillis();
+                        DecompressionStats decompressionStats = codec.decompress(archivePath, restoredPath);
+                        totalDecompressionTreeBuildMillis += decompressionStats.treeBuildMillis();
 
                         if (Files.mismatch(input.path(), restoredPath) != -1L) {
                             throw new IOException("El benchmark ha produït una descompressio incorrecta per al fitxer " + input.sourceName() + '.');
                         }
 
-                        totalEntropy += compressionResult.entropy();
-                        totalAverageCodeLength += compressionResult.averageHuffmanCodeLength();
-                        totalCompressionPercentage += compressionResult.compressionPercentage();
+                        totalEntropy += compressionStats.entropy();
+                        totalAverageCodeLength += compressionStats.averageHuffmanCodeLength();
+                        totalCompressionPercentage += compressionStats.compressionPercentage();
 
                         completedSteps++;
                         reportProgress(progressListener, completedSteps, totalSteps, input.sourceName(), strategy, input.sizeBytes());
@@ -117,14 +117,14 @@ public final class BenchmarkService {
                 HuffmanCodec codec = new HuffmanCodec(PriorityQueueStrategy.BINARY_HEAP, mode);
 
                 long startCompression = System.nanoTime();
-                CompressionResult compressionResult = codec.compress(input.path(), archivePath);
+                CompressionStats compressionStats = codec.compress(input.path(), archivePath);
                 totalCompressionMillis += nanosToMillis(System.nanoTime() - startCompression);
 
                 long startDecompression = System.nanoTime();
                 codec.decompress(archivePath, restoredPath);
                 totalDecompressionMillis += nanosToMillis(System.nanoTime() - startDecompression);
 
-                totalCompressionPercentage += compressionResult.compressionPercentage();
+                totalCompressionPercentage += compressionStats.compressionPercentage();
                 Files.deleteIfExists(archivePath);
                 Files.deleteIfExists(restoredPath);
             }

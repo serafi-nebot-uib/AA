@@ -11,7 +11,7 @@ import com.serafinebot.p4.model.archive.CompressionMode;
  * @param elapsedMillis wall-clock decompression time in milliseconds
  * @param treeBuildMillis cumulative time spent building Huffman trees in milliseconds
  */
-public record DecompressionResult(
+public record DecompressionStats(
     CompressionMode mode,
     long archiveSize,
     long restoredSize,

@@ -37,7 +37,7 @@ final class HuffmanArchiveWriter {
         }
     }
 
-    static void writeByte(Path inputPath, Path outputPath, BytePlan plan, ProgressListener listener) throws IOException {
+    static void writeByte(Path inputPath, Path outputPath, WholePlan plan, ProgressListener listener) throws IOException {
         try (OutputStream rawOutput = new BufferedOutputStream(Files.newOutputStream(outputPath), BUFFER_SIZE);
              DataOutputStream output = new DataOutputStream(rawOutput)) {
             plan.header().write(output);
@@ -49,7 +49,7 @@ final class HuffmanArchiveWriter {
         }
     }
 
-    static void writeWord(Path inputPath, Path outputPath, WordPlan plan, ProgressListener listener) throws IOException {
+    static void writeWord(Path inputPath, Path outputPath, WholePlan plan, ProgressListener listener) throws IOException {
         try (OutputStream rawOutput = new BufferedOutputStream(Files.newOutputStream(outputPath), BUFFER_SIZE);
              DataOutputStream output = new DataOutputStream(rawOutput)) {
             plan.header().write(output);

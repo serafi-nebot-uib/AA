@@ -105,6 +105,34 @@ public final class FrequencyTable {
     }
 
     /**
+     * Computes how many encoded bits this distribution would use with the provided Huffman leaves.
+     *
+     * <p>The Huffman tree assigns a depth to each leaf. Multiplying each symbol frequency by its
+     * leaf depth gives the exact number of payload bits before the final byte is padded.</p>
+     */
+    public long encodedBitCount(HuffmanCode[] leaves) {
+        long bitCount = 0L;
+        for (int symbol = 0; symbol < frequencies.length; symbol++) {
+            long frequency = frequencies[symbol];
+            if (frequency == 0L) {
+                continue;
+            }
+            bitCount += frequency * leaves[symbol].depth();
+        }
+        return bitCount;
+    }
+
+    /**
+     * Returns the mean Huffman code length for the symbols counted in this table.
+     */
+    public double averageCodeLength(long encodedBitCount) {
+        if (totalCount == 0L) {
+            return 0.0;
+        }
+        return encodedBitCount / (double) totalCount;
+    }
+
+    /**
      * Builds a frequency table from an already-known array of counts.
      *
      * <p>Archive headers store sparse frequency entries. During decompression those entries are

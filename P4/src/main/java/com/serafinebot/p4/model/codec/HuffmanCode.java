@@ -26,8 +26,6 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
     private final HuffmanCode max;
     private int depth;
     private HuffmanCode parent;
-    private byte order; // 0: self is min node of parent
-                        // 1: self is max node of parent
     private byte[] code;
     private boolean metadataInitialized;
 
@@ -38,7 +36,6 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
         this.symbol = symbol;
         this.frequency = frequency;
         this.depth = 0;
-        this.order = 0;
         this.parent = null;
         this.min = null;
         this.max = null;
@@ -55,18 +52,15 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
         this.symbol = symbol;
         this.frequency = frequency;
         this.depth = 0;
-        this.order = 0;
         this.parent = null;
         this.code = null;
         this.metadataInitialized = false;
 
         this.min = min;
         this.min.parent = this;
-        this.min.order = 0;
 
         this.max = max;
         this.max.parent = this;
-        this.max.order = 1;
     }
 
     /**
@@ -180,6 +174,16 @@ public final class HuffmanCode implements Comparable<HuffmanCode> {
             if (curr.max != null) queue.add(curr.max);
         }
         return codesBySymbol;
+    }
+
+    /**
+     * Returns a symbol lookup table for a nullable Huffman tree root.
+     *
+     * <p>Empty inputs do not have a Huffman root. Keeping that case here lets analyzers and readers
+     * ask for a lookup table without duplicating the same null check around the codec package.</p>
+     */
+    public static HuffmanCode[] lookupBySymbol(HuffmanCode root, int symbolSpaceSize) {
+        return root == null ? new HuffmanCode[symbolSpaceSize] : root.lookupBySymbol(symbolSpaceSize);
     }
 
     /**

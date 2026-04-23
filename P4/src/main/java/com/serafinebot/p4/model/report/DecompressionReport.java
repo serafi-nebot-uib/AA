@@ -12,7 +12,7 @@ import java.util.List;
  * @param blocks per-block reports (populated for block-mode archives, empty otherwise)
  */
 public record DecompressionReport(
-    DecompressionResult result,
+    DecompressionStats result,
     List<HuffmanSymbolInfo> symbols,
     HuffmanTreeNodeInfo tree,
     List<BlockReport> blocks
@@ -22,7 +22,7 @@ public record DecompressionReport(
         blocks = List.copyOf(blocks);
     }
 
-    public DecompressionReport(DecompressionResult result, List<HuffmanSymbolInfo> symbols, HuffmanTreeNodeInfo tree) {
+    public DecompressionReport(DecompressionStats result, List<HuffmanSymbolInfo> symbols, HuffmanTreeNodeInfo tree) {
         this(result, symbols, tree, List.of());
     }
 }
