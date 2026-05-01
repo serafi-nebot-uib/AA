@@ -159,10 +159,7 @@ class HuffmanCodecTest {
                 PriorityQueueStrategy.BINARY_HEAP,
                 128L,
                 1.25,
-                0.75,
-                3.5,
-                4.0,
-                12.5
+                0.75
             )),
             List.of(new CompressionModeBenchmarkPoint(
                 "sample.txt",

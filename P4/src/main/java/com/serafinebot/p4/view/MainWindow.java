@@ -37,7 +37,9 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.table.DefaultTableModel;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableRowSorter;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -50,6 +52,7 @@ import java.awt.Insets;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.text.DecimalFormat;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -69,13 +72,9 @@ public class MainWindow extends JFrame {
     private final JComboBox<CompressionMode> modeCombo = new JComboBox<>();
     private final JTextArea statsArea = new JTextArea();
     private final JTextArea filesHintArea = new JTextArea();
-    private final DefaultTableModel symbolTableModel = new DefaultTableModel(new Object[] {"Simbol", "Hex", "Freq", "Probabilitat", "Codi"}, 0) {
-        @Override
-        public boolean isCellEditable(int row, int column) {
-            return false;
-        }
-    };
+    private final SymbolTableModel symbolTableModel = new SymbolTableModel();
     private final JTable symbolTable = new JTable(symbolTableModel);
+    private final TableRowSorter<SymbolTableModel> symbolTableSorter = new TableRowSorter<>(symbolTableModel);
     private final HuffmanTreePanel treePanel = new HuffmanTreePanel();
     private final BlockListPanel blockListPanel = new BlockListPanel();
     private final BlockListPanel codeBlockListPanel = new BlockListPanel();
@@ -266,7 +265,7 @@ public class MainWindow extends JFrame {
 
     public void clearResults() {
         statsArea.setText("Encara no s'ha executat cap operacio. Fes doble clic damunt un fitxer de l'explorador per carregar-lo a la ruta d'entrada. La ruta de sortida es deriva automaticament de l'entrada, pero la pots editar manualment despres.");
-        symbolTableModel.setRowCount(0);
+        symbolTableModel.clear();
         treePanel.setTree(null, "No hi ha cap arbre de Huffman disponible.");
         blockListPanel.clear();
         blockListPanel.setVisible(false);
@@ -330,7 +329,12 @@ public class MainWindow extends JFrame {
     private void configureTables() {
         symbolTable.setFillsViewportHeight(true);
         symbolTable.setRowHeight(24);
+        symbolTableSorter.setComparator(0, Comparator.comparingInt(SymbolCell::sortValue));
+        symbolTableSorter.setComparator(1, Comparator.comparingInt(SymbolCell::sortValue));
+        symbolTableSorter.setComparator(4, Comparator.comparingInt(String::length).thenComparing(Comparator.naturalOrder()));
+        symbolTable.setRowSorter(symbolTableSorter);
         symbolTable.getTableHeader().setReorderingAllowed(false);
+        symbolTable.getColumnModel().getColumn(3).setCellRenderer(new ProbabilityRenderer());
     }
 
     private void installInputAutoSync() {
@@ -651,16 +655,18 @@ public class MainWindow extends JFrame {
     }
 
     private void populateSymbols(List<HuffmanSymbolInfo> symbols, boolean wordMode) {
-        symbolTableModel.setRowCount(0);
+        SymbolRow[] rows = new SymbolRow[symbols.size()];
+        int row = 0;
         for (HuffmanSymbolInfo symbol : symbols) {
-            symbolTableModel.addRow(new Object[] {
-                formatSymbol(symbol.symbol(), wordMode),
-                formatHex(symbol.symbol(), wordMode),
+            rows[row++] = new SymbolRow(
+                new SymbolCell(formatSymbol(symbol.symbol(), wordMode), symbol.symbol()),
+                new SymbolCell(formatHex(symbol.symbol(), wordMode), symbol.symbol()),
                 symbol.frequency(),
-                formatProbability(symbol.probability()),
+                symbol.probability(),
                 symbol.code().isEmpty() ? "<buit>" : symbol.code()
-            });
+            );
         }
+        symbolTableModel.setRows(rows);
     }
 
     private String formatPhase(ProgressSnapshot snapshot) {
@@ -712,6 +718,86 @@ public class MainWindow extends JFrame {
             return String.format("0x%02X", symbol);
         }
         return String.format("0x%04X", symbol);
+    }
+
+    private final class ProbabilityRenderer extends DefaultTableCellRenderer {
+
+        @Override
+        protected void setValue(Object value) {
+            if (value instanceof Double probability) {
+                setText(formatProbability(probability));
+            } else {
+                super.setValue(value);
+            }
+        }
+    }
+
+    private record SymbolCell(String text, int sortValue) {
+        @Override
+        public String toString() {
+            return text;
+        }
+    }
+
+    private record SymbolRow(SymbolCell symbol, SymbolCell hex, long frequency, double probability, String code) {
+    }
+
+    private static final class SymbolTableModel extends AbstractTableModel {
+        private static final String[] COLUMNS = {"Simbol", "Hex", "Freq", "Probabilitat", "Codi"};
+
+        private SymbolRow[] rows = new SymbolRow[0];
+
+        void setRows(SymbolRow[] rows) {
+            this.rows = rows.clone();
+            fireTableDataChanged();
+        }
+
+        void clear() {
+            setRows(new SymbolRow[0]);
+        }
+
+        @Override
+        public int getRowCount() {
+            return rows.length;
+        }
+
+        @Override
+        public int getColumnCount() {
+            return COLUMNS.length;
+        }
+
+        @Override
+        public String getColumnName(int column) {
+            return COLUMNS[column];
+        }
+
+        @Override
+        public Class<?> getColumnClass(int columnIndex) {
+            return switch (columnIndex) {
+                case 0, 1 -> SymbolCell.class;
+                case 2 -> Long.class;
+                case 3 -> Double.class;
+                default -> String.class;
+            };
+        }
+
+        @Override
+        public Object getValueAt(int rowIndex, int columnIndex) {
+            SymbolRow row = rows[rowIndex];
+            return switch (columnIndex) {
+                case 0 -> row.symbol();
+                case 1 -> row.hex();
+                case 2 -> row.frequency();
+                case 3 -> row.probability();
+                case 4 -> row.code();
+                default -> throw new IllegalArgumentException("Columna de taula de codis no valida: " + columnIndex);
+            };
+        }
+
+        @Override
+        public boolean isCellEditable(int rowIndex, int columnIndex) {
+            return false;
+        }
     }
 
 }

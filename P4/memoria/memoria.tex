@@ -1,0 +1,1212 @@
+\documentclass[conference,compsoc]{IEEEtran}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{array}
+\usepackage[caption=false,font=footnotesize,labelfont=sf,textfont=sf]{subfig}
+\usepackage{textcomp}
+\usepackage{stfloats}
+\usepackage{url}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage[nocompress]{cite}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[catalan]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{cuted}
+\usepackage{wrapfig}
+\usepackage{multirow}
+\usepackage{microtype}
+\usepackage{siunitx}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\graphicspath{{./}}
+
+\renewcommand{\abstractname}{Resum}
+\renewcommand{\IEEEkeywordsname}{Termes d'índex}
+
+\makeatletter
+\def\abstract{\normalfont\@IEEEtweakunitybaselinestretch{1.15}%
+    \if@twocolumn
+      \@IEEEabskeysecsize\noindent\textbf{\textit{\abstractname}}---\normalfont\@IEEEabskeysecsize\relax
+    \else
+      \bgroup\par\addvspace{0.5\baselineskip}\centering\vspace{-1.78ex}\@IEEEabskeysecsize\textbf{\abstractname}\par\addvspace{0.5\baselineskip}\egroup\quotation\normalfont\@IEEEabskeysecsize%
+    \fi\@IEEEgobbleleadPARNLSP}
+\def\IEEEkeywords{\normalfont\@IEEEtweakunitybaselinestretch{1.15}%
+    \if@twocolumn
+      \@IEEEabskeysecsize\vskip 0.5\baselineskip plus 0.25\baselineskip minus 0.25\baselineskip\noindent
+      \textbf{\textit{\IEEEkeywordsname}}---\normalfont\@IEEEabskeysecsize\relax
+    \else
+      \bgroup\par\addvspace{0.5\baselineskip}\centering\@IEEEabskeysecsize\textbf{\IEEEkeywordsname}\par\addvspace{0.5\baselineskip}\egroup\quotation\normalfont\@IEEEabskeysecsize%
+    \fi\@IEEEgobbleleadPARNLSP}
+\makeatother
+
+\lstset{
+    language=Java,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{gray}\itshape,
+    stringstyle=\color{red!70!black},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    numbersep=5pt,
+    frame=single,
+    breaklines=true,
+    showstringspaces=false,
+    tabsize=4,
+    captionpos=b
+}
+
+\newcommand{\suggestedfigure}[3]{
+\begin{figure}[H]
+    \centering
+    \fbox{
+        \begin{minipage}{0.9\linewidth}
+            \vspace{0.35cm}
+            \centering
+            \textbf{Imatge pendent}\\[0.2cm]
+            \footnotesize #3
+            \vspace{0.35cm}
+        \end{minipage}
+    }
+    \caption{#2}
+    \label{#1}
+\end{figure}
+}
+
+\hyphenation{Huff-man com-pres-sio des-com-pres-sio fre-quen-ci-es}
+
+\begin{document}
+
+\title{Compressió Huffman amb Modes Adaptatius\\ Pràctica 4}
+
+\author{\IEEEauthorblockN{Serafí Nebot Ginard}
+\IEEEauthorblockA{Universitat de les Illes Balears (UIB)\\
+Grau en Enginyeria Informàtica\\
+Algorismes Avançats, Curs 2025--2026}}
+
+\maketitle
+
+\begin{strip}
+\begin{abstract}
+Aquesta memòria descriu el disseny i la implementació d'una aplicació Java
+per comprimir i descomprimir fitxers mitjançant codificació de Huffman.
+El programa analitza la distribució de freqüències del fitxer, construeix
+arbres de Huffman amb diferents estructures de cua de prioritat i tria
+automàticament entre modes d'1 byte, 2 bytes i compressió per blocs. La
+interfície gràfica permet seleccionar fitxers, visualitzar l'arbre generat,
+consultar la taula de codis i executar comparatives de rendiment. També
+s'ha implementat una CLI que reutilitza el mateix model que la GUI, de
+manera que els benchmarks són reproduïbles sense interacció manual. Es
+presenten proves unitàries centrades en round-trip, robustesa del format,
+correcció de cues i funcionament del benchmark, i un anàlisi
+experimental sobre els fitxers de Silesia.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Huffman, compressió sense pèrdues, entropia, cua de prioritat, MVC,
+Java Swing, benchmark, Silesia
+\end{IEEEkeywords}
+\end{strip}
+
+\IEEEpeerreviewmaketitle
+
+%% ================================================================
+\section{Introducció}
+
+La codificació de Huffman és una tècnica de compressió sense pèrdues:
+el fitxer descomprimit ha de ser exactament igual que l'original. La idea
+principal és senzilla: els símbols que apareixen més sovint reben codis
+més curts, i els símbols menys freqüents reben codis més llargs. Aquests
+codis formen un codi prefix, és a dir, cap codi complet és prefix d'un
+altre; per això la descompressió pot llegir el flux de bits sense
+separadors explícits entre símbols \cite{ref_gfg_huffman}.
+
+L'objectiu de la pràctica no és només implementar Huffman, sinó construir
+una aplicació completa al seu voltant. El programa ha de poder comprimir
+fitxers de text o binaris, guardar un arxiu propi que es pugui
+descomprimir en una execució futura, mostrar l'arbre i la taula de codis,
+donar estadístiques de compressió i mesurar rendiment. A més, s'han
+comparat diferents estructures de cua de prioritat, perquè la construcció
+de l'arbre depèn directament d'extreure repetidament els dos nodes de
+menor freqüència.
+
+Una decisió important d'aquesta implementació és que la compressió no
+produeix cap fitxer si l'arxiu resultant seria més gran que l'original.
+Això fa que alguns fitxers petits o molt aleatoris fallin de forma
+controlada: és preferible informar l'usuari que generar un resultat que
+va en contra del propòsit del propi programa.
+
+%% ================================================================
+\section{Fonaments}
+
+\subsection{Freqüències, Entropia i Codis}
+
+Abans de comprimir, el programa compta quantes vegades apareix cada
+símbol. Un símbol pot ser un byte individual o una parella de bytes,
+segons el mode que s'estigui analitzant. Aquesta taula de freqüències és
+la base de tot el procés: defineix quins símbols mereixen codis curts i
+quins poden tenir codis més llargs.
+
+L'entropia de Shannon dóna una estimació del nombre mínim de bits per
+símbol que es podria esperar per a una distribució concreta:
+\[
+H = -\sum_i p_i \log_2(p_i)
+\]
+on $p_i$ és la probabilitat del símbol $i$. En aquesta pràctica s'utilitza
+com a valor de referència i com a estimació ràpida en la selecció de mida
+de bloc. No es modifica l'arbre directament amb l'entropia; l'arbre es
+construeix amb l'algorisme de Huffman clàssic. La diferència és que el
+programa calcula diversos plans possibles i selecciona el que promet una
+mida final més petita.
+
+La longitud mitjana del codi es calcula com:
+\[
+L = \frac{\text{bits totals codificats}}{\text{nombre de símbols}}
+\]
+Per als modes de 2 bytes, el símbol és una parella de bytes. Per això
+els valors d'entropia i longitud mitjana s'han d'interpretar sempre dins
+del mateix tipus de símbol; no és equivalent comparar directament
+``bits per byte'' i ``bits per parella''.
+
+\subsection{Construcció de l'Arbre de Huffman}
+
+L'arbre es construeix de baix cap amunt. Primer es crea una fulla per a
+cada símbol amb freqüència major a 0. Després es repeteix el mateix pas
+fins que només queda un node: extreure els dos nodes de menor freqüència,
+unir-los en un node intern i tornar-lo a inserir a la cua de prioritat.
+El node final és l'arrel de l'arbre \cite{ref_wikipedia_huffman}.
+
+Un detall pràctic important és el desempat. Quan dos símbols tenen la
+mateixa freqüència, hi pot haver diversos arbres òptims. La implementació
+ordena també pel símbol mínim de cada subarbre. Això no millora la mida
+de compressió, però fa que totes les estructures de cua generin el mateix
+arxiu, cosa essencial per provar que les cues són equivalents.
+
+\subsection{Diversos Modes de Compressió}
+
+El fitxer es pot mirar amb diferents ``ulleres''. En mode d'1 byte, cada
+valor entre 0 i 255 és un símbol. En mode de 2 bytes, cada parella
+consecutiva és un símbol entre 0 i 65535. Si el fitxer conté patrons
+repetits de dos bytes, aquest segon mode pot ser clarament millor.
+
+També hi ha un mode per blocs. Un sol arbre global pot ser dolent quan
+el fitxer canvia de comportament al llarg del temps. Per exemple, una
+part pot estar dominada per un byte i una altra per un altre. El mode per
+blocs divideix el fitxer i pren una decisió local per a cada bloc:
+Huffman d'1 byte, Huffman de 2 bytes o bloc emmagatzemat sense comprimir.
+El mode \texttt{STORED} només s'utilitza en aquest últim cas, com a
+fallback local. No s'ofereix com a compressió de fitxer sencer perquè
+només afegiria capçalera i faria créixer l'arxiu.
+
+%% ================================================================
+\section{Descripció de l'Aplicació}
+
+L'aplicació té dues entrades: una interfície gràfica Swing i una línia
+de comandes. Les dues reutilitzen les mateixes classes del model, de
+manera que comprimir des de la GUI o des de la CLI executa el mateix
+procés intern.
+
+\subsection{Interfície Gràfica}
+
+La finestra principal està organitzada en quatre pestanyes.
+
+\begin{itemize}
+    \item \textbf{Fitxers:} explorador integrat, ruta d'entrada, ruta de
+          sortida, selector de cua de prioritat, selector de mode i resum
+          d'estadístiques.
+    \item \textbf{Taula de codis:} llista els símbols, valor hexadecimal,
+          freqüència, probabilitat i codi assignat. Les columnes són
+          ordenables, i les freqüències/probabilitats s'ordenen
+          numèricament.
+    \item \textbf{Arbre:} visualització de l'arbre de Huffman amb zoom i
+          desplaçament. En mode per blocs es pot seleccionar quin bloc es
+          vol inspeccionar.
+    \item \textbf{Comparatives:} executa benchmarks sobre un directori de
+          fitxers i mostra gràfiques de temps i taxa de compressió.
+\end{itemize}
+
+Durant la compressió o descompressió, la barra inferior mostra la fase
+actual, el percentatge, els bytes processats i una estimació del temps
+restant. Les operacions llargues s'executen amb \texttt{SwingWorker} per
+no bloquejar la interfície.
+
+\suggestedfigure{fig:gui}{Vista principal de l'aplicació.}
+{Captura suggerida: pestanya ``Fitxers'' amb un fitxer de Silesia seleccionat,
+estadístiques visibles i barra de progrés després d'una compressió.}
+
+\subsection{CLI}
+
+La CLI exposa tres ordres:
+
+\begin{itemize}
+    \item \texttt{compress <input> <output>}
+    \item \texttt{decompress <input> <output>}
+    \item \texttt{benchmark <inputDir> <repetitions> <outputCsv>}
+\end{itemize}
+
+La tercera ordre és la que s'ha usat per a les mesures de la
+Secció~\ref{sec:resultats}. La sortida CSV permet repetir proves, filtrar
+resultats i actualitzar taules sense dependre d'una sessió manual de GUI.
+
+\subsection{Ús Habitual}
+
+El flux normal d'ús és el següent. L'usuari selecciona un fitxer des de
+l'explorador integrat o escriu la ruta manualment. Si el fitxer no acaba
+en \texttt{.hff}, la vista prepara automàticament una ruta de sortida
+afegint aquesta extensió i el botó principal queda en mode compressió. Si
+el fitxer d'entrada ja és un arxiu \texttt{.hff}, la vista canvia el botó
+a mode extracció i proposa com a sortida el nom sense l'extensió.
+
+Abans de comprimir, l'usuari pot triar la cua de prioritat i el mode de
+compressió; per defecte s'utilitza heap binari i mode automàtic.
+La resta d'opcions existeixen per experimentar i per poder
+comparar estructures, no perquè sempre siguin millors.
+
+Quan acaba l'operació, la pestanya de fitxers mostra les estadístiques
+principals: mode efectiu, cua emprada, mida original, mida final,
+metadades, càrrega, entropia, longitud mitjana i temps. Si el resultat és
+per blocs, també mostra quants blocs han acabat en 1 byte, 2 bytes o
+emmagatzemats. Les altres pestanyes permeten entrar en el detall: taula de
+codis, arbre i blocs individuals.
+
+%% ================================================================
+\section{Disseny i Implementació}
+
+\subsection{Flux de Compressió i Descompressió}
+
+Els dos fluxos principals segueixen la mateixa idea: una seqüència de
+passes petites on cada fase prepara la informació que necessita la
+següent.
+
+\textbf{Compressió}
+
+\begin{enumerate}
+    \item Comptar freqüències i construir plans candidats.
+    \item Estimar la mida final de cada candidat, incloent capçalera,
+          taula de freqüències i bits de càrrega.
+    \item Seleccionar el mode demanat o, en \texttt{AUTO}, el més petit.
+    \item Rebutjar la compressió si la mida estimada supera l'original.
+    \item Escriure l'arxiu.
+    \item Comprovar la mida real i eliminar la sortida si finalment és
+          més gran que l'original.
+\end{enumerate}
+
+\textbf{Descompressió}
+
+\begin{enumerate}
+    \item Llegir la capçalera de l'arxiu \texttt{.hff}.
+    \item Validar el format: identificador, mode, mida original i
+          freqüències.
+    \item Reconstruir la taula de freqüències i el mateix arbre de
+          Huffman.
+    \item Llegir les dades comprimides bit a bit i caminar per l'arbre
+          fins arribar a fulles.
+    \item Escriure els símbols originals fins arribar exactament a la
+          mida original.
+    \item Rebutjar l'arxiu si falta informació, sobren dades obligatòries
+          o les mides reconstruïdes no quadren.
+\end{enumerate}
+
+La descompressió no reutilitza cap estat de la compressió anterior. Això
+és important per al requisit de poder comprimir un dia i descomprimir un
+altre: l'arxiu conté la capçalera, les freqüències i les metadades
+necessàries per reconstruir l'arbre. Com que la construcció és
+determinista, l'arbre reconstruït és equivalent al que es va usar durant
+la compressió. En mode \texttt{HUFFMAN\_BLOCK}, el lector repeteix aquest
+procés per a cada bloc: primer llegeix la mida i el mode local del bloc,
+i després descodifica els bits d'aquell bloc amb l'arbre corresponent, o
+copia les dades si el bloc és \texttt{STORED}. La mida original guardada
+a la capçalera també indica quan s'ha d'aturar la lectura.
+
+Els casos amb un únic símbol es tracten de forma especial. Si només hi ha
+un símbol possible, no fa falta escriure cap bit de càrrega: la freqüència
+ja diu quantes vegades s'ha de repetir aquell símbol.
+
+\suggestedfigure{fig:pipeline}{Flux intern de compressió i descompressió.}
+{Diagrama suggerit: entrada $\rightarrow$ anàlisi de freqüències
+$\rightarrow$ plans candidats $\rightarrow$ selector $\rightarrow$ writer;
+per a la descompressió, reader $\rightarrow$ reconstrucció d'arbre
+$\rightarrow$ sortida restaurada.}
+
+\subsection{Modes de Compressió}
+
+La Taula~\ref{tab:modes} resumeix els modes disponibles.
+Més endavant s'expliquen més detalladament. 
+
+\begin{table}[H]
+\centering
+\caption{Modes de compressió implementats.}
+\label{tab:modes}
+\footnotesize
+\begin{tabular}{@{}p{0.43\linewidth}p{0.47\linewidth}@{}}
+\toprule
+\textbf{Mode} & \textbf{Ús} \\
+\midrule
+\texttt{AUTO} & Analitza tots els modes Huffman i tria l'arxiu estimat més petit. \\
+\texttt{HUFFMAN\_1\_BYTE} & Un arbre global sobre bytes individuals. \\
+\texttt{HUFFMAN\_2\_BYTE} & Un arbre global sobre parelles de bytes; guarda el byte final separat si la mida és senar. \\
+\texttt{HUFFMAN\_BLOCK} & Divideix el fitxer en blocs i tria localment entre 1 byte, 2 bytes i emmagatzemat. \\
+\texttt{HUFFMAN\_BLOCK\_1\_BYTE} & Mode per blocs restringit a Huffman d'1 byte o emmagatzemat. \\
+\texttt{HUFFMAN\_BLOCK\_2\_BYTE} & Mode per blocs restringit a Huffman de 2 bytes o emmagatzemat. \\
+\texttt{STORED} & Només intern dins un bloc o per llegir arxius antics; no es tria per a fitxer sencer. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El mode \texttt{AUTO} no prova a comprimir físicament el fitxer diverses
+vegades. Primer construeix plans d'anàlisi. Un pla conté la taula de
+freqüències, l'arbre, la taula de fulles per codificar ràpidament, el
+nombre estimat de bits i la mida de les metadades. Amb això es pot
+estimar la mida final abans d'escriure cap byte.
+
+Per als modes globals, l'estimació és directa: mida de la capçalera més
+bits de Huffman. Per al mode per blocs, la mida
+estimada és la suma de la capçalera global i cada una de les millor opcions per a cada bloc.
+
+Aquesta estratègia té dos avantatges. Primer, evita escriure arxius
+temporals només per comparar modes. Segon, permet aplicar el requisit de
+``no créixer'' abans de tocar el fitxer de sortida. Tot i així, després
+d'escriure es fa una segona comprovació amb la mida real.
+
+\subsection{Mode per Blocs}
+
+El mode per blocs intenta resoldre el problema dels fitxers heterogenis:
+parts del fitxer molt diferents que poden aprofitar de tenir un arbre Huffman diferent.
+Primer s'estima una mida de bloc entre diverses candidates, totes múltiples de 4 KiB (4 KiB, 16 KiB,
+64 KiB, 256 KiB, 1 MiB, 4 MiB i 16 MiB). Fer una compressió real per a
+cada candidata seria massa car; per això es fa una sola passada
+d'anàlisi i s'estima el cost de cada bloc amb la seva entropia i amb la
+mida de les metadades.
+
+Per a cada bloc es comparen tres opcions:
+
+\begin{itemize}
+    \item guardar-lo sense comprimir (\texttt{STORED}),
+    \item comprimir-lo amb Huffman d'1 byte,
+    \item comprimir-lo amb Huffman de 2 bytes.
+\end{itemize}
+
+Una opció Huffman només s'accepta si guanya el cost d'emmagatzemar el
+bloc directament. Això evita que la taula de freqüències faci créixer
+blocs petits o poc compressibles. El resultat final continua passant per
+la comprovació global de mida, de manera que els blocs \texttt{STORED}
+no poden provocar que es generi un arxiu comprimit més gran que l'original.
+
+\subsection{Format d'Arxiu}
+
+L'arxiu propi comença amb una capçalera. Aquesta capçalera és el
+motiu pel qual es pot tancar el programa després de comprimir i
+descomprimir en una altra execució: l'arxiu conté la informació necessària
+per reconstruir l'arbre.
+
+\begin{table}[H]
+\centering
+\caption{Estructura simplificada de l'arxiu \texttt{.hff}.}
+\label{tab:archive}
+\begin{tabular}{@{}p{0.35\linewidth}p{0.55\linewidth}@{}}
+\toprule
+\textbf{Part} & \textbf{Contingut} \\
+\midrule
+Magic & Bytes \texttt{HUFF}, per detectar que el fitxer és del format esperat. \\
+Mode & Identificador del mode escrit. \\
+Mida original & Nombre de bytes que s'han de restaurar. També evita llegir bits extra com si fossin símbols reals. \\
+Freqüències globals & Només en modes de fitxer sencer. Es guarden com a taula: símbol i freqüència. \\
+Blocs & En mode per blocs, cada bloc guarda mida, mode, freqüències si cal i dades comprimides. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Recorregut de Classes}
+
+Aquesta secció descriu les classes principals de la implementació. No
+s'enumeren només per paquet: s'explica també com cooperen durant una
+compressió, una descompressió i un benchmark.
+
+\subsubsection{Punts d'Entrada: Main i CLI}
+
+\texttt{Main} és el punt d'entrada gràfic. La seva feina és mínima:
+arrenca Swing al fil d'interfície, aplica l'aspecte visual del sistema,
+crea una \texttt{MainWindow}, connecta un \texttt{Controller} i mostra la
+finestra. No conté cap decisió de compressió. Aquesta simplicitat és
+intencionada: si la classe d'entrada comença a crear arbres o llegir
+fitxers, la separació MVC es perd des del principi.
+
+\texttt{CLI} és el punt d'entrada per línia de comandes. Implementa un
+mètode \texttt{run()} que retorna un codi de sortida. Això permet
+provar-la sense executar un procés extern: les proves unitàries li passen
+els arguments i els streams en memòria com a paràmetres. Internament fa
+el mateix que la GUI: crea un \texttt{HuffmanCodec} i invoca compressió,
+descompressió o benchmark. La CLI no té una versió alternativa de
+l'algorisme, només un adaptador textual damunt el model.
+
+Per mostrar progrés, la CLI defineix dos petits impressors interns. Un
+formata \texttt{ProgressSnapshot} de compressió/descompressió i l'altre
+\texttt{BenchmarkProgressSnapshot}. Tots dos escriuen sobre \texttt{stderr}
+amb retorn de carro, de manera que la línia de progrés s'actualitza sense
+omplir la terminal. Quan l'operació acaba, la CLI imprimeix a
+\texttt{stdout} les mateixes dades que la GUI mostra al panell
+d'estadístiques: mode, cua, mides, entropia, longitud mitjana i temps.
+
+\subsubsection{Controller i ViewListener}
+
+\texttt{ViewListener} és la interfície que la vista utilitza per comunicar
+intencions: comprimir, descomprimir o executar comparatives. La vista no
+coneix la classe \texttt{Controller}; només guarda una referència a aquesta
+interfície.
+
+\texttt{Controller} implementa \texttt{ViewListener}. En rebre una petició,
+fa validacions bàsiques de ruta, neteja els resultats anteriors,
+deshabilita controls i crea un \texttt{SwingWorker}. La part costosa viu a
+\texttt{doInBackground()}, on es crea el \texttt{HuffmanCodec} amb la cua i
+el mode triats. El codec rep un \texttt{ProgressListener}; cada vegada que
+el model emet una mostra de progrés, el worker la publica. Després,
+\texttt{process()} s'executa al fil de Swing i actualitza la barra de
+progrés. Finalment, \texttt{done()} recupera el resultat i crida
+\texttt{showCompressionInfo()}, \texttt{showDecompressionInfo()} o
+\texttt{showBenchmarkReport()}.
+
+Aquesta estructura evita dos problemes habituals. Primer, el compressor no
+bloqueja la interfície. Segon, el model no actualitza components Swing
+directament; només emet dades de progrés. El controlador fa de frontera
+entre el treball de fons i la vista.
+
+\subsubsection{Vista: MainWindow i Panells}
+
+\texttt{MainWindow} és la finestra principal. Construeix les quatre
+pestanyes, manté els camps de ruta, els selectors de cua/mode, la taula de
+codis, el panell d'arbre, els panells de blocs i el panell de benchmark.
+Quan rep un \texttt{CompressionInfo}, no torna a calcular res: simplement
+transforma les dades en text, files de taula i nodes visuals.
+
+La taula de codis usa un model propi, \texttt{SymbolTableModel}, amb
+tipus de columna concrets. Això és important perquè les columnes de
+freqüència i probabilitat s'ordenen numèricament, no com a text, i perquè
+els símbols es mostren de forma llegible sense perdre el valor real que
+necessita l'ordenació.
+
+\texttt{FileBrowserPanel} implementa l'explorador integrat. Té un arbre de
+directoris i una taula de fitxers. La taula usa comparadors propis per
+ordenar nom, tipus, mida i data de modificació. En fer doble clic sobre
+un directori, navega; en fer doble clic sobre un fitxer, avisa a
+\texttt{MainWindow} per a que carregui la ruta seleccionada com a fitxer a processar.
+També usa un \texttt{WatchService} per refrescar el directori actual quan canvia el
+contingut, cosa útil després de crear un arxiu \texttt{.hff}.
+
+\texttt{HuffmanTreePanel} dibuixa l'arbre. El model li passa un
+\texttt{HuffmanTreeNodeInfo}; el panell calcula una disposició jeràrquica
+recursiva i pinta arestes 0/1 i caixes de nodes. Manté escala i
+desplaçament propis per permetre zoom amb roda de ratolí i arrossegament.
+No coneix \texttt{HuffmanCode}; només coneix la representació d'informació
+preparada pel model.
+
+\texttt{BlockListPanel} mostra una llista lateral de blocs en mode
+\texttt{HUFFMAN\_BLOCK}. Cada cel·la indica número, mode local i mida, amb
+colors diferents per 1 byte, 2 bytes i emmagatzemat. Quan l'usuari tria
+un bloc, la finestra rep el \texttt{BlockInfo} corresponent i actualitza
+la taula de codis i l'arbre amb les dades d'aquell bloc.
+
+\texttt{BenchmarkPanel} conté el formulari de directori/repeticions, la barra
+de progrés, el botó d'exportació CSV i les pestanyes de gràfiques.
+\texttt{BenchmarkGraphPanel} és un panell de dibuix 2D simple: rep sèries
+de punts, calcula límits, genera marques d'eix amb \texttt{ChartAxisSupport}
+i pinta línies, punts, etiquetes i llegenda.
+
+\subsubsection{Format: CompressionMode i ArchiveHeader}
+
+\texttt{CompressionMode} concentra tots els noms de mode en un únic
+\texttt{enum}. No són tipus Java separats, però no tots els valors són
+vàlids en tots els punts del programa. Per això la classe defineix
+mètodes de context, com \texttt{requestModes()}, \texttt{isArchiveMode()}
+i \texttt{allowedBlockHuffmanModes()}, que indiquen on es pot usar cada
+valor.
+
+Els modes que es poden escriure a la capçalera \texttt{.hff} són
+\texttt{STORED}, \texttt{HUFFMAN\_1\_BYTE}, \texttt{HUFFMAN\_2\_BYTE} i
+\texttt{HUFFMAN\_BLOCK}. Aquests són els únics amb identificador binari,
+perquè són els que el lector ha de trobar quan obre un arxiu. En canvi,
+\texttt{AUTO}, \texttt{HUFFMAN\_BLOCK\_1\_BYTE} i
+\texttt{HUFFMAN\_BLOCK\_2\_BYTE} són ordres de compressió: serveixen per
+dir al selector què ha d'analitzar, però no descriuen un format nou dins
+el fitxer.
+
+Aquesta distinció és necessària encara que tot visqui dins la mateixa
+classe. \texttt{AUTO} pot aparèixer a la GUI perquè és una opció útil per
+a l'usuari, però no pot arribar al writer com a mode de capçalera perquè
+un lector futur no sabria quin arbre reconstruir. Els submodes
+\texttt{HUFFMAN\_BLOCK\_1\_BYTE} i
+\texttt{HUFFMAN\_BLOCK\_2\_BYTE} només restringeixen l'anàlisi dels blocs;
+si guanyen, l'arxiu continua guardant \texttt{HUFFMAN\_BLOCK}. Finalment,
+\texttt{STORED} és serialitzable perquè pot aparèixer com a bloc local
+emmagatzemat o en arxius antics, però no s'ofereix com a compressió de
+fitxer sencer perquè sempre afegiria capçalera i faria créixer el
+resultat.
+
+\texttt{ArchiveHeader} escriu i llegeix la capçalera binària. Guarda
+quatre bytes que identifiquen la capçalera (\textit{magic}), el mode, la mida original i, si el mode és global,
+una taula de freqüències. No guarda sempre les 256 o 65.536 freqüències;
+escriu només les entrades presents (tenen freqüència major a 0). En llegir, valida la
+capçalera abans de deixar continuar: \textit{magic} incorrecte, mode desconegut,
+freqüències duplicades o totals incoherents generen
+\texttt{ArchiveFormatException}.
+
+\subsubsection{FrequencyTable i HuffmanCode}
+
+\texttt{FrequencyTable} és la representació bàsica de les freqüències.
+Internament usa un array \texttt{long[]} de mida fixa: 256 posicions per
+bytes o 65.536 per parelles. Aquesta decisió consumeix més memòria que un
+mapa en alguns casos, però dóna accés directe $O(1)$ i fa molt
+simple calcular mides, entropia i taules de capçalera. A més guarda
+\texttt{totalCount} i \texttt{distinctSymbolCount}; així no cal recórrer
+tot l'array cada vegada que es vol saber quants símbols diferents hi ha.
+
+El mètode \texttt{addSymbol()} incrementa la freqüència del símbol. Si la
+freqüència anterior era zero, també incrementa \texttt{distinctSymbolCount}.
+Aquesta comprovació serveix per mantenir actualitzat el nombre de símbols
+diferents sense haver de recórrer tot l'array després de cada bloc o
+estimació. Aquest comptador s'utilitza per saber si hi ha el cas especial
+d'un únic símbol i per calcular ràpidament el cost de guardar la taula de
+freqüències a la capçalera. \texttt{entropy()} calcula l'entropia de la
+distribució observada. \texttt{encodedBitCount()} multiplica la freqüència
+de cada símbol per la profunditat de la seva fulla de Huffman i obté el
+nombre exacte de bits de càrrega. \texttt{clear()} permet reutilitzar la
+mateixa taula en la selecció de mida de bloc, evitant crear repetidament
+arrays de 65.536 posicions.
+
+\texttt{HuffmanCode} representa tant fulles com nodes interns de l'arbre.
+Una fulla conté un símbol real i una freqüència. Un node intern conté els
+dos fills i la suma de freqüències. Quan dos nodes tenen la mateixa
+freqüència, \texttt{compareTo()} desempata pel símbol mínim del subarbre.
+Amb això, l'arbre és determinista independentment de l'implementació de
+la cua de prioritat.
+
+La construcció de l'arbre es fa a \texttt{buildFromFrequencies()}. El
+mètode rep una \texttt{FrequencyTable} i una \texttt{NodeQueue} que
+és l'interfície comuna de les cues de prioritat del
+projecte: l'algorisme només necessita inserir nodes, extreure el mínim i
+consultar la mida, independentment de si al darrere hi ha un heap binari,
+una llista ordenada o un heap de Fibonacci.
+
+Primer, per cada símbol amb freqüència positiva es crea una fulla amb
+\texttt{single()} i s'insereix a la cua. Aquest mètode rep el símbol i la
+seva freqüència, però només construeix un node fulla: símbol real,
+freqüència i cap fill.
+Després l'algorisme extreu els dos nodes amb menor freqüència i els passa
+a \texttt{merge()}, que crea un node intern nou que té aquests
+dos nodes com a fills i freqüència igual a la suma de les dues
+freqüències. Aquest node representa el subarbre combinat i es torna a
+inserir a la cua. Repetint aquest procés, la cua va passant de moltes
+fulles petites a subarbres cada vegada més grans fins que només queda una
+arrel.
+
+El codi binari de cada fulla no es construeix durant aquest procés. Es
+calcula després de forma mandrosa amb una única passada en amplada: cada
+fill afegeix un 0 o un 1 al codi del pare i guarda també la profunditat.
+Finalment, \texttt{lookupBySymbol()} crea una taula
+símbol $\rightarrow$ fulla perquè el writer pugui codificar bytes sense
+recórrer l'arbre per cada símbol.
+
+
+\subsubsection{Cues de Prioritat}
+
+L'algorisme de Huffman només necessita tres operacions de les cues: inserir,
+extreure el mínim i consultar la mida. Per això el model defineix una
+interfície mínima \texttt{NodeQueue}. El codi que construeix l'arbre no
+sap quina estructura concreta hi ha darrere d'aquesta interfície; només
+usa aquestes tres operacions.
+
+\texttt{PriorityQueueStrategy} és l'\texttt{enum} que connecta la selecció
+de l'usuari amb la implementació real. La GUI i el benchmark treballen amb
+aquests valors, com \texttt{BINARY\_HEAP}, \texttt{DICHOTOMIC\_LIST} i
+\texttt{FIBONACCI\_HEAP}. Quan el codec necessita construir un arbre, la
+estratègia crea la \texttt{NodeQueue} corresponent amb \texttt{createQueue()}.
+Així el selector visible a la interfície, el benchmark i el codi de
+Huffman comparteixen una sola llista de cues disponibles.
+
+Les tres implementacions són:
+
+\begin{itemize}
+    \item \textbf{\texttt{BinaryHeapNodeQueue}:} estratègia per defecte,
+          basada en una \texttt{PriorityQueue} de Java. Internament aquesta
+          estructura manté els elements en un heap binari: el mínim queda
+          sempre a l'arrel i, quan s'insereix o s'elimina, es reordena
+          només el camí necessari per conservar la propietat de heap. Té
+          bon rendiment pràctic, poca lògica pròpia i cost $O(\log n)$ per
+          inserció i extracció.
+    \item \textbf{\texttt{DichotomicListNodeQueue}:} manté una llista
+          ordenada amb \texttt{ArrayList}. Quan s'afegeix un node, usa
+          cerca binària per trobar la posició que li correspon segons
+          l'ordre de Huffman i l'insereix en aquell punt. Això fa que
+          extreure el mínim sigui directe, perquè el mínim és al principi
+          de la llista. El cost amagat és el desplaçament dels elements de
+          l'array: trobar la posició és ràpid, però inserir pot costar
+          $O(n)$.
+    \item \textbf{\texttt{FibonacciHeapNodeQueue}:} estructura més
+          complexa, amb insercions molt barates i extracció mínima
+          amortitzada logarítmica \cite{ref_fibonacci}. La implementació
+          manté una llista circular d'arrels i cada node pot tenir una
+          llista circular de fills. Inserir és gairebé només afegir una
+          arrel nova i actualitzar el punter al mínim. En extreure el
+          mínim, els seus fills passen a la llista d'arrels i després es
+          fa una consolidació: si dues arrels tenen el mateix grau,
+          s'uneixen i la de menor prioritat queda com a pare.
+\end{itemize}
+
+
+\subsubsection{Plans Interns i HuffmanArchive}
+
+\texttt{CodecPlans} no conté lògica; conté tres \textit{records} interns que fan
+de frontera entre anàlisi i escriptura.
+
+\texttt{WholePlan} descriu un
+mode global complet: freqüències, arrel, fulles, bits estimats, entropia,
+longitud mitjana, capçalera i mida estimada. S'usa tant per al mode
+d'1 byte com per al de 2 bytes.
+
+\texttt{BlockUnit} descriu un bloc concret dins el mode per blocs. Guarda
+la mida del bloc, el mode local seleccionat i les dades que el writer
+necessitarà. Pot contenir la taula/arbre d'1 byte, la taula/arbre de
+2 bytes o cap arbre si el bloc ha quedat en mode \texttt{STORED} emmagatzemat.
+La raó és que l'analitzador ja ha hagut de construir aquests arbres per saber quants
+bits ocuparia cada alternativa i decidir el mode local del bloc. Si el
+writer només guardàs el mode i les freqüències, hauria de tornar a
+construir el mateix arbre durant l'escriptura. Això duplicaria temps de
+càlcul i faria que l'escriptura depengués d'una segona reconstrucció que
+no aporta cap decisió nova. Amb \texttt{BlockUnit}, el writer rep el pla
+tancat: només serialitza exactament el que l'anàlisi ha triat.
+
+\texttt{BlockPlan} agrupa tots els \texttt{BlockUnit} i afegeix dades
+agregades del mode per blocs: mida de bloc triada, capçalera, metadades,
+mida estimada, bits totals Huffman, entropia mitjana ponderada i longitud
+mitjana.
+
+\texttt{HuffmanArchive} representa l'arxiu Huffman en el punt on ja se
+sap quin format s'ha triat. Durant la compressió, els analitzadors poden
+generar diversos plans candidats, però només un s'acabarà escrivint.
+\texttt{HuffmanArchive} empaqueta aquesta decisió: guarda el mode final,
+la capçalera i el pla concret que correspon a aquell mode. Si el mode és
+global, conté un \texttt{WholePlan}; si és per blocs, conté un
+\texttt{BlockPlan}. Això evita passar per separat un mode, una capçalera i
+un pla opcional a cada mètode del writer.
+
+La mateixa classe també s'utilitza després de llegir un arxiu. En aquest
+cas no conté un pla de compressió, perquè la decisió ja havia estat presa
+quan es va crear el fitxer. Conté la capçalera llegida i la informació
+reconstruïda que necessita la GUI: símbols, arbre i blocs. Per això
+\texttt{HuffmanArchive} és una frontera comuna entre el codec i el
+format: abans d'escriure diu ``això és el que s'ha de serialitzar'', i
+després de llegir diu ``això és el que s'ha reconstruït del fitxer''.
+
+\subsubsection{Analitzadors i Selector}
+
+\texttt{HuffmanCodec} és una façana. Manté l'API pública que usen la GUI,
+la CLI i el benchmark, però delega les parts concretes:
+\texttt{HuffmanWholeFileAnalyzer} analitza modes globals,
+\texttt{HuffmanBlockAnalyzer} analitza blocs, \texttt{HuffmanModeSelector}
+tria el pla final, i \texttt{HuffmanArchiveWriter}/\texttt{Reader}
+només escriuen o llegeixen el format.
+
+La raó d'aquesta divisió és evitar que la classe principal del codec
+barregi tres preguntes diferents: ``quant ocuparia cada opció?'', ``quina
+opció convé escriure?'' i ``com s'escriu exactament aquesta opció?''. Si
+aquestes decisions viuen juntes, el codi sembla més curt al principi però
+és més difícil d'explicar i provar. Separant-les, cada classe té una
+responsabilitat que coincideix amb una part del problema.
+
+\texttt{HuffmanAnalyzer} és una superclasse petita per als analitzadors.
+Només centralitza \texttt{buildTree()}: construeix l'arbre amb la cua triada
+i acumula el temps invertit en aquesta construcció per tal de poder comparar
+el seu rendiment. No força cap flux
+d'anàlisi comú, perquè analitzar un fitxer sencer i analitzar blocs són
+processos diferents.
+
+\texttt{HuffmanWholeFileAnalyzer} construeix els plans globals.
+\texttt{analyzeByte()} llegeix el fitxer en buffers i afegeix cada byte a
+una \texttt{FrequencyTable} de 256 símbols. \texttt{analyzeWord()} fa el
+mateix amb parelles de bytes. En aquest cas, ``buffer'' vol dir buffer
+d'entrada de Java, no bloc de compressió: és només la manera de llegir el
+fitxer a trossos. Si una lectura acaba just després del primer byte d'una
+parella, aquest byte no es pot comptar encara com a símbol de 16 bits; es
+guarda a \texttt{pendingByte}. En llegir el buffer següent, el primer byte
+nou es combina amb aquest pendent i la parella ja es pot afegir a la
+taula de freqüències. Si el fitxer acaba i encara queda un
+\texttt{pendingByte}, vol dir que la mida original és senar: aquest byte
+final no forma cap parella i es guarda separat al pla perquè el writer
+l'escrigui cru al final del flux Huffman. Després de comptar, construeix
+l'arbre, calcula fulles, bits, entropia, capçalera i mida estimada.
+
+\texttt{HuffmanBlockSizeSelector} tria una mida de bloc abans de fer
+l'anàlisi complet. Les mides candidates són 4 KiB, 16 KiB, 64 KiB,
+256 KiB, 1 MiB, 4 MiB i 16 MiB; totes són múltiples de 4 KiB. Per això el
+selector pot llegir el fitxer en mostres de 4 KiB i alimentar totes les
+candidates al mateix temps: la candidata de 4 KiB tanca un bloc a cada
+mostra, la de 16 KiB cada quatre mostres, la de 64 KiB cada setze, i així
+successivament. Cada candidata acumula freqüències fins omplir el seu
+bloc sintètic; llavors estima si convindria emmagatzemar, usar Huffman
+d'1 byte o usar Huffman de 2 bytes. L'estimació usa entropia i cost de
+metadades, no arbres reals, perquè construir arbres per a totes les
+candidates seria massa car.
+
+\texttt{HuffmanBlockAnalyzer} fa l'anàlisi complet del mode per blocs amb
+la mida ja seleccionada. Recorre el fitxer bloc a bloc i, per a cadascun,
+prova només els candidats Huffman que permet el mode demanat:
+\texttt{HUFFMAN\_BLOCK} i \texttt{AUTO} permeten 1 byte i 2 bytes,
+\texttt{HUFFMAN\_BLOCK\_1\_BYTE} només 1 byte, i
+\texttt{HUFFMAN\_BLOCK\_2\_BYTE} només 2 bytes. \texttt{STORED} sempre
+queda disponible com a alternativa local.
+
+Per cada candidat permès, l'analitzador calcula el cost del bloc:
+capçalera local, taula de freqüències i bits Huffman. En el candidat de
+2 bytes també suma el byte final cru si el bloc té mida senar. Després
+compara aquests costos amb el cost de copiar el bloc directament. Si cap
+candidat Huffman és més petit que copiar-lo, el bloc es marca com a
+\texttt{STORED}. Cada bloc és independent: no es comparteixen parelles de
+2 bytes ni arbres entre blocs.
+
+\texttt{HuffmanModeSelector} és el punt on es converteix l'anàlisi en una
+decisió final. Abans d'arribar aquí, el codec ja ha calculat quant
+ocuparia cada alternativa possible: Huffman global d'1 byte, Huffman
+global de 2 bytes i Huffman per blocs. Si l'usuari ha demanat un mode
+concret, el selector simplement tria aquella alternativa i falla si no és
+aplicable. Per exemple, \texttt{STORED} no s'accepta com a mode de fitxer
+sencer perquè això generaria un fitxer ``comprimit'' més gran que l'original
+(dades originals + capçalera) cosa que no tendria sentit.
+
+\subsubsection{Writer i Reader}
+
+\texttt{HuffmanArchiveWriter} rep un \texttt{HuffmanArchive} ja triat i
+escriu exactament el pla seleccionat.
+
+\texttt{BitOutputStream} és el suport per escriure bits. Acumula bits en
+un byte temporal i el descarrega quan està ple. Si l'últim byte queda
+incomplet, l'omple amb zeros. Aquests zeros són segurs perquè el decoder
+sap quants bytes originals ha de restaurar i s'atura quan arriba a aquesta
+mida.
+
+\texttt{HuffmanArchiveReader} fa el camí invers. Llegeix
+\texttt{ArchiveHeader}, reconstrueix la taula de freqüències i torna a
+construir l'arbre. En modes Huffman, usa \texttt{BitInputStream} per
+llegir un bit cada vegada i caminar per l'arbre fins trobar una fulla. En
+mode per blocs, repeteix aquest procés per cada bloc i valida que la suma
+de bytes restaurats arribi exactament a la mida original.
+
+\subsubsection{Informació, Progrés i Utilitats}
+
+El paquet \texttt{info} conté dades immutables. \texttt{CompressionStats}
+i \texttt{DecompressionStats} són el resum numèric. \texttt{CompressionInfo}
+i \texttt{DecompressionInfo} combinen estadístiques amb taula de símbols,
+arbre i llista de blocs. \texttt{HuffmanSymbolInfo},
+\texttt{HuffmanTreeNodeInfo} i \texttt{BlockInfo} són còpies preparades
+per mostrar: contenen només els camps que necessita la GUI, com símbol,
+freqüència, probabilitat, codi, fills de l'arbre, mida de bloc o mode
+local. La vista no rep les estructures internes que usa el codec per
+comprimir, sinó aquests objectes de només lectura. \texttt{HuffmanInfoFactory}
+fa aquesta conversió, calculant codis com a cadenes i probabilitats per a
+la taula.
+
+El paquet \texttt{progress} desacobla el model de la interfície.
+\texttt{ProgressPhase} enumera les fases visibles del treball, com
+analitzar, escriure o llegir. \texttt{ProgressTracker} rep comptadors de
+bytes i emet \texttt{ProgressSnapshot} cada 64 KiB o quan una fase acaba.
+L'estimació del temps restant és una extrapolació simple: temps
+transcorregut, bytes processats i bytes pendents. Si encara no hi ha prou
+informació, retorna \texttt{-1} i la vista mostra ``--''.
+
+\texttt{ByteFormat} només converteix mides de bytes a unitats llegibles
+per la GUI i la CLI.
+
+\subsubsection{Benchmark}
+
+\texttt{BenchmarkConfig} guarda la configuració d'una execució: directori
+d'entrada, nombre de repeticions i opcions seleccionades.
+\texttt{BenchmarkService} carrega tots els fitxers no comprimits en format
+\texttt{.hff} del directori, els ordena per mida i executa dues sèries.
+Durant l'execució, \texttt{BenchmarkProgressListener} rep mostres de
+progrés perquè la GUI o la CLI puguin mostrar l'estat sense que el servei
+conegui cap component visual.
+
+La primera sèrie compara cues. Per cada fitxer i cada
+\texttt{PriorityQueueStrategy}, comprimeix en mode automàtic, descomprimeix
+el resultat i verifica amb \texttt{Files.mismatch()} que la sortida sigui
+idèntica. Després agrega els temps de construcció d'arbre de compressió i
+descompressió en \texttt{QueueBenchmarkPoint}. Aquesta comparativa només
+necessita aquests temps, perquè la taxa de compressió depèn del mode
+seleccionat i es mostra a la segona sèrie.
+
+La segona sèrie compara modes. Usa heap binari i demana explícitament
+\texttt{HUFFMAN\_1\_BYTE}, \texttt{HUFFMAN\_2\_BYTE},
+\texttt{HUFFMAN\_BLOCK\_1\_BYTE} i \texttt{HUFFMAN\_BLOCK\_2\_BYTE}.
+Mesura temps total de compressió i descompressió, i guarda les dades en
+\texttt{CompressionModeBenchmarkPoint}. Finalment,
+\texttt{BenchmarkReport} agrupa totes les files i \texttt{BenchmarkCsvWriter}
+les serialitza en dues seccions CSV.
+
+
+\subsubsection{Arquitectura MVC}
+
+La separació general segueix el patró Model-Vista-Controlador. Després de
+veure les classes principals, és més fàcil situar cada paquet dins
+d'aquesta arquitectura. En aquest projecte no és pràctic dibuixar un
+diagrama amb totes les classes perquè el model és bastant ampli; és més
+clar representar paquets i responsabilitats.
+
+\begin{itemize}
+    \item \textbf{Model:} compressió, descompressió, format d'arxiu,
+          cues de prioritat, progrés, informació per a la GUI i
+          benchmark.
+    \item \textbf{Vista:} components Swing, taules, arbre, explorador de
+          fitxers i gràfiques.
+    \item \textbf{Controlador:} valida rutes, crea el codec amb les
+          opcions triades, executa treballs en segon pla i passa els
+          resultats a la vista.
+\end{itemize}
+
+La vista no construeix arbres ni interpreta arxius. El controlador no sap
+com es dibuixa l'arbre. El model no importa classes de la GUI. Aquesta
+separació fa que la CLI pugui usar el mateix compressor sense crear cap
+finestra.
+
+\begin{figure*}[t]
+    \centering
+    \fbox{
+        \begin{minipage}{0.86\textwidth}
+            \vspace{0.4cm}
+            \centering
+            \textbf{Imatge pendent}\\[0.2cm]
+            Diagrama suggerit per paquets, no per classes individuals:
+            \texttt{view} i \texttt{CLI} apunten al \texttt{controller}/\texttt{HuffmanCodec};
+            el codec coordina \texttt{codec}, \texttt{archive}, \texttt{queue},
+            \texttt{progress} i \texttt{info}; \texttt{benchmark} reutilitza
+            \texttt{HuffmanCodec}.
+            \vspace{0.4cm}
+        \end{minipage}
+    }
+    \caption{Arquitectura MVC proposada per a la documentació visual.}
+    \label{fig:mvc}
+\end{figure*}
+
+
+%% ================================================================
+\section{Validació amb Proves Unitàries}
+
+Les proves s'executen amb JUnit 5 mitjançant \texttt{mvn test}. En el
+moment d'escriure aquesta memòria hi ha 35 proves i totes passen. La
+Taula~\ref{tab:tests} resumeix què cobreixen.
+
+\begin{table*}[t]
+\centering
+\caption{Cobertura funcional de les proves unitàries.}
+\label{tab:tests}
+\begin{tabular}{@{}p{0.22\textwidth}p{0.68\textwidth}r@{}}
+\toprule
+\textbf{Grup} & \textbf{Comprovacions principals} & \textbf{Tests} \\
+\midrule
+\texttt{HuffmanCodecTest} &
+Round-trip amb bytes repetits, tots els valors de byte, text, mode de 2 bytes,
+mode per blocs, restriccions de submode, selecció automàtica, rebuig de fitxers
+buits o aleatoris que creixerien, determinisme amb freqüències iguals, progrés,
+errors de format, arxius truncats, totals de freqüència incorrectes, benchmark i CSV. & 22 \\
+\texttt{NodeQueueTest} &
+Cada cua elimina en ordre creixent, es compara amb \texttt{PriorityQueue} sota
+2.000 operacions mixtes aleatòries i falla correctament quan es demana eliminar
+el mínim d'una cua buida. Les mateixes proves s'apliquen al heap binari, la
+llista dicotòmica i el heap de Fibonacci. & 9 \\
+\texttt{HuffmanCodeTest} &
+La taula de fulles permet accés directe a qualsevol símbol, inclòs 255, i els
+codis/profunditats es calculen de forma coherent i mandrosa. & 2 \\
+\texttt{CLITest} &
+La CLI comprimeix i descomprimeix un fitxer correctament, i mostra ajuda quan
+els arguments són incorrectes. & 2 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Les proves de round-trip són les més importants: escriuen dades originals,
+les comprimeixen, les descomprimeixen i comparen byte a byte el resultat.
+Això valida conjuntament el comptatge de freqüències, la construcció de
+l'arbre, l'escriptura de bits, la lectura de bits i el format d'arxiu.
+
+Les proves de cues són independents del compressor. Això és intencionat:
+si una cua falla, l'arbre de Huffman podria quedar mal construït encara
+que la resta del compressor fos correcta. Comparar cada implementació amb
+\texttt{PriorityQueue} sota operacions barrejades dóna una garantia forta
+que totes respecten el mateix contracte.
+
+També hi ha proves negatives. Per exemple, es creen arxius amb capçalera
+incorrecta, mode no suportat o càrrega truncada, i s'exigeix que la
+descompressió falli. Això evita que el programa produeixi sortides
+silenciosament corruptes quan rep un fitxer invàlid.
+
+%% ================================================================
+\section{Resultats i Discussió}
+\label{sec:resultats}
+
+\subsection{Protocol de Benchmark}
+
+Per a aquesta primera versió s'ha utilitzat la carpeta \texttt{P4/res},
+que conté els fitxers de Silesia. Silesia és un conjunt de 12 fitxers pensat per provar
+compressors sense pèrdues amb dades de naturalesa diferent: text, HTML,
+executables, bases de dades i imatges mèdiques. La mida total original és
+d'aproximadament 212 MB \cite{ref_silesia}.
+
+La comanda executada ha estat:
+
+\begin{lstlisting}[language=bash,caption={Benchmark CLI sobre Silesia.},label={lst:bench}]
+java -cp target/P4-1.0-SNAPSHOT.jar \
+  com.serafinebot.p4.CLI benchmark \
+  res 1 memoria/silesia-benchmark.csv
+\end{lstlisting}
+
+La GUI usa exactament el mateix \texttt{BenchmarkService}. La diferència
+és que la CLI exporta directament el CSV i evita interferència manual. En
+aquesta execució s'ha usat una repetició per fitxer; per tant, els valors
+serveixen com a fotografia inicial, no com a estudi estadístic final.
+
+El benchmark fa dues comparatives:
+
+\begin{itemize}
+    \item \textbf{Cues de prioritat:} executa \texttt{AUTO} amb cada
+          estructura i mesura el temps de construcció d'arbre en compressió
+          i descompressió.
+    \item \textbf{Modes de compressió:} amb heap binari, compara els
+          modes Huffman d'1 byte, 2 bytes i blocs restringits.
+\end{itemize}
+
+Cada compressió es descomprimeix després i es compara amb l'original.
+Per tant, una fila de benchmark només és vàlida si també ha passat la
+verificació de descompressió.
+
+\subsection{Limitacions de la Mesura Actual}
+
+Les dades d'aquesta memòria són útils per comparar tendències, però no
+s'han d'interpretar com a valors absoluts definitius. Només s'ha executat
+una repetició per fitxer, de manera que hi pot haver soroll de la JVM, del
+sistema operatiu o de la cache de disc. En la versió final del treball
+seria convenient repetir cada cas diverses vegades i presentar mitjanes o
+medians.
+
+També convé separar dues preguntes diferents. Una és quin mode comprimeix
+més. L'altra és quin mode és més ràpid. Un mode pot reduir molt la mida
+però ser més lent de descomprimir perquè l'arbre és més gran o perquè el
+símbol és de 2 bytes. Per això les taules mostren percentatge i temps, i
+no només una única puntuació agregada.
+
+Finalment, Silesia és més representatiu que fitxers artificials,
+però no cobreix tots els casos d'ús. Fitxers ja comprimits, dades
+criptogràficament aleatòries o fitxers molt petits probablement serien
+rebutjats pel compressor perquè la capçalera i les taules ocuparien més
+que el guany possible.
+
+\subsection{Resultats per Mode}
+
+La Taula~\ref{tab:bestmode} mostra el millor mode observat per a cada
+fitxer de Silesia. El percentatge indica reducció respecte a l'original:
+per exemple, 47\% significa que l'arxiu final ocupa un 47\% menys.
+
+\begin{table*}[t]
+\centering
+\caption{Millor mode per fitxer en el benchmark Silesia.}
+\label{tab:bestmode}
+\begin{tabular}{@{}lrlrr@{}}
+\toprule
+\textbf{Fitxer} & \textbf{Mida (B)} & \textbf{Millor mode} & \textbf{Reducció (\%)} & \textbf{Comp. / Descomp. (ms)} \\
+\midrule
+xml & 5.345.280 & \texttt{HUFFMAN\_BLOCK\_2\_BYTE} & 47,051 & 159,6 / 95,0 \\
+ooffice & 6.152.192 & \texttt{HUFFMAN\_BLOCK\_1\_BYTE} & 18,712 & 206,8 / 146,5 \\
+reymont & 6.627.202 & \texttt{HUFFMAN\_BLOCK\_2\_BYTE} & 49,824 & 191,8 / 107,7 \\
+sao & 7.251.944 & \texttt{HUFFMAN\_2\_BYTE} & 12,316 & 415,4 / 314,7 \\
+x-ray & 8.474.240 & \texttt{HUFFMAN\_BLOCK\_2\_BYTE} & 29,840 & 337,7 / 255,9 \\
+mr & 9.970.564 & \texttt{HUFFMAN\_BLOCK\_2\_BYTE} & 61,019 & 304,8 / 142,3 \\
+osdb & 10.085.684 & \texttt{HUFFMAN\_2\_BYTE} & 21,563 & 533,1 / 386,0 \\
+dickens & 10.192.446 & \texttt{HUFFMAN\_2\_BYTE} & 49,375 & 323,4 / 212,6 \\
+samba & 21.606.400 & \texttt{HUFFMAN\_BLOCK\_2\_BYTE} & 35,748 & 876,6 / 422,5 \\
+nci & 33.553.445 & \texttt{HUFFMAN\_2\_BYTE} & 72,365 & 891,5 / 266,8 \\
+webster & 41.458.703 & \texttt{HUFFMAN\_2\_BYTE} & 47,301 & 1325,4 / 842,7 \\
+mozilla & 51.220.480 & \texttt{HUFFMAN\_2\_BYTE} & 35,224 & 2404,8 / 1322,3 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+El mode de 2 bytes és molt competitiu en aquests fitxers. Això indica que
+molts fitxers tenen repeticions útils a nivell de parelles de bytes. El
+mode per blocs guanya especialment quan la distribució local varia:
+\texttt{xml}, \texttt{reymont}, \texttt{x-ray}, \texttt{mr} i
+\texttt{samba} milloren amb blocs de 2 bytes, mentre que \texttt{ooffice}
+prefereix blocs d'1 byte.
+
+\begin{table}[H]
+\centering
+\caption{Mitjanes per mode sobre els 12 fitxers.}
+\label{tab:modeavg}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Mode} & \textbf{Red. \%} & \textbf{Comp. ms} & \textbf{Descomp. ms} \\
+\midrule
+\texttt{HUFFMAN\_1\_BYTE} & 31,261 & 660,0 & 295,0 \\
+\texttt{HUFFMAN\_2\_BYTE} & 39,340 & 694,7 & 393,0 \\
+\texttt{BLOCK\_1\_BYTE} & 33,346 & 447,7 & 293,8 \\
+\texttt{BLOCK\_2\_BYTE} & 39,866 & 663,5 & 383,4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \pgfplotstableread[col sep=comma]{
+mode,ratio,comp,decomp
+1 byte,31.261,660.0,295.0
+2 bytes,39.340,694.7,393.0
+Bloc 1 byte,33.346,447.7,293.8
+Bloc 2 bytes,39.866,663.5,383.4
+    }\modedata
+    \begin{tikzpicture}
+    \begin{axis}[
+        ybar,
+        width=\linewidth,
+        height=5.3cm,
+        ylabel={Reducció mitjana (\%)},
+        symbolic x coords={1 byte,2 bytes,Bloc 1 byte,Bloc 2 bytes},
+        xtick=data,
+        x tick label style={rotate=20,anchor=east},
+        ymin=0,
+        ymax=45,
+        bar width=9pt,
+        grid=major
+    ]
+        \addplot table[x=mode,y=ratio] {\modedata};
+    \end{axis}
+    \end{tikzpicture}
+    \caption{Reducció mitjana per mode de compressió sobre Silesia.}
+    \label{fig:mode_ratio}
+\end{figure}
+
+La mitjana confirma la intuïció: el mode de 2 bytes comprimeix millor,
+però també descomprimeix més lentament perquè l'espai de símbols és més
+gran i la lectura reconstrueix parelles. Els blocs d'1 byte són els més
+ràpids en compressió, perquè eviten arbres globals grans i poden saltar a
+emmagatzemat en blocs on Huffman no compensa.
+
+\subsection{Resultats per Cua de Prioritat}
+
+La Taula~\ref{tab:queueavg} compara només el temps de construir arbres.
+La taxa de compressió és idèntica perquè el desempat determinista fa que
+les tres cues produeixin els mateixos arbres finals.
+
+\begin{table}[H]
+\centering
+\caption{Temps mitjà de construcció d'arbre per cua.}
+\label{tab:queueavg}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Cua} & \textbf{Comp. ms} & \textbf{Descomp. ms} & \textbf{Red. \%} \\
+\midrule
+Heap binari & 25,083 & 5,333 & 40,315 \\
+Heap de Fibonacci & 128,583 & 26,917 & 40,315 \\
+Llista dicotòmica & 419,000 & 92,500 & 40,315 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \pgfplotstableread[col sep=comma]{
+queue,compress,decompress
+Heap binari,25.083,5.333
+Fibonacci,128.583,26.917
+Llista,419.000,92.500
+    }\queuedata
+    \begin{tikzpicture}
+    \begin{axis}[
+        ybar,
+        width=\linewidth,
+        height=5.3cm,
+        ylabel={Temps mitjà (ms)},
+        symbolic x coords={Heap binari,Fibonacci,Llista},
+        xtick=data,
+        x tick label style={rotate=18,anchor=east},
+        ymode=log,
+        log basis y={10},
+        bar width=8pt,
+        legend pos=north west,
+        legend style={font=\footnotesize, fill=white, fill opacity=0.85, draw opacity=1},
+        grid=major
+    ]
+        \addplot table[x=queue,y=compress] {\queuedata};
+        \addlegendentry{Compressió}
+        \addplot table[x=queue,y=decompress] {\queuedata};
+        \addlegendentry{Descompressió}
+    \end{axis}
+    \end{tikzpicture}
+    \caption{Temps mitjà de construcció de l'arbre segons la cua de prioritat.}
+    \label{fig:queue_time}
+\end{figure}
+
+El heap binari és clarament la millor opció pràctica per defecte. El heap
+de Fibonacci té bones propietats teòriques, però en aquesta aplicació la
+complexitat de l'estructura i la manipulació d'enllaços pesen més que el
+guany amortitzat. La llista dicotòmica és útil com a implementació simple
+i com a comparació, però els desplaçaments dins la llista la penalitzen.
+
+\suggestedfigure{fig:benchmark}{Gràfiques principals de benchmark.}
+{Captura suggerida: pestanya ``Comparatives'' després d'executar Silesia,
+amb la gràfica de taxa de compressió per mode o la de temps de construcció
+d'arbre per cua.}
+
+%% ================================================================
+\section{Conclusions}
+
+La pràctica ha evolucionat cap a un compressor Huffman complet amb GUI,
+CLI, format propi i benchmark. La part més important del disseny és que
+el codec no implementa tots els detalls en una sola classe: analitzar,
+seleccionar, escriure, llegir i construir informació per a la GUI són
+responsabilitats separades. Això fa que el programa sigui més fàcil
+d'explicar, provar i modificar.
+
+Els resultats inicials amb Silesia mostren que adaptar el símbol pot ser
+més rellevant que optimitzar només l'estructura de cua. El mode de 2 bytes
+i el mode per blocs de 2 bytes són els que millor comprimeixen en la
+majoria dels fitxers. En canvi, per a la cua de prioritat, el heap binari
+és el millor compromís pràctic malgrat que el heap de Fibonacci sigui més
+sofisticat teòricament.
+
+Les proves unitàries cobreixen el camí crític: round-trip, format invàlid,
+determinisme, cues, CLI i benchmark. Això és especialment important en un
+compressor, perquè un error pot no aparèixer com una excepció immediata,
+sinó com un fitxer restaurat lleugerament diferent. Per això la comparació
+byte a byte és la validació central.
+
+Com a treball futur, convé ampliar el benchmark amb més repeticions i amb
+altres conjunts de dades, regenerar les taules amb mitjanes més estables
+i afegir captures definitives de la GUI i dels diagrames proposats en
+aquesta memòria.
+
+%% ================================================================
+\begin{thebibliography}{9}
+
+\bibitem{ref_gfg_huffman}
+GeeksforGeeks, ``Huffman Coding | Greedy Algo-3,'' 2025. [Online]. Available:
+\url{https://www.geeksforgeeks.org/dsa/huffman-coding-greedy-algo-3/}
+
+\bibitem{ref_wikipedia_huffman}
+Wikipedia, ``Huffman coding,'' 2026. [Online]. Available:
+\url{https://en.wikipedia.org/wiki/Huffman_coding}
+
+\bibitem{ref_silesia}
+S.~Deorowicz, ``Silesia compression data set,'' Silesian University of
+Technology. [Online]. Available:
+\url{https://sun.aei.polsl.pl/~sdeor/index.php?page=silesia}
+
+\bibitem{ref_oracle_swingworker}
+Oracle, ``Worker Threads and SwingWorker,'' The Java Tutorials. [Online].
+Available:
+\url{https://docs.oracle.com/javase/tutorial/uiswing/concurrency/worker.html}
+
+\bibitem{ref_fibonacci}
+Wikipedia, ``Fibonacci heap,'' 2026. [Online]. Available:
+\url{https://en.wikipedia.org/wiki/Fibonacci_heap}
+
+\end{thebibliography}
+
+\end{document}

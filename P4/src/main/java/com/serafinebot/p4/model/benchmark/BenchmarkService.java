@@ -44,9 +44,6 @@ public final class BenchmarkService {
                 for (PriorityQueueStrategy strategy : PriorityQueueStrategy.values()) {
                     double totalCompressionTreeBuildMillis = 0.0;
                     double totalDecompressionTreeBuildMillis = 0.0;
-                    double totalEntropy = 0.0;
-                    double totalAverageCodeLength = 0.0;
-                    double totalCompressionPercentage = 0.0;
 
                     for (int repetition = 0; repetition < config.repetitions(); repetition++) {
                         Path archivePath = tempDirectory.resolve("archive-" + inputIndex + '-' + strategy.name() + '-' + repetition + ".hff");
@@ -64,10 +61,6 @@ public final class BenchmarkService {
                             throw new IOException("El benchmark ha produït una descompressio incorrecta per al fitxer " + input.sourceName() + '.');
                         }
 
-                        totalEntropy += compressionStats.entropy();
-                        totalAverageCodeLength += compressionStats.averageHuffmanCodeLength();
-                        totalCompressionPercentage += compressionStats.compressionPercentage();
-
                         completedSteps++;
                         reportProgress(progressListener, completedSteps, totalSteps, input.sourceName(), strategy, input.sizeBytes());
 
@@ -80,10 +73,7 @@ public final class BenchmarkService {
                         strategy,
                         input.sizeBytes(),
                         totalCompressionTreeBuildMillis / config.repetitions(),
-                        totalDecompressionTreeBuildMillis / config.repetitions(),
-                        totalEntropy / config.repetitions(),
-                        totalAverageCodeLength / config.repetitions(),
-                        totalCompressionPercentage / config.repetitions()
+                        totalDecompressionTreeBuildMillis / config.repetitions()
                     ));
                 }
             }

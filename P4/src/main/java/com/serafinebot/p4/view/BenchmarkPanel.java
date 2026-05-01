@@ -61,7 +61,6 @@ public final class BenchmarkPanel extends JPanel {
     private final BenchmarkGraphPanel modeCompressionGraph = new BenchmarkGraphPanel();
     private final BenchmarkGraphPanel modeDecompressionGraph = new BenchmarkGraphPanel();
     private final BenchmarkGraphPanel compressionRateGraph = new BenchmarkGraphPanel();
-    private final BenchmarkGraphPanel entropyGraph = new BenchmarkGraphPanel();
 
     private BenchmarkReport report;
 
@@ -247,7 +246,6 @@ public final class BenchmarkPanel extends JPanel {
         tabs.addTab("Temps de compressio per mode", modeCompressionGraph);
         tabs.addTab("Temps de descompressio per mode", modeDecompressionGraph);
         tabs.addTab("Taxa de compressio", compressionRateGraph);
-        tabs.addTab("Entropia vs codi", entropyGraph);
         return tabs;
     }
 
@@ -292,13 +290,6 @@ public final class BenchmarkPanel extends JPanel {
             "No hi ha dades de rati de compressio.",
             compressionRateSeries()
         );
-        entropyGraph.setGraph(
-            "Entropia vs longitud mitjana del codi",
-            "Entropia (bits/simbol)",
-            "Longitud mitjana (bits/simbol)",
-            "No hi ha dades d'entropia.",
-            entropySeries()
-        );
     }
 
     private void showEmptyState() {
@@ -307,7 +298,6 @@ public final class BenchmarkPanel extends JPanel {
         modeCompressionGraph.setGraph("Temps de compressio per mode", "Mida (bytes)", "Temps (ms)", "Executa una comparativa per veure el graf.", List.of());
         modeDecompressionGraph.setGraph("Temps de descompressio per mode", "Mida (bytes)", "Temps (ms)", "Executa una comparativa per veure el graf.", List.of());
         compressionRateGraph.setGraph("Rati de compressio segons la mida (per mode)", "Mida (bytes)", "Rati (N:1)", "Executa una comparativa per veure el graf.", List.of());
-        entropyGraph.setGraph("Entropia vs longitud mitjana del codi", "Entropia", "Longitud mitjana", "Executa una comparativa per veure el graf.", List.of());
         exportButton.setEnabled(false);
     }
 
@@ -345,16 +335,6 @@ public final class BenchmarkPanel extends JPanel {
             series.add(new BenchmarkGraphPanel.Series(mode.toString(), MODE_COLORS.get(mode), true, graphPoints));
         }
         return series;
-    }
-
-    private List<BenchmarkGraphPanel.Series> entropySeries() {
-        List<BenchmarkGraphPanel.GraphPoint> graphPoints = new ArrayList<>();
-        for (QueueBenchmarkPoint point : report.queuePoints()) {
-            if (point.strategy() == PriorityQueueStrategy.BINARY_HEAP) {
-                graphPoints.add(new BenchmarkGraphPanel.GraphPoint(point.entropy(), point.averageCodeLength(), point.sourceName()));
-            }
-        }
-        return List.of(new BenchmarkGraphPanel.Series("Fitxers", new Color(54, 111, 214), false, graphPoints));
     }
 
     private List<BenchmarkGraphPanel.Series> compressionRateSeries() {

@@ -18,16 +18,13 @@ public final class BenchmarkCsvWriter {
 
     public static String toCsv(BenchmarkReport report) {
         StringBuilder builder = new StringBuilder();
-        builder.append("source_name,strategy,size_bytes,tree_build_compression_ms,tree_build_decompression_ms,entropy,average_code_length,compression_percentage\n");
+        builder.append("source_name,strategy,size_bytes,tree_build_compression_ms,tree_build_decompression_ms\n");
         for (QueueBenchmarkPoint point : report.queuePoints()) {
             builder.append(point.sourceName()).append(',')
                 .append(point.strategy().name()).append(',')
                 .append(point.sizeBytes()).append(',')
                 .append(format(point.compressionTreeBuildMillis())).append(',')
-                .append(format(point.decompressionTreeBuildMillis())).append(',')
-                .append(format(point.entropy())).append(',')
-                .append(format(point.averageCodeLength())).append(',')
-                .append(format(point.compressionPercentage())).append('\n');
+                .append(format(point.decompressionTreeBuildMillis())).append('\n');
         }
 
         if (!report.modePoints().isEmpty()) {
