@@ -59,23 +59,6 @@
     captionpos=b
 }
 
-\newcommand{\suggestedfigure}[3]{
-\begin{figure}[H]
-    \centering
-    \fbox{
-        \begin{minipage}{0.9\linewidth}
-            \vspace{0.35cm}
-            \centering
-            \textbf{Imatge pendent}\\[0.2cm]
-            \footnotesize #3
-            \vspace{0.35cm}
-        \end{minipage}
-    }
-    \caption{#2}
-    \label{#1}
-\end{figure}
-}
-
 \hyphenation{Huff-man com-pres-sio des-com-pres-sio fre-quen-ci-es}
 
 \begin{document}
@@ -100,8 +83,9 @@ interfície gràfica permet seleccionar fitxers, visualitzar l'arbre generat,
 consultar la taula de codis i executar comparatives de rendiment. També
 s'ha implementat una CLI que reutilitza el mateix model que la GUI, de
 manera que els benchmarks són reproduïbles sense interacció manual. Es
-presenten proves unitàries centrades en round-trip, robustesa del format,
-correcció de cues i funcionament del benchmark, i un anàlisi
+presenten proves unitàries centrades en comprimir i descomprimir sense pèrdua,
+robustesa del format,
+correcció de cues i exportació CSV, i una anàlisi
 experimental sobre els fitxers de Silesia.
 \end{abstract}
 
@@ -177,7 +161,7 @@ L'arbre es construeix de baix cap amunt. Primer es crea una fulla per a
 cada símbol amb freqüència major a 0. Després es repeteix el mateix pas
 fins que només queda un node: extreure els dos nodes de menor freqüència,
 unir-los en un node intern i tornar-lo a inserir a la cua de prioritat.
-El node final és l'arrel de l'arbre \cite{ref_wikipedia_huffman}.
+El node final és l'arrel de l'arbre.
 
 Un detall pràctic important és el desempat. Quan dos símbols tenen la
 mateixa freqüència, hi pot haver diversos arbres òptims. La implementació
@@ -232,10 +216,6 @@ Durant la compressió o descompressió, la barra inferior mostra la fase
 actual, el percentatge, els bytes processats i una estimació del temps
 restant. Les operacions llargues s'executen amb \texttt{SwingWorker} per
 no bloquejar la interfície.
-
-\suggestedfigure{fig:gui}{Vista principal de l'aplicació.}
-{Captura suggerida: pestanya ``Fitxers'' amb un fitxer de Silesia seleccionat,
-estadístiques visibles i barra de progrés després d'una compressió.}
 
 \subsection{CLI}
 
@@ -325,16 +305,11 @@ Els casos amb un únic símbol es tracten de forma especial. Si només hi ha
 un símbol possible, no fa falta escriure cap bit de càrrega: la freqüència
 ja diu quantes vegades s'ha de repetir aquell símbol.
 
-\suggestedfigure{fig:pipeline}{Flux intern de compressió i descompressió.}
-{Diagrama suggerit: entrada $\rightarrow$ anàlisi de freqüències
-$\rightarrow$ plans candidats $\rightarrow$ selector $\rightarrow$ writer;
-per a la descompressió, reader $\rightarrow$ reconstrucció d'arbre
-$\rightarrow$ sortida restaurada.}
-
 \subsection{Modes de Compressió}
 
-La Taula~\ref{tab:modes} resumeix els modes disponibles.
-Més endavant s'expliquen més detalladament. 
+La Taula~\ref{tab:modes} resumeix els modes disponibles des del punt de
+vista de disseny. La implementació concreta dels analitzadors es descriu
+més endavant.
 
 \begin{table}[H]
 \centering
@@ -374,14 +349,11 @@ d'escriure es fa una segona comprovació amb la mida real.
 \subsection{Mode per Blocs}
 
 El mode per blocs intenta resoldre el problema dels fitxers heterogenis:
-parts del fitxer molt diferents que poden aprofitar de tenir un arbre Huffman diferent.
-Primer s'estima una mida de bloc entre diverses candidates, totes múltiples de 4 KiB (4 KiB, 16 KiB,
-64 KiB, 256 KiB, 1 MiB, 4 MiB i 16 MiB). Fer una compressió real per a
-cada candidata seria massa car; per això es fa una sola passada
-d'anàlisi i s'estima el cost de cada bloc amb la seva entropia i amb la
-mida de les metadades.
+parts del fitxer molt diferents que poden aprofitar de tenir un arbre
+Huffman diferent. La decisió es pren localment, no amb una única taula de
+freqüències per a tot el fitxer.
 
-Per a cada bloc es comparen tres opcions:
+Per a cada bloc es comparen tres opcions lògiques:
 
 \begin{itemize}
     \item guardar-lo sense comprimir (\texttt{STORED}),
@@ -391,9 +363,7 @@ Per a cada bloc es comparen tres opcions:
 
 Una opció Huffman només s'accepta si guanya el cost d'emmagatzemar el
 bloc directament. Això evita que la taula de freqüències faci créixer
-blocs petits o poc compressibles. El resultat final continua passant per
-la comprovació global de mida, de manera que els blocs \texttt{STORED}
-no poden provocar que es generi un arxiu comprimit més gran que l'original.
+blocs petits o poc compressibles.
 
 \subsection{Format d'Arxiu}
 
@@ -425,6 +395,65 @@ Aquesta secció descriu les classes principals de la implementació. No
 s'enumeren només per paquet: s'explica també com cooperen durant una
 compressió, una descompressió i un benchmark.
 
+L'organització general segueix el patró Model-Vista-Controlador, resumit a
+la Fig.~\ref{fig:mvc} on es mostra l'organització general de paquets del projecte Java.
+La vista concentra els components Swing i només envia
+intencions; el controlador valida les peticions, crea el codec amb les
+opcions triades i executa el treball en segon pla; el model conté la
+compressió, el format d'arxiu, les cues, el progrés, la informació de
+resultat i el benchmark. Aquesta separació evita que la GUI construeixi
+arbres o interpreti arxius, i també permet que la CLI usi el mateix model
+sense crear cap finestra.
+
+\begin{figure*}[!b]
+    \centering
+    \resizebox{0.94\textwidth}{!}{%
+    \begin{tikzpicture}[
+        font=\sffamily\footnotesize,
+        box/.style={draw, rounded corners, thick, align=center, minimum width=2.5cm, minimum height=0.9cm},
+        model/.style={box, fill=blue!9},
+        pkg/.style={model, minimum width=2.25cm},
+        ui/.style={box, fill=green!10},
+        ctrl/.style={box, fill=orange!15},
+        tool/.style={box, fill=purple!9},
+        core/.style={model, minimum width=3.0cm},
+        arr/.style={->, thick}
+    ]
+        \node[ui] (view) at (-5.4, -0.45) {\texttt{view}\\GUI Swing};
+        \node[tool] (cli) at (5.4, 2.2) {\texttt{CLI}\\línia de comandes};
+        \node[ctrl] (controller) at (-2.4, 0.85) {\texttt{controller}\\\texttt{Controller}};
+        \node[core] (codec) at (1.4, 0.85) {\texttt{HuffmanCodec}\\façana del model};
+        \node[model] (benchmark) at (5.4, -0.45) {\texttt{benchmark}\\comparatives i CSV};
+
+        \node[pkg] (codecPkg) at (-4.8, -1.8) {\texttt{codec}\\anàlisi i selecció};
+        \node[pkg] (archive) at (-2.4, -1.8) {\texttt{archive}\\capçalera i modes};
+        \node[pkg] (queue) at (0.0, -1.8) {\texttt{queue}\\cues de prioritat};
+        \node[pkg] (progress) at (2.4, -1.8) {\texttt{progress}\\estat i fases};
+        \node[pkg] (info) at (4.8, -1.8) {\texttt{info}\\dades per a la GUI};
+
+        \draw[arr] (view) -- (controller);
+        \draw[arr] (controller) -- (codec);
+        \draw[arr] (cli) -- (codec);
+        \draw[arr] (benchmark) -- (codec);
+        \draw[arr] (codec) -- (codecPkg);
+        \draw[arr] (codec) -- (archive);
+        \draw[arr] (codec) -- (queue);
+        \draw[arr] (codec) -- (progress);
+        \draw[arr] (codec) -- (info);
+        \draw[arr, dashed] (info.north) .. controls (2.9, -0.55) and (-2.9, -0.55) .. (view.east);
+        \draw[arr, dashed] (progress) to[bend right=12] (controller);
+
+        \node[ui, minimum width=1.8cm, minimum height=0.45cm, font=\sffamily\scriptsize] at (-5.15, 2.35) {Vista};
+        \node[ctrl, minimum width=1.8cm, minimum height=0.45cm, font=\sffamily\scriptsize] at (-3.2, 2.35) {Controlador};
+        \node[model, minimum width=1.8cm, minimum height=0.45cm, font=\sffamily\scriptsize] at (-1.05, 2.35) {Model};
+        \node[tool, minimum width=1.8cm, minimum height=0.45cm, font=\sffamily\scriptsize] at (1.0, 2.35) {Eines};
+
+    \end{tikzpicture}%
+    }
+    \caption{Arquitectura MVC per paquets i dependències principals.}
+    \label{fig:mvc}
+\end{figure*}
+
 \subsubsection{Punts d'Entrada: Main i CLI}
 
 \texttt{Main} és el punt d'entrada gràfic. La seva feina és mínima:
@@ -434,21 +463,9 @@ finestra. No conté cap decisió de compressió. Aquesta simplicitat és
 intencionada: si la classe d'entrada comença a crear arbres o llegir
 fitxers, la separació MVC es perd des del principi.
 
-\texttt{CLI} és el punt d'entrada per línia de comandes. Implementa un
-mètode \texttt{run()} que retorna un codi de sortida. Això permet
-provar-la sense executar un procés extern: les proves unitàries li passen
-els arguments i els streams en memòria com a paràmetres. Internament fa
-el mateix que la GUI: crea un \texttt{HuffmanCodec} i invoca compressió,
-descompressió o benchmark. La CLI no té una versió alternativa de
-l'algorisme, només un adaptador textual damunt el model.
-
-Per mostrar progrés, la CLI defineix dos petits impressors interns. Un
-formata \texttt{ProgressSnapshot} de compressió/descompressió i l'altre
-\texttt{BenchmarkProgressSnapshot}. Tots dos escriuen sobre \texttt{stderr}
-amb retorn de carro, de manera que la línia de progrés s'actualitza sense
-omplir la terminal. Quan l'operació acaba, la CLI imprimeix a
-\texttt{stdout} les mateixes dades que la GUI mostra al panell
-d'estadístiques: mode, cua, mides, entropia, longitud mitjana i temps.
+\texttt{CLI} és l'adaptador textual. Implementa \texttt{run()} amb codi de
+sortida i streams injectables, crea el mateix \texttt{HuffmanCodec} que la
+GUI i només afegeix formatació de progrés i de resultats per terminal.
 
 \subsubsection{Controller i ViewListener}
 
@@ -475,11 +492,10 @@ entre el treball de fons i la vista.
 
 \subsubsection{Vista: MainWindow i Panells}
 
-\texttt{MainWindow} és la finestra principal. Construeix les quatre
-pestanyes, manté els camps de ruta, els selectors de cua/mode, la taula de
-codis, el panell d'arbre, els panells de blocs i el panell de benchmark.
-Quan rep un \texttt{CompressionInfo}, no torna a calcular res: simplement
-transforma les dades en text, files de taula i nodes visuals.
+\texttt{MainWindow} és la finestra principal. Manté els camps de ruta, els
+selectors de cua/mode i els panells descrits a la secció d'ús. Quan rep
+un \texttt{CompressionInfo}, no torna a calcular res: simplement transforma
+les dades en text, files de taula i nodes visuals.
 
 La taula de codis usa un model propi, \texttt{SymbolTableModel}, amb
 tipus de columna concrets. Això és important perquè les columnes de
@@ -589,17 +605,11 @@ projecte: l'algorisme només necessita inserir nodes, extreure el mínim i
 consultar la mida, independentment de si al darrere hi ha un heap binari,
 una llista ordenada o un heap de Fibonacci.
 
-Primer, per cada símbol amb freqüència positiva es crea una fulla amb
-\texttt{single()} i s'insereix a la cua. Aquest mètode rep el símbol i la
-seva freqüència, però només construeix un node fulla: símbol real,
-freqüència i cap fill.
-Després l'algorisme extreu els dos nodes amb menor freqüència i els passa
-a \texttt{merge()}, que crea un node intern nou que té aquests
-dos nodes com a fills i freqüència igual a la suma de les dues
-freqüències. Aquest node representa el subarbre combinat i es torna a
-inserir a la cua. Repetint aquest procés, la cua va passant de moltes
-fulles petites a subarbres cada vegada més grans fins que només queda una
-arrel.
+Els mètodes \texttt{single()} i \texttt{merge()} materialitzen els dos casos
+del model teòric: fulles amb símbol real i nodes interns amb dos fills. La
+part rellevant aquí no és repetir l'algorisme, sinó que tots els nodes
+passen per \texttt{compareTo()}, de manera que el desempat determinista és
+compartit per totes les cues.
 
 El codi binari de cada fulla no es construeix durant aquest procés. Es
 calcula després de forma mandrosa amb una única passada en amplada: cada
@@ -645,7 +655,7 @@ Les tres implementacions són:
           $O(n)$.
     \item \textbf{\texttt{FibonacciHeapNodeQueue}:} estructura més
           complexa, amb insercions molt barates i extracció mínima
-          amortitzada logarítmica \cite{ref_fibonacci}. La implementació
+          amortitzada logarítmica. La implementació
           manté una llista circular d'arrels i cada node pot tenir una
           llista circular de fills. Inserir és gairebé només afegir una
           arrel nova i actualitzar el punter al mínim. En extreure el
@@ -766,13 +776,10 @@ candidat Huffman és més petit que copiar-lo, el bloc es marca com a
 2 bytes ni arbres entre blocs.
 
 \texttt{HuffmanModeSelector} és el punt on es converteix l'anàlisi en una
-decisió final. Abans d'arribar aquí, el codec ja ha calculat quant
-ocuparia cada alternativa possible: Huffman global d'1 byte, Huffman
-global de 2 bytes i Huffman per blocs. Si l'usuari ha demanat un mode
-concret, el selector simplement tria aquella alternativa i falla si no és
-aplicable. Per exemple, \texttt{STORED} no s'accepta com a mode de fitxer
-sencer perquè això generaria un fitxer ``comprimit'' més gran que l'original
-(dades originals + capçalera) cosa que no tendria sentit.
+decisió final. Rep plans ja estimats i tria el més petit en mode
+\texttt{AUTO}, o bé comprova que el mode demanat per l'usuari sigui
+aplicable. Així la lògica de selecció queda separada de la lectura del
+fitxer i de l'escriptura del format.
 
 \subsubsection{Writer i Reader}
 
@@ -821,123 +828,54 @@ per la GUI i la CLI.
 
 \texttt{BenchmarkConfig} guarda la configuració d'una execució: directori
 d'entrada, nombre de repeticions i opcions seleccionades.
-\texttt{BenchmarkService} carrega tots els fitxers no comprimits en format
-\texttt{.hff} del directori, els ordena per mida i executa dues sèries.
-Durant l'execució, \texttt{BenchmarkProgressListener} rep mostres de
-progrés perquè la GUI o la CLI puguin mostrar l'estat sense que el servei
-conegui cap component visual.
-
-La primera sèrie compara cues. Per cada fitxer i cada
-\texttt{PriorityQueueStrategy}, comprimeix en mode automàtic, descomprimeix
-el resultat i verifica amb \texttt{Files.mismatch()} que la sortida sigui
-idèntica. Després agrega els temps de construcció d'arbre de compressió i
-descompressió en \texttt{QueueBenchmarkPoint}. Aquesta comparativa només
-necessita aquests temps, perquè la taxa de compressió depèn del mode
-seleccionat i es mostra a la segona sèrie.
-
-La segona sèrie compara modes. Usa heap binari i demana explícitament
-\texttt{HUFFMAN\_1\_BYTE}, \texttt{HUFFMAN\_2\_BYTE},
-\texttt{HUFFMAN\_BLOCK\_1\_BYTE} i \texttt{HUFFMAN\_BLOCK\_2\_BYTE}.
-Mesura temps total de compressió i descompressió, i guarda les dades en
-\texttt{CompressionModeBenchmarkPoint}. Finalment,
-\texttt{BenchmarkReport} agrupa totes les files i \texttt{BenchmarkCsvWriter}
-les serialitza en dues seccions CSV.
-
-
-\subsubsection{Arquitectura MVC}
-
-La separació general segueix el patró Model-Vista-Controlador. Després de
-veure les classes principals, és més fàcil situar cada paquet dins
-d'aquesta arquitectura. En aquest projecte no és pràctic dibuixar un
-diagrama amb totes les classes perquè el model és bastant ampli; és més
-clar representar paquets i responsabilitats.
-
-\begin{itemize}
-    \item \textbf{Model:} compressió, descompressió, format d'arxiu,
-          cues de prioritat, progrés, informació per a la GUI i
-          benchmark.
-    \item \textbf{Vista:} components Swing, taules, arbre, explorador de
-          fitxers i gràfiques.
-    \item \textbf{Controlador:} valida rutes, crea el codec amb les
-          opcions triades, executa treballs en segon pla i passa els
-          resultats a la vista.
-\end{itemize}
-
-La vista no construeix arbres ni interpreta arxius. El controlador no sap
-com es dibuixa l'arbre. El model no importa classes de la GUI. Aquesta
-separació fa que la CLI pugui usar el mateix compressor sense crear cap
-finestra.
-
-\begin{figure*}[t]
-    \centering
-    \fbox{
-        \begin{minipage}{0.86\textwidth}
-            \vspace{0.4cm}
-            \centering
-            \textbf{Imatge pendent}\\[0.2cm]
-            Diagrama suggerit per paquets, no per classes individuals:
-            \texttt{view} i \texttt{CLI} apunten al \texttt{controller}/\texttt{HuffmanCodec};
-            el codec coordina \texttt{codec}, \texttt{archive}, \texttt{queue},
-            \texttt{progress} i \texttt{info}; \texttt{benchmark} reutilitza
-            \texttt{HuffmanCodec}.
-            \vspace{0.4cm}
-        \end{minipage}
-    }
-    \caption{Arquitectura MVC proposada per a la documentació visual.}
-    \label{fig:mvc}
-\end{figure*}
+\texttt{BenchmarkService} carrega els fitxers del directori, executa les
+comparatives descrites a la secció de resultats i verifica cada cicle de
+compressió i descompressió
+amb \texttt{Files.mismatch()}. Durant l'execució,
+\texttt{BenchmarkProgressListener} rep mostres de progrés perquè la GUI o
+la CLI puguin mostrar l'estat sense que el servei conegui cap component
+visual. Finalment, \texttt{BenchmarkReport} agrupa les files i
+\texttt{BenchmarkCsvWriter} les serialitza en CSV.
 
 
 %% ================================================================
 \section{Validació amb Proves Unitàries}
 
-Les proves s'executen amb JUnit 5 mitjançant \texttt{mvn test}. En el
-moment d'escriure aquesta memòria hi ha 35 proves i totes passen. La
-Taula~\ref{tab:tests} resumeix què cobreixen.
+Les proves s'executen amb JUnit 5 mitjançant \texttt{mvn test}. En total hi
+ha 31 proves i no creen ni llegeixen cap corpus. La
+validació s'ha organitzat al voltant de tres riscos principals: perdre
+dades en comprimir i descomprimir, construir arbres diferents amb cues diferents i
+acceptar arxius corruptes com si fossin vàlids.
 
-\begin{table*}[t]
-\centering
-\caption{Cobertura funcional de les proves unitàries.}
-\label{tab:tests}
-\begin{tabular}{@{}p{0.22\textwidth}p{0.68\textwidth}r@{}}
-\toprule
-\textbf{Grup} & \textbf{Comprovacions principals} & \textbf{Tests} \\
-\midrule
-\texttt{HuffmanCodecTest} &
-Round-trip amb bytes repetits, tots els valors de byte, text, mode de 2 bytes,
-mode per blocs, restriccions de submode, selecció automàtica, rebuig de fitxers
-buits o aleatoris que creixerien, determinisme amb freqüències iguals, progrés,
-errors de format, arxius truncats, totals de freqüència incorrectes, benchmark i CSV. & 22 \\
-\texttt{NodeQueueTest} &
-Cada cua elimina en ordre creixent, es compara amb \texttt{PriorityQueue} sota
-2.000 operacions mixtes aleatòries i falla correctament quan es demana eliminar
-el mínim d'una cua buida. Les mateixes proves s'apliquen al heap binari, la
-llista dicotòmica i el heap de Fibonacci. & 9 \\
-\texttt{HuffmanCodeTest} &
-La taula de fulles permet accés directe a qualsevol símbol, inclòs 255, i els
-codis/profunditats es calculen de forma coherent i mandrosa. & 2 \\
-\texttt{CLITest} &
-La CLI comprimeix i descomprimeix un fitxer correctament, i mostra ajuda quan
-els arguments són incorrectes. & 2 \\
-\bottomrule
-\end{tabular}
-\end{table*}
+El grup més gran és \texttt{HuffmanCodecTest}, amb 20 proves. Aquestes
+proves exerciten el compressor complet: escriuen dades originals, les
+comprimeixen, les descomprimeixen i comparen el resultat byte a byte.
+Inclouen fitxers d'un sol símbol, els 256 valors possibles de byte, text
+real, símbols de 2 bytes i modes per blocs. També comproven que el mode
+automàtic rebutja fitxers buits o casos on el resultat creixeria, que els
+avisos de progrés avancen de forma consistent i que l'exportador CSV del
+benchmark manté les capçaleres i files esperades.
 
-Les proves de round-trip són les més importants: escriuen dades originals,
-les comprimeixen, les descomprimeixen i comparen byte a byte el resultat.
-Això valida conjuntament el comptatge de freqüències, la construcció de
-l'arbre, l'escriptura de bits, la lectura de bits i el format d'arxiu.
+La robustesa del format es valida amb casos negatius dins el mateix grup de
+codec. Es creen arxius amb capçalera incorrecta, modes no suportats,
+càrrega truncada o totals de freqüència incompatibles amb la mida original.
+En tots aquests casos s'espera una excepció de format, no una sortida
+parcial. Aquesta part és important perquè un compressor pot fallar de forma
+silenciosa si accepta bits insuficients o metadades incoherents.
 
-Les proves de cues són independents del compressor. Això és intencionat:
-si una cua falla, l'arbre de Huffman podria quedar mal construït encara
-que la resta del compressor fos correcta. Comparar cada implementació amb
-\texttt{PriorityQueue} sota operacions barrejades dóna una garantia forta
-que totes respecten el mateix contracte.
+\texttt{NodeQueueTest} conté 9 proves independents del compressor. Cada cua
+ha d'eliminar nodes en ordre creixent, comportar-se igual que
+\texttt{PriorityQueue} sota 2.000 operacions mixtes aleatòries i fallar
+correctament quan es demana extreure el mínim d'una cua buida. Les mateixes
+proves s'apliquen al heap binari, la llista dicotòmica i el heap de
+Fibonacci, perquè totes tres han de respectar el mateix contracte.
 
-També hi ha proves negatives. Per exemple, es creen arxius amb capçalera
-incorrecta, mode no suportat o càrrega truncada, i s'exigeix que la
-descompressió falli. Això evita que el programa produeixi sortides
-silenciosament corruptes quan rep un fitxer invàlid.
+Finalment, \texttt{HuffmanCodeTest} cobreix dues propietats internes de
+l'arbre. La primera és que, després de construir-lo, cada símbol existent es
+pot localitzar directament a partir del seu valor i conserva la freqüència
+esperada. La segona força el càlcul posterior dels codis i comprova que la
+profunditat de cada fulla coincideix amb la longitud del codi binari
+assignat.
 
 %% ================================================================
 \section{Resultats i Discussió}
@@ -945,24 +883,28 @@ silenciosament corruptes quan rep un fitxer invàlid.
 
 \subsection{Protocol de Benchmark}
 
-Per a aquesta primera versió s'ha utilitzat la carpeta \texttt{P4/res},
-que conté els fitxers de Silesia. Silesia és un conjunt de 12 fitxers pensat per provar
+Per a aquesta primera versió s'ha utilitzat el corpus Silesia, un conjunt de
+12 fitxers pensat per provar
 compressors sense pèrdues amb dades de naturalesa diferent: text, HTML,
 executables, bases de dades i imatges mèdiques. La mida total original és
 d'aproximadament 212 MB \cite{ref_silesia}.
 
-La comanda executada ha estat:
+La mesura s'ha repetit tres vegades per a cada combinació de fitxer i
+configuració. El CSV exportat conté la mitjana d'aquestes tres repeticions;
+a partir d'aquestes files, la memòria presenta també medianes entre els 12
+fitxers per reduir l'efecte dels fitxers molt grans. La comanda equivalent
+és:
 
 \begin{lstlisting}[language=bash,caption={Benchmark CLI sobre Silesia.},label={lst:bench}]
 java -cp target/P4-1.0-SNAPSHOT.jar \
   com.serafinebot.p4.CLI benchmark \
-  res 1 memoria/silesia-benchmark.csv
+  <silesiaDir> 3 memoria/silesia-benchmark.csv
 \end{lstlisting}
 
 La GUI usa exactament el mateix \texttt{BenchmarkService}. La diferència
-és que la CLI exporta directament el CSV i evita interferència manual. En
-aquesta execució s'ha usat una repetició per fitxer; per tant, els valors
-serveixen com a fotografia inicial, no com a estudi estadístic final.
+és que la CLI exporta directament el CSV i evita interferència manual. El
+directori emprat conté només els 12 fitxers de Silesia, sense fitxers ocults
+del sistema.
 
 El benchmark fa dues comparatives:
 
@@ -978,88 +920,110 @@ Cada compressió es descomprimeix després i es compara amb l'original.
 Per tant, una fila de benchmark només és vàlida si també ha passat la
 verificació de descompressió.
 
-\subsection{Limitacions de la Mesura Actual}
+\subsection{Resultats per Cua de Prioritat}
 
-Les dades d'aquesta memòria són útils per comparar tendències, però no
-s'han d'interpretar com a valors absoluts definitius. Només s'ha executat
-una repetició per fitxer, de manera que hi pot haver soroll de la JVM, del
-sistema operatiu o de la cache de disc. En la versió final del treball
-seria convenient repetir cada cas diverses vegades i presentar mitjanes o
-medians.
+La Taula~\ref{tab:queueavg} compara només el temps de construir arbres en les fases
+de compressió i descompressió.
+La reducció mitjana és idèntica perquè el desempat determinista fa que les
+tres cues produeixin els mateixos arbres finals. També aquí es mostren
+mitjanes i medianes: la mediana és útil perquè alguns fitxers tenen molt
+pocs símbols diferents i fan que el temps de construcció sigui quasi zero.
 
-També convé separar dues preguntes diferents. Una és quin mode comprimeix
-més. L'altra és quin mode és més ràpid. Un mode pot reduir molt la mida
-però ser més lent de descomprimir perquè l'arbre és més gran o perquè el
-símbol és de 2 bytes. Per això les taules mostren percentatge i temps, i
-no només una única puntuació agregada.
-
-Finalment, Silesia és més representatiu que fitxers artificials,
-però no cobreix tots els casos d'ús. Fitxers ja comprimits, dades
-criptogràficament aleatòries o fitxers molt petits probablement serien
-rebutjats pel compressor perquè la capçalera i les taules ocuparien més
-que el guany possible.
-
-\subsection{Resultats per Mode}
-
-La Taula~\ref{tab:bestmode} mostra el millor mode observat per a cada
-fitxer de Silesia. El percentatge indica reducció respecte a l'original:
-per exemple, 47\% significa que l'arxiu final ocupa un 47\% menys.
-
-\begin{table*}[t]
+\begin{table}[!b]
 \centering
-\caption{Millor mode per fitxer en el benchmark Silesia.}
-\label{tab:bestmode}
-\begin{tabular}{@{}lrlrr@{}}
+\caption{Temps de construcció d'arbre per cua.}
+\label{tab:queueavg}
+\scriptsize
+\begin{tabular}{@{}lrrrrr@{}}
 \toprule
-\textbf{Fitxer} & \textbf{Mida (B)} & \textbf{Millor mode} & \textbf{Reducció (\%)} & \textbf{Comp. / Descomp. (ms)} \\
+\textbf{Cua} & \textbf{C. mitj.} & \textbf{C. med.} & \textbf{D. mitj.} & \textbf{D. med.} & \textbf{Red.} \\
 \midrule
-xml & 5.345.280 & \texttt{HUFFMAN\_BLOCK\_2\_BYTE} & 47,051 & 159,6 / 95,0 \\
-ooffice & 6.152.192 & \texttt{HUFFMAN\_BLOCK\_1\_BYTE} & 18,712 & 206,8 / 146,5 \\
-reymont & 6.627.202 & \texttt{HUFFMAN\_BLOCK\_2\_BYTE} & 49,824 & 191,8 / 107,7 \\
-sao & 7.251.944 & \texttt{HUFFMAN\_2\_BYTE} & 12,316 & 415,4 / 314,7 \\
-x-ray & 8.474.240 & \texttt{HUFFMAN\_BLOCK\_2\_BYTE} & 29,840 & 337,7 / 255,9 \\
-mr & 9.970.564 & \texttt{HUFFMAN\_BLOCK\_2\_BYTE} & 61,019 & 304,8 / 142,3 \\
-osdb & 10.085.684 & \texttt{HUFFMAN\_2\_BYTE} & 21,563 & 533,1 / 386,0 \\
-dickens & 10.192.446 & \texttt{HUFFMAN\_2\_BYTE} & 49,375 & 323,4 / 212,6 \\
-samba & 21.606.400 & \texttt{HUFFMAN\_BLOCK\_2\_BYTE} & 35,748 & 876,6 / 422,5 \\
-nci & 33.553.445 & \texttt{HUFFMAN\_2\_BYTE} & 72,365 & 891,5 / 266,8 \\
-webster & 41.458.703 & \texttt{HUFFMAN\_2\_BYTE} & 47,301 & 1325,4 / 842,7 \\
-mozilla & 51.220.480 & \texttt{HUFFMAN\_2\_BYTE} & 35,224 & 2404,8 / 1322,3 \\
-\bottomrule
-\end{tabular}
-\end{table*}
-
-El mode de 2 bytes és molt competitiu en aquests fitxers. Això indica que
-molts fitxers tenen repeticions útils a nivell de parelles de bytes. El
-mode per blocs guanya especialment quan la distribució local varia:
-\texttt{xml}, \texttt{reymont}, \texttt{x-ray}, \texttt{mr} i
-\texttt{samba} milloren amb blocs de 2 bytes, mentre que \texttt{ooffice}
-prefereix blocs d'1 byte.
-
-\begin{table}[H]
-\centering
-\caption{Mitjanes per mode sobre els 12 fitxers.}
-\label{tab:modeavg}
-\begin{tabular}{@{}lrrr@{}}
-\toprule
-\textbf{Mode} & \textbf{Red. \%} & \textbf{Comp. ms} & \textbf{Descomp. ms} \\
-\midrule
-\texttt{HUFFMAN\_1\_BYTE} & 31,261 & 660,0 & 295,0 \\
-\texttt{HUFFMAN\_2\_BYTE} & 39,340 & 694,7 & 393,0 \\
-\texttt{BLOCK\_1\_BYTE} & 33,346 & 447,7 & 293,8 \\
-\texttt{BLOCK\_2\_BYTE} & 39,866 & 663,5 & 383,4 \\
+Binari & 26,833 & 6,333 & 5,556 & 1,000 & 40,315 \\
+Fibonacci & 133,444 & 40,167 & 29,139 & 5,167 & 40,315 \\
+Dicotòmica & 450,000 & 28,500 & 99,500 & 1,500 & 40,315 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{figure}[t]
+    \centering
+    \pgfplotstableread[col sep=comma]{
+queue,compmean,compmedian,decompmean,decompmedian
+Binari,26.833,6.333,5.556,1.000
+Fibonacci,133.444,40.167,29.139,5.167
+Llista,450.000,28.500,99.500,1.500
+    }\queuestatsdata
+    \begin{tikzpicture}
+    \begin{axis}[
+        ybar,
+        width=\linewidth,
+        height=5.2cm,
+        ylabel={Temps (ms)},
+        symbolic x coords={Binari,Fibonacci,Llista},
+        xtick=data,
+        x tick label style={font=\scriptsize},
+        ymode=log,
+        log basis y={10},
+        bar width=4pt,
+        enlarge x limits=0.18,
+        legend columns=2,
+        legend pos=north west,
+        legend style={font=\tiny, fill=white, fill opacity=0.85, draw opacity=1},
+        tick label style={font=\scriptsize},
+        label style={font=\scriptsize},
+        grid=major
+    ]
+        \addplot table[x=queue,y=compmean] {\queuestatsdata};
+        \addlegendentry{Comp. mitjana}
+        \addplot table[x=queue,y=compmedian] {\queuestatsdata};
+        \addlegendentry{Comp. mediana}
+        \addplot table[x=queue,y=decompmean] {\queuestatsdata};
+        \addlegendentry{Descomp. mitjana}
+        \addplot table[x=queue,y=decompmedian] {\queuestatsdata};
+        \addlegendentry{Descomp. mediana}
+    \end{axis}
+    \end{tikzpicture}
+    \caption{Diferència entre mitjana i mediana en la construcció d'arbres durant la compressió i la descompressió.}
+    \label{fig:queue_mean_median}
+\end{figure}
+
+El heap binari és clarament la millor opció pràctica per defecte. A més del
+seu cost asimptòtic raonable, és la implementació interna de Java
+(\texttt{PriorityQueue}), molt optimitzada i amb poca sobrecàrrega constant.
+En canvi, el heap de Fibonacci i la llista dicotòmica són implementacions
+pròpies del projecte i, per tant, no estan tant optimitzades.
+El heap de Fibonacci té bones propietats teòriques, però en aquesta aplicació la
+complexitat de l'estructura i la manipulació d'enllaços pesen més que el
+guany amortitzat. La Fig.~\ref{fig:queue_mean_median} també mostra que la
+mediana és menor que la mitjana en totes les cues, perquè alguns fitxers
+tenen pocs símbols diferents i fan poca feina de construcció. La llista
+dicotòmica és la més perjudicada en la mitjana perquè, quan el nombre de
+símbols creix, mantenir la llista ordenada implica desplaçar més elements.
+
+\subsection{Resultats per Mode}
+
+La Taula~\ref{tab:bestmode} mostra el mode que més comprimeix cada fitxer.
+El percentatge indica reducció respecte a l'original: per exemple, 47\%
+significa que l'arxiu final ocupa un 47\% menys. Els temps són la mitjana
+de tres execucions d'aquell mode sobre el mateix fitxer.
+
+La Fig.~\ref{fig:mode_ratio_by_file} mostra que el mode de 2 bytes és molt
+competitiu en aquests fitxers. Això indica que molts fitxers tenen
+repeticions útils a nivell de parelles de bytes. El mode per blocs guanya
+especialment quan la distribució local varia: \texttt{xml}, \texttt{reymont},
+\texttt{x-ray}, \texttt{mr} i \texttt{samba} milloren amb blocs de 2 bytes,
+mentre que \texttt{ooffice} prefereix blocs d'1 byte. També s'observa que
+els modes de 2 bytes no sempre superen els blocs: en fitxers heterogenis,
+tenir arbres locals pot compensar la capçalera extra de cada bloc.
 
 \begin{figure}[H]
     \centering
     \pgfplotstableread[col sep=comma]{
 mode,ratio,comp,decomp
-1 byte,31.261,660.0,295.0
-2 bytes,39.340,694.7,393.0
-Bloc 1 byte,33.346,447.7,293.8
-Bloc 2 bytes,39.866,663.5,383.4
+1 byte,31.261,696.2,326.8
+2 bytes,39.340,751.9,413.5
+Bloc 1 byte,33.346,471.8,323.7
+Bloc 2 bytes,39.866,710.1,404.4
     }\modedata
     \begin{tikzpicture}
     \begin{axis}[
@@ -1082,105 +1046,176 @@ Bloc 2 bytes,39.866,663.5,383.4
     \label{fig:mode_ratio}
 \end{figure}
 
-La mitjana confirma la intuïció: el mode de 2 bytes comprimeix millor,
-però també descomprimeix més lentament perquè l'espai de símbols és més
-gran i la lectura reconstrueix parelles. Els blocs d'1 byte són els més
-ràpids en compressió, perquè eviten arbres globals grans i poden saltar a
-emmagatzemat en blocs on Huffman no compensa.
-
-\subsection{Resultats per Cua de Prioritat}
-
-La Taula~\ref{tab:queueavg} compara només el temps de construir arbres.
-La taxa de compressió és idèntica perquè el desempat determinista fa que
-les tres cues produeixin els mateixos arbres finals.
-
-\begin{table}[H]
+\begin{figure*}[p]
 \centering
-\caption{Temps mitjà de construcció d'arbre per cua.}
-\label{tab:queueavg}
-\begin{tabular}{@{}lrrr@{}}
+\footnotesize
+
+\refstepcounter{table}\label{tab:bestmode}
+\textbf{Taula~\thetable.} Millor mode per fitxer en el benchmark Silesia.\par\smallskip
+\scriptsize
+\begin{tabular}{@{}lrlrr@{}}
 \toprule
-\textbf{Cua} & \textbf{Comp. ms} & \textbf{Descomp. ms} & \textbf{Red. \%} \\
+\textbf{Fitxer} & \textbf{Mida (B)} & \textbf{Millor mode} & \textbf{Reducció (\%)} & \textbf{Comp. / Descomp. (ms)} \\
 \midrule
-Heap binari & 25,083 & 5,333 & 40,315 \\
-Heap de Fibonacci & 128,583 & 26,917 & 40,315 \\
-Llista dicotòmica & 419,000 & 92,500 & 40,315 \\
+xml & 5.345.280 & \texttt{HUFFMAN\_BLOCK\_2\_BYTE} & 47,051 & 168,6 / 94,9 \\
+ooffice & 6.152.192 & \texttt{HUFFMAN\_BLOCK\_1\_BYTE} & 18,712 & 221,3 / 169,6 \\
+reymont & 6.627.202 & \texttt{HUFFMAN\_BLOCK\_2\_BYTE} & 49,824 & 207,3 / 111,4 \\
+sao & 7.251.944 & \texttt{HUFFMAN\_2\_BYTE} & 12,316 & 468,1 / 353,1 \\
+x-ray & 8.474.240 & \texttt{HUFFMAN\_BLOCK\_2\_BYTE} & 29,840 & 366,8 / 275,1 \\
+mr & 9.970.564 & \texttt{HUFFMAN\_BLOCK\_2\_BYTE} & 61,019 & 331,9 / 151,4 \\
+osdb & 10.085.684 & \texttt{HUFFMAN\_2\_BYTE} & 21,563 & 597,6 / 416,7 \\
+dickens & 10.192.446 & \texttt{HUFFMAN\_2\_BYTE} & 49,375 & 342,6 / 223,3 \\
+samba & 21.606.400 & \texttt{HUFFMAN\_BLOCK\_2\_BYTE} & 35,748 & 950,4 / 454,9 \\
+nci & 33.553.445 & \texttt{HUFFMAN\_2\_BYTE} & 72,365 & 961,6 / 275,4 \\
+webster & 41.458.703 & \texttt{HUFFMAN\_2\_BYTE} & 47,301 & 1374,7 / 830,8 \\
+mozilla & 51.220.480 & \texttt{HUFFMAN\_2\_BYTE} & 35,224 & 2533,6 / 1434,1 \\
 \bottomrule
 \end{tabular}
-\end{table}
+\par\medskip
 
-\begin{figure}[H]
-    \centering
-    \pgfplotstableread[col sep=comma]{
-queue,compress,decompress
-Heap binari,25.083,5.333
-Fibonacci,128.583,26.917
-Llista,419.000,92.500
-    }\queuedata
+\refstepcounter{table}\label{tab:modeavg}
+\textbf{Taula~\thetable.} Mitjanes i medianes per mode sobre els 12 fitxers.\par\smallskip
+\scriptsize
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+\textbf{Mode} & \textbf{Red. mitj.} & \textbf{Red. med.} & \textbf{Comp. mitj.} & \textbf{Comp. med.} & \textbf{Descomp. mitj.} & \textbf{Descomp. med.} \\
+\midrule
+\texttt{HUFFMAN\_1\_BYTE} & 31,261 & 26,981 & 696,2 & 404,4 & 326,8 & 244,8 \\
+\texttt{HUFFMAN\_2\_BYTE} & 39,340 & 38,982 & 751,9 & 472,5 & 413,5 & 273,7 \\
+\texttt{BLOCK\_1\_BYTE} & 33,346 & 34,665 & 471,8 & 254,6 & 323,7 & 248,3 \\
+\texttt{BLOCK\_2\_BYTE} & 39,866 & 41,399 & 710,1 & 425,7 & 404,4 & 276,3 \\
+\bottomrule
+\end{tabular}
+\par\medskip
+
+\refstepcounter{figure}\label{fig:mode_ratio_by_file}
+\textbf{Fig.~\thefigure.} Reducció obtinguda per cada mode en cada fitxer de Silesia.\par\smallskip
     \begin{tikzpicture}
     \begin{axis}[
-        ybar,
-        width=\linewidth,
-        height=5.3cm,
-        ylabel={Temps mitjà (ms)},
-        symbolic x coords={Heap binari,Fibonacci,Llista},
-        xtick=data,
-        x tick label style={rotate=18,anchor=east},
-        ymode=log,
-        log basis y={10},
-        bar width=8pt,
-        legend pos=north west,
-        legend style={font=\footnotesize, fill=white, fill opacity=0.85, draw opacity=1},
+        width=0.98\textwidth,
+        height=6cm,
+        ylabel={Reducció (\%)},
+        xlabel={Mida del fitxer (MB)},
+        xmin=0,
+        xmax=54,
+        ymin=0,
+        ymax=80,
+        legend columns=4,
+        legend style={font=\footnotesize, at={(0.5,1.03)}, anchor=south, draw=none},
         grid=major
     ]
-        \addplot table[x=queue,y=compress] {\queuedata};
-        \addlegendentry{Compressió}
-        \addplot table[x=queue,y=decompress] {\queuedata};
-        \addlegendentry{Descompressió}
+        \addplot+[mark=*] coordinates {(5.35,30.555) (6.15,16.671) (6.63,39.135) (7.25,5.603) (8.47,17.118) (9.97,53.611) (10.09,17.267) (10.19,42.832) (21.61,23.408) (33.55,69.528) (41.46,37.456) (51.22,21.947)};
+        \addlegendentry{1 byte}
+        \addplot+[mark=square*] coordinates {(5.35,42.740) (6.15,18.622) (6.63,49.785) (7.25,12.316) (8.47,29.386) (9.97,60.978) (10.09,21.563) (10.19,49.375) (21.61,32.429) (33.55,72.365) (41.46,47.301) (51.22,35.224)};
+        \addlegendentry{2 bytes}
+        \addplot+[mark=triangle*] coordinates {(5.35,36.914) (6.15,18.712) (6.63,39.469) (7.25,5.950) (8.47,19.210) (9.97,53.700) (10.09,17.267) (10.19,42.874) (21.61,32.416) (33.55,69.527) (41.46,37.542) (51.22,26.566)};
+        \addlegendentry{Bloc 1 byte}
+        \addplot+[mark=diamond*] coordinates {(5.35,47.051) (6.15,18.622) (6.63,49.824) (7.25,12.316) (8.47,29.840) (9.97,61.019) (10.09,21.563) (10.19,49.375) (21.61,35.748) (33.55,72.346) (41.46,47.244) (51.22,33.448)};
+        \addlegendentry{Bloc 2 bytes}
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:5.35,47.051) {xml};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:6.15,18.622) {ooffice};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:6.63,49.824) {reymont};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:7.25,12.316) {sao};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:8.47,29.840) {x-ray};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:9.97,61.019) {mr};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:10.09,21.563) {osdb};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:10.19,49.375) {dickens};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:21.61,35.748) {samba};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:33.55,72.346) {nci};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:41.46,47.244) {webster};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:51.22,33.448) {mozilla};
     \end{axis}
     \end{tikzpicture}
-    \caption{Temps mitjà de construcció de l'arbre segons la cua de prioritat.}
-    \label{fig:queue_time}
-\end{figure}
+\par\medskip
 
-El heap binari és clarament la millor opció pràctica per defecte. El heap
-de Fibonacci té bones propietats teòriques, però en aquesta aplicació la
-complexitat de l'estructura i la manipulació d'enllaços pesen més que el
-guany amortitzat. La llista dicotòmica és útil com a implementació simple
-i com a comparació, però els desplaçaments dins la llista la penalitzen.
+\refstepcounter{figure}\label{fig:mode_time_by_file}
+\textbf{Fig.~\thefigure.} Temps mitjà de compressió per mode en cada fitxer de Silesia.\par\smallskip
+    \begin{tikzpicture}
+    \begin{axis}[
+        width=0.98\textwidth,
+        height=6cm,
+        ylabel={Temps de compressió (ms)},
+        xlabel={Mida del fitxer (MB)},
+        xmin=0,
+        xmax=54,
+        ymode=log,
+        log basis y={10},
+        legend columns=4,
+        legend style={font=\footnotesize, at={(0.5,1.03)}, anchor=south, draw=none},
+        grid=major
+    ]
+        \addplot+[mark=*] coordinates {(5.35,214.3) (6.15,411.9) (6.63,220.8) (7.25,397.0) (8.47,352.9) (9.97,350.7) (10.09,484.7) (10.19,348.2) (21.61,945.1) (33.55,975.4) (41.46,1366.4) (51.22,2287.0)};
+        \addlegendentry{1 byte}
+        \addplot+[mark=square*] coordinates {(5.35,262.3) (6.15,476.8) (6.63,221.9) (7.25,468.1) (8.47,365.7) (9.97,340.6) (10.09,597.6) (10.19,342.6) (21.61,1077.3) (33.55,961.6) (41.46,1374.7) (51.22,2533.6)};
+        \addlegendentry{2 bytes}
+        \addplot+[mark=triangle*] coordinates {(5.35,158.1) (6.15,221.3) (6.63,159.3) (7.25,246.8) (8.47,236.4) (9.97,252.5) (10.09,293.9) (10.19,256.8) (21.61,580.8) (33.55,727.3) (41.46,1010.4) (51.22,1518.4)};
+        \addlegendentry{Bloc 1 byte}
+        \addplot+[mark=diamond*] coordinates {(5.35,168.6) (6.15,393.3) (6.63,207.3) (7.25,458.2) (8.47,366.8) (9.97,331.9) (10.09,586.2) (10.19,337.9) (21.61,950.4) (33.55,935.5) (41.46,1335.6) (51.22,2449.5)};
+        \addlegendentry{Bloc 2 bytes}
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:5.35,168.6) {xml};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:6.15,393.3) {ooffice};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:6.63,207.3) {reymont};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:7.25,458.2) {sao};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:8.47,366.8) {x-ray};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:9.97,331.9) {mr};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:10.09,586.2) {osdb};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:10.19,337.9) {dickens};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:21.61,950.4) {samba};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:33.55,935.5) {nci};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:41.46,1335.6) {webster};
+        \node[font=\tiny, rotate=45, anchor=west] at (axis cs:51.22,2449.5) {mozilla};
+    \end{axis}
+    \end{tikzpicture}
+\end{figure*}
 
-\suggestedfigure{fig:benchmark}{Gràfiques principals de benchmark.}
-{Captura suggerida: pestanya ``Comparatives'' després d'executar Silesia,
-amb la gràfica de taxa de compressió per mode o la de temps de construcció
-d'arbre per cua.}
+La Taula~\ref{tab:modeavg} resumeix el compromís entre reducció i temps. Els
+modes de 2 bytes comprimeixen millor de mitjana perquè codifiquen parelles de
+bytes i poden capturar patrons que el mode d'1 byte no veu. El mode per blocs
+de 2 bytes és lleugerament millor que el global de 2 bytes, però la diferència
+és petita; per tant, el guany principal ve de la mida del símbol, no només de
+dividir el fitxer en blocs. En canvi, el mode per blocs d'1 byte és el més
+ràpid: construeix arbres més petits i, si un bloc no millora la mida final,
+el pot guardar sense Huffman en lloc de forçar una codificació poc útil.
+
+La Fig.~\ref{fig:mode_time_by_file} confirma que el temps creix sobretot amb
+la mida de l'entrada. També mostra que els modes per blocs solen quedar per
+sota dels globals en temps de compressió, especialment en fitxers grans com
+\texttt{samba}, \texttt{webster} i \texttt{mozilla}.
 
 %% ================================================================
-\section{Conclusions}
+\section{Conclusió i Opinió Personal}
 
-La pràctica ha evolucionat cap a un compressor Huffman complet amb GUI,
-CLI, format propi i benchmark. La part més important del disseny és que
-el codec no implementa tots els detalls en una sola classe: analitzar,
-seleccionar, escriure, llegir i construir informació per a la GUI són
-responsabilitats separades. Això fa que el programa sigui més fàcil
-d'explicar, provar i modificar.
+En aquesta pràctica s'ha implementat una aplicació completa de compressió
+Huffman amb interfície gràfica, línia de comandes, format d'arxiu propi,
+diversos modes de compressió i una eina de benchmark. L'arquitectura separa
+la vista, el controlador i el model, i dins el model reparteix les
+responsabilitats entre anàlisi, selecció de mode, escriptura, lectura,
+progrés i preparació de la informació visual.
 
-Els resultats inicials amb Silesia mostren que adaptar el símbol pot ser
-més rellevant que optimitzar només l'estructura de cua. El mode de 2 bytes
-i el mode per blocs de 2 bytes són els que millor comprimeixen en la
-majoria dels fitxers. En canvi, per a la cua de prioritat, el heap binari
-és el millor compromís pràctic malgrat que el heap de Fibonacci sigui més
-sofisticat teòricament.
+Els resultats experimentals sobre Silesia mostren que el mode de 2 bytes i
+el mode per blocs de 2 bytes són els que obtenen les reduccions més altes en
+la majoria dels fitxers. També mostren que la cua de prioritat no afecta la
+taxa de compressió quan el desempat és determinista, però sí el temps de
+construcció de l'arbre. En aquest conjunt de dades, el heap binari és la
+opció més eficient de les tres implementades.
 
-Les proves unitàries cobreixen el camí crític: round-trip, format invàlid,
-determinisme, cues, CLI i benchmark. Això és especialment important en un
-compressor, perquè un error pot no aparèixer com una excepció immediata,
-sinó com un fitxer restaurat lleugerament diferent. Per això la comparació
-byte a byte és la validació central.
+Des d'un punt de vista personal, una de les parts més interessants ha estat
+la visualització de l'arbre de Huffman. A més de ser una part visualment
+atractiva de l'aplicació, ajuda a entendre d'un cop d'ull com es reparteixen
+les freqüències i per què alguns símbols acaben amb codis més curts que
+altres. També ha estat útil comparar modes sobre fitxers diferents, perquè
+els resultats mostren que no hi ha una única opció òptima: el millor mode
+depèn clarament del tipus de dades i de la seva distribució interna.
 
-Com a treball futur, convé ampliar el benchmark amb més repeticions i amb
-altres conjunts de dades, regenerar les taules amb mitjanes més estables
-i afegir captures definitives de la GUI i dels diagrames proposats en
-aquesta memòria.
+Les proves unitàries han estat especialment importants perquè el criteri de
+correcció d'un compressor és estricte: després de comprimir i descomprimir,
+el fitxer restaurat ha de coincidir byte a byte amb l'original. Per això les
+proves combinen casos de compressió i descompressió completa, errors de format, arxius truncats,
+determinisme de l'arbre i comprovacions del benchmark.
+
+Com a treball futur, seria interessant ampliar el benchmark amb altres
+tipus de fitxers i estudiar si es possible afegir altres variants de Huffman que
+proporcionin una millor compressió per a certs arxius.
 
 %% ================================================================
 \begin{thebibliography}{9}
@@ -1189,23 +1224,10 @@ aquesta memòria.
 GeeksforGeeks, ``Huffman Coding | Greedy Algo-3,'' 2025. [Online]. Available:
 \url{https://www.geeksforgeeks.org/dsa/huffman-coding-greedy-algo-3/}
 
-\bibitem{ref_wikipedia_huffman}
-Wikipedia, ``Huffman coding,'' 2026. [Online]. Available:
-\url{https://en.wikipedia.org/wiki/Huffman_coding}
-
 \bibitem{ref_silesia}
 S.~Deorowicz, ``Silesia compression data set,'' Silesian University of
 Technology. [Online]. Available:
 \url{https://sun.aei.polsl.pl/~sdeor/index.php?page=silesia}
-
-\bibitem{ref_oracle_swingworker}
-Oracle, ``Worker Threads and SwingWorker,'' The Java Tutorials. [Online].
-Available:
-\url{https://docs.oracle.com/javase/tutorial/uiswing/concurrency/worker.html}
-
-\bibitem{ref_fibonacci}
-Wikipedia, ``Fibonacci heap,'' 2026. [Online]. Available:
-\url{https://en.wikipedia.org/wiki/Fibonacci_heap}
 
 \end{thebibliography}
 

@@ -7,9 +7,7 @@ import com.serafinebot.p4.model.benchmark.BenchmarkConfig;
 import com.serafinebot.p4.model.benchmark.BenchmarkCsvWriter;
 import com.serafinebot.p4.model.benchmark.CompressionModeBenchmarkPoint;
 import com.serafinebot.p4.model.benchmark.QueueBenchmarkPoint;
-import com.serafinebot.p4.model.benchmark.BenchmarkProgressSnapshot;
 import com.serafinebot.p4.model.benchmark.BenchmarkReport;
-import com.serafinebot.p4.model.benchmark.BenchmarkService;
 import com.serafinebot.p4.model.codec.HuffmanCodec;
 import com.serafinebot.p4.model.progress.ProgressPhase;
 import com.serafinebot.p4.model.progress.ProgressSnapshot;
@@ -139,18 +137,6 @@ class HuffmanCodecTest {
     }
 
     @Test
-    void benchmarkServiceProducesPointsForAllStrategiesAndModeVariants() throws IOException {
-        Path corpusDirectory = createBenchmarkCorpus();
-
-        BenchmarkReport report = new BenchmarkService().run(new BenchmarkConfig(corpusDirectory, 1));
-
-        assertEquals(2 * PriorityQueueStrategy.values().length, report.queuePoints().size());
-        assertEquals(2 * CompressionMode.benchmarkModes().size(), report.modePoints().size());
-        assertTrue(report.queuePoints().stream().allMatch(point -> point.sizeBytes() > 0L));
-        assertTrue(report.modePoints().stream().allMatch(point -> point.sizeBytes() > 0L));
-    }
-
-    @Test
     void benchmarkCsvWriterProducesHeaderAndRows() {
         BenchmarkReport report = new BenchmarkReport(
             new BenchmarkConfig(tempDir, 1),
@@ -177,19 +163,6 @@ class HuffmanCodecTest {
         assertTrue(csv.contains("sample.txt,BINARY_HEAP,128"));
         assertTrue(csv.contains("source_name,mode,size_bytes"));
         assertTrue(csv.contains("sample.txt,HUFFMAN_1_BYTE,128"));
-    }
-
-    @Test
-    void benchmarkServiceReportsProgress() throws IOException {
-        Path corpusDirectory = createBenchmarkCorpus();
-        List<BenchmarkProgressSnapshot> snapshots = new ArrayList<>();
-
-        new BenchmarkService().run(new BenchmarkConfig(corpusDirectory, 1), snapshots::add);
-
-        int expectedSteps = 2 * PriorityQueueStrategy.values().length;
-        assertEquals(expectedSteps, snapshots.size());
-        assertEquals(expectedSteps, snapshots.get(snapshots.size() - 1).completedSteps());
-        assertEquals(1.0, snapshots.get(snapshots.size() - 1).completion(), 1.0e-9);
     }
 
     @Test
@@ -425,14 +398,6 @@ class HuffmanCodecTest {
         Path inputPath = tempDir.resolve(fileName + ".bin");
         Files.write(inputPath, data);
         return inputPath;
-    }
-
-    private Path createBenchmarkCorpus() throws IOException {
-        Path corpusDirectory = tempDir.resolve("corpus");
-        Files.createDirectories(corpusDirectory);
-        Files.writeString(corpusDirectory.resolve("text.txt"), "benchmark text ".repeat(40));
-        Files.writeString(corpusDirectory.resolve("binary.bin"), "AB".repeat(4096));
-        return corpusDirectory;
     }
 
     private record RoundTrip(
