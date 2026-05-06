@@ -65,6 +65,25 @@ public final class MinimaxSolver {
         return chosenLoser;
     }
 
+    /** Deterministic move used for the replay under the same minimax policy. */
+    public int chosenMove(GameState state) {
+        int currentPlayer = state.turn();
+        int fallback = -1;
+
+        for (int move : config.keypad().moves(state.lastPlayed())) {
+            if (fallback == -1) fallback = move;
+            int nextTotal = state.total() + move;
+            if (nextTotal >= config.limit()) continue;
+
+            int nextTurn = (currentPlayer + 1) % config.playerCount();
+            int childLoser = loser(new GameState(nextTotal, move, nextTurn));
+            if (childLoser != currentPlayer) return move;
+        }
+
+        if (fallback == -1) throw new IllegalStateException("state has no legal moves: " + state);
+        return fallback;
+    }
+
     public GameConfig config() {
         return config;
     }

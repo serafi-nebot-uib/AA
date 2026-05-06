@@ -1,7 +1,11 @@
 package com.serafinebot.p5.model;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Random;
 
+/**
+ * Immutable calculator keypad layout and precomputed legal moves for each key.
+ */
 public class Keypad {
     public static final int DIM_MIN = 2;
     public static final int DIM_MAX = 5;
@@ -9,6 +13,7 @@ public class Keypad {
     private final int width;
     private final int height;
     private final int[] values;
+    private final int[] initialMoves;
     private final int[][] moves;
 
     public Keypad(int width, int height, int[] values) {
@@ -20,7 +25,7 @@ public class Keypad {
 
         // check keypad value count
         int count = width * height;
-        if (values.length < count)
+        if (values.length != count)
             throw new IllegalArgumentException("invalid value array count: " + values.length + " != " + count);
 
         // check that all values are unique and in bounds
@@ -33,41 +38,31 @@ public class Keypad {
             seen[v-1] = true;
         }
 
-        /*
-
-         0   1   2   3   4
-         5   6   7   8   9
-        10  11  12  13  14
-        15  16  17  18  19
-        20  21  22  23  24
-
-        row = v / width
-        col = v % width
-
-        [row * width, row * width + width - 1]
-        [0..height] * width + col
-
-        */
-
         this.width = width;
         this.height = height;
-        this.values = values;
-        this.moves = new int[count][width + height - 1];
+        this.values = Arrays.copyOf(values, values.length);
+        this.initialMoves = Arrays.copyOf(values, values.length);
+        this.moves = new int[count][width + height - 2];
+        Arrays.sort(initialMoves);
 
-        // calculate valid moves from every position
+        // A key unlocks its row and column, excluding the key just played.
         for (int i = 0; i < values.length; i++) {
             int j = 0;
             int v = values[i];
             int row = i / width;
             int col = i % width;
-            for (int a = row * width; a < (row + 1) * width; a++) moves[v-1][j++] = values[a];
+            for (int a = row * width; a < (row + 1) * width; a++) if (a != i) moves[v-1][j++] = values[a];
             for (int h = 0; h < height; h++) if (h != row) moves[v-1][j++] = values[h * width + col];
+            Arrays.sort(moves[v - 1]);
         }
     }
 
     public static Keypad standard(int width, int height) {
         int[] values = new int[width * height];
-        for (int i = 0; i < values.length; i++) values[i] = i+1;
+        for (int row = 0; row < height; row++) {
+            int base = (height - row - 1) * width;
+            for (int col = 0; col < width; col++) values[row * width + col] = base + col + 1;
+        }
         return new Keypad(width, height, values);
     }
 
@@ -101,9 +96,9 @@ public class Keypad {
     }
 
     public int[] moves(int last) {
-        if (last == 0) return values;
+        if (last == 0) return Arrays.copyOf(initialMoves, initialMoves.length);
         if (!contains(last)) return null;
-        return moves[last - 1];
+        return Arrays.copyOf(moves[last - 1], moves[last - 1].length);
     }
 
     public int value(int row, int col) {
