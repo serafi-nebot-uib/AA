@@ -5,6 +5,11 @@ import java.util.Random;
 
 /**
  * Immutable calculator keypad layout and precomputed legal moves for each key.
+ *
+ * <p>The layout is stored row-major in {@code values}. For any previous key
+ * {@code last}, the legal moves are exactly the keys in the same row or column,
+ * excluding {@code last} itself. The special value {@code last == 0} represents
+ * the first move of the game, where every key is legal.
  */
 public class Keypad {
     public static final int DIM_MIN = 2;
@@ -16,6 +21,13 @@ public class Keypad {
     private final int[] initialMoves;
     private final int[][] moves;
 
+    /**
+     * Creates a keypad with a caller-provided layout.
+     *
+     * @param width  number of columns, in {@code [2, 5]}
+     * @param height number of rows, in {@code [2, 5]}
+     * @param values row-major permutation of {@code 1..width*height}
+     */
     public Keypad(int width, int height, int[] values) {
         // check keypad dimension bounds
         if (width < DIM_MIN || width > DIM_MAX)
@@ -57,6 +69,10 @@ public class Keypad {
         }
     }
 
+    /**
+     * Calculator-style default layout, with the largest row at the top.
+     * For {@code 3x3} this yields {@code 7 8 9 / 4 5 6 / 1 2 3}.
+     */
     public static Keypad standard(int width, int height) {
         int[] values = new int[width * height];
         for (int row = 0; row < height; row++) {
@@ -66,6 +82,7 @@ public class Keypad {
         return new Keypad(width, height, values);
     }
 
+    /** Creates a random valid keypad using the provided random generator. */
     public static Keypad random(int width, int height, Random rng) {
         int[] values = new int[width * height];
         for (int i = 0; i < values.length; i++) values[i] = i+1;
@@ -79,6 +96,7 @@ public class Keypad {
         return new Keypad(width, height, values);
     }
 
+    /** Creates a random valid keypad using a fresh random generator. */
     public static Keypad random(int width, int height) {
         return random(width, height, new Random());
     }
@@ -95,12 +113,18 @@ public class Keypad {
         return height;
     }
 
+    /**
+     * Returns a defensive copy of the legal moves for the given previous key.
+     *
+     * @param last previous key, or 0 if no key has been played yet
+     */
     public int[] moves(int last) {
         if (last == 0) return Arrays.copyOf(initialMoves, initialMoves.length);
         if (!contains(last)) return null;
         return Arrays.copyOf(moves[last - 1], moves[last - 1].length);
     }
 
+    /** Returns the key value displayed at the given row and column. */
     public int value(int row, int col) {
         return values[row * width + col];
     }

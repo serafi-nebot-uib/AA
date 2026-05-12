@@ -4,6 +4,7 @@ import com.serafinebot.p5.model.GameInput;
 import com.serafinebot.p5.model.GameResult;
 import com.serafinebot.p5.model.KeypadMode;
 import com.serafinebot.p5.model.ReplayStep;
+import com.serafinebot.p5.model.SolverMode;
 import com.serafinebot.p5.view.GameView;
 import com.serafinebot.p5.view.GameViewListener;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,15 @@ class GameControllerTest {
         GameInput second = new GameInput(3, 3, 0, 31, 0, 2, 1, KeypadMode.RANDOM, 1234L);
 
         assertEquals(controller.solve(first).keypad().toString(), controller.solve(second).keypad().toString());
+    }
+
+    @Test
+    void bottomUpModeMatchesTopDownResult() {
+        GameInput topDown = new GameInput(3, 3, 0, 31, 0, 2, 1);
+        GameInput bottomUp = new GameInput(3, 3, 0, 31, 0, 2, 1, KeypadMode.STANDARD, 0L, SolverMode.BOTTOM_UP_DP);
+
+        assertEquals(controller.solve(topDown).losingPlayer(), controller.solve(bottomUp).losingPlayer());
+        assertEquals(controller.solve(topDown).replay(), controller.solve(bottomUp).replay());
     }
 
     @Test

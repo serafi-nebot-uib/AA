@@ -3,19 +3,26 @@ package com.serafinebot.p5.controller;
 import com.serafinebot.p5.model.GameConfig;
 import com.serafinebot.p5.model.GameInput;
 import com.serafinebot.p5.model.GameResult;
-import com.serafinebot.p5.model.GameState;
+import com.serafinebot.p5.model.BottomUpDPSolver;
 import com.serafinebot.p5.model.Keypad;
 import com.serafinebot.p5.model.KeypadMode;
-import com.serafinebot.p5.model.MinimaxSolver;
-import com.serafinebot.p5.model.ReplayStep;
+import com.serafinebot.p5.model.Solver;
+import com.serafinebot.p5.model.SolverMode;
+import com.serafinebot.p5.model.TopDownDPSolver;
 import com.serafinebot.p5.view.GameView;
 import com.serafinebot.p5.view.GameViewListener;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 
-/** Coordinates validation and solving between the GUI and the model layer. */
+/**
+ * Coordinates validation and solving between the GUI and the model layer.
+ *
+ * <p>The controller is the only layer that knows both the view contract and the
+ * game model. The Swing view reports user events through {@link GameViewListener};
+ * this class reads the current {@link GameInput}, builds a validated
+ * {@link GameConfig}, runs the selected DP solver, and sends a display-ready
+ * {@link GameResult} back to the view.
+ */
 public final class GameController implements GameViewListener {
 
     private final GameView view;
@@ -37,6 +44,7 @@ public final class GameController implements GameViewListener {
         }
     }
 
+    /** Solves one complete user-selected configuration without touching Swing. */
     public GameResult solve(GameInput input) {
         if (input == null) throw new IllegalArgumentException("La configuracio no pot ser buida.");
 
@@ -52,17 +60,18 @@ public final class GameController implements GameViewListener {
                 input.playerCount(),
                 startingPlayerIndex
         );
-        MinimaxSolver solver = new MinimaxSolver(config);
+        Solver solver = solver(config, input.solverMode());
         int losingPlayerIndex = solver.losingPlayer();
         int winningPlayer = input.playerCount() == 2 ? otherPlayer(losingPlayerIndex) + 1 : 0;
+        var replay = solver.replay();
 
         return new GameResult(
                 keypad,
                 keypad.moves(input.lastPlayed()),
                 losingPlayerIndex + 1,
                 winningPlayer,
-                solver.memo().size(),
-                replay(config, solver)
+                solver.stateCount(),
+                replay
         );
     }
 
@@ -92,41 +101,8 @@ public final class GameController implements GameViewListener {
         return Keypad.standard(input.width(), input.height());
     }
 
-    private List<ReplayStep> replay(GameConfig config, MinimaxSolver solver) {
-        List<ReplayStep> replay = new ArrayList<>();
-        GameState state = config.initialState();
-        replay.add(new ReplayStep(
-                0,
-                state.total(),
-                state.total(),
-                state.lastPlayed(),
-                0,
-                0,
-                state.turn() + 1,
-                config.keypad().moves(state.lastPlayed()),
-                false
-        ));
-
-        while (state.total() < config.limit()) {
-            int move = solver.chosenMove(state);
-            int nextTotal = state.total() + move;
-            boolean terminal = nextTotal >= config.limit();
-            int nextTurn = (state.turn() + 1) % config.playerCount();
-            replay.add(new ReplayStep(
-                    replay.size(),
-                    state.total(),
-                    nextTotal,
-                    move,
-                    state.turn() + 1,
-                    move,
-                    terminal ? 0 : nextTurn + 1,
-                    terminal ? new int[0] : config.keypad().moves(move),
-                    terminal
-            ));
-            if (terminal) break;
-            state = new GameState(nextTotal, move, nextTurn);
-        }
-
-        return replay;
+    private Solver solver(GameConfig config, SolverMode mode) {
+        if (mode == SolverMode.BOTTOM_UP_DP) return new BottomUpDPSolver(config);
+        return new TopDownDPSolver(config);
     }
 }

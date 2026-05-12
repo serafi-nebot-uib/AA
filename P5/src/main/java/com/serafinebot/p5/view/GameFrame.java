@@ -4,6 +4,7 @@ import com.serafinebot.p5.model.GameInput;
 import com.serafinebot.p5.model.GameResult;
 import com.serafinebot.p5.model.KeypadMode;
 import com.serafinebot.p5.model.ReplayStep;
+import com.serafinebot.p5.model.SolverMode;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -24,7 +25,15 @@ import java.awt.GridLayout;
 import java.util.Arrays;
 import java.util.List;
 
-/** Main Swing view for configuring and solving calculator-game positions. */
+/**
+ * Main Swing view for configuring and solving calculator-game positions.
+ *
+ * <p>The frame contains no game rules and no concrete controller reference. It
+ * collects user input, notifies a {@link GameViewListener} when the input
+ * changes, and renders the {@link GameResult} supplied by the controller. Replay
+ * navigation is purely presentational: it pages through the already-computed
+ * {@link ReplayStep} list.
+ */
 public final class GameFrame extends JFrame implements GameView {
 
     private static final Color BACKGROUND = new Color(244, 246, 250);
@@ -47,6 +56,7 @@ public final class GameFrame extends JFrame implements GameView {
     private final JSpinner playerCount = spinner(2, 2, 20);
     private final JSpinner startingPlayer = spinner(1, 1, 20);
     private final JComboBox<String> keypadMode = new JComboBox<>(new String[]{"Estandard", "Aleatori"});
+    private final JComboBox<String> solverMode = new JComboBox<>(new String[]{"DP top-down", "DP bottom-up"});
     private final JButton regenerateKeypad = new JButton("Nou aleatori");
     private final JPanel keypadPanel = new JPanel();
     private final JLabel status = new JLabel(" ");
@@ -93,9 +103,10 @@ public final class GameFrame extends JFrame implements GameView {
         JLabel hint = new JLabel("Canvia qualsevol camp i el resultat es recalcula automaticament.");
         hint.setForeground(MUTED);
 
-        JPanel fields = new JPanel(new GridLayout(2, 4, 8, 8));
+        JPanel fields = new JPanel(new GridLayout(3, 3, 8, 8));
         fields.setOpaque(false);
         fields.add(fieldCard("Teclat", keypadModePanel(), PRIMARY));
+        fields.add(fieldCard("Algorisme", solverMode, PRIMARY));
         fields.add(fieldCard("Amplada", width, PRIMARY));
         fields.add(fieldCard("Alt", height, PRIMARY));
         fields.add(fieldCard("Nombre inicial", initialTotal, SUCCESS));
@@ -158,7 +169,7 @@ public final class GameFrame extends JFrame implements GameView {
         c.gridy = 2;
         panel.add(metricCard("Guanya", winnerValue, SUCCESS), c);
         c.gridy = 3;
-        panel.add(metricCard("Estats memoritzats", memoValue, PRIMARY), c);
+        panel.add(metricCard("Estats calculats", memoValue, PRIMARY), c);
         c.gridy = 4;
         panel.add(replayCard(), c);
         c.gridy = 5;
@@ -255,6 +266,7 @@ public final class GameFrame extends JFrame implements GameView {
             if (random) keypadSeed = System.nanoTime();
             notifyConfigurationChanged();
         });
+        solverMode.addActionListener(event -> notifyConfigurationChanged());
     }
 
     private void notifyConfigurationChanged() {
@@ -273,13 +285,15 @@ public final class GameFrame extends JFrame implements GameView {
                 value(playerCount),
                 value(startingPlayer),
                 selectedKeypadMode(),
-                keypadSeed
+                keypadSeed,
+                selectedSolverMode()
         );
     }
 
     private void updateSpinnerBounds() {
         adjusting = true;
         try {
+            // Dimension/player changes can make previous spinner values invalid.
             int keyCount = value(width) * value(height);
             clamp(lastPlayed, keyCount);
             clamp(startingPlayer, value(playerCount));
@@ -327,13 +341,14 @@ public final class GameFrame extends JFrame implements GameView {
         status.setForeground(MUTED);
         loserValue.setText("Jugador " + result.losingPlayer());
         winnerValue.setText(result.winningPlayer() == 0 ? "-" : "Jugador " + result.winningPlayer());
-        memoValue.setText(String.valueOf(result.memoizedStates()));
+        memoValue.setText(String.valueOf(result.computedStates()));
         configValue.setText("<html>inicial=" + input.initialTotal()
                 + "<br>limit=" + input.limit()
                 + "<br>darrer=" + input.lastPlayed()
                 + "<br>jugadors=" + input.playerCount()
                 + "<br>torn=Jugador " + input.startingPlayer()
-                + "<br>teclat=" + (input.keypadMode() == KeypadMode.RANDOM ? "aleatori" : "estandard") + "</html>");
+                + "<br>teclat=" + (input.keypadMode() == KeypadMode.RANDOM ? "aleatori" : "estandard")
+                + "<br>algorisme=" + (input.solverMode() == SolverMode.BOTTOM_UP_DP ? "DP bottom-up" : "DP top-down") + "</html>");
         renderReplayStep();
     }
 
@@ -437,6 +452,10 @@ public final class GameFrame extends JFrame implements GameView {
 
     private KeypadMode selectedKeypadMode() {
         return keypadMode.getSelectedIndex() == 1 ? KeypadMode.RANDOM : KeypadMode.STANDARD;
+    }
+
+    private SolverMode selectedSolverMode() {
+        return solverMode.getSelectedIndex() == 1 ? SolverMode.BOTTOM_UP_DP : SolverMode.TOP_DOWN_DP;
     }
 
     private static void clamp(JSpinner spinner, int max) {

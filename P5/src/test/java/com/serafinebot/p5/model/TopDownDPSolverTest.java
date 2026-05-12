@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-class MinimaxSolverTest {
+class TopDownDPSolverTest {
 
     @Test
     void currentPlayerLosesInProblemStatementExample() {
@@ -18,26 +18,26 @@ class MinimaxSolverTest {
                 0
         );
 
-        assertEquals(0, new MinimaxSolver(config).losingPlayer());
+        assertEquals(0, new TopDownDPSolver(config).losingPlayer());
     }
 
     @Test
     void currentPlayerCanForceNextPlayerToLose() {
         GameConfig config = new GameConfig(Keypad.standard(2, 2), 0, 5, 0, 2, 0);
 
-        assertEquals(1, new MinimaxSolver(config).losingPlayer());
+        assertEquals(1, new TopDownDPSolver(config).losingPlayer());
     }
 
     @Test
     void supportsMoreThanTwoPlayers() {
         GameConfig config = new GameConfig(Keypad.standard(2, 2), 0, 5, 0, 3, 0);
 
-        assertEquals(2, new MinimaxSolver(config).losingPlayer());
+        assertEquals(2, new TopDownDPSolver(config).losingPlayer());
     }
 
     @Test
     void memoizesSolvedStates() {
-        MinimaxSolver solver = new MinimaxSolver(new GameConfig(Keypad.standard(2, 2), 0, 5, 0, 2, 0));
+        TopDownDPSolver solver = new TopDownDPSolver(new GameConfig(Keypad.standard(2, 2), 0, 5, 0, 2, 0));
 
         solver.losingPlayer();
 

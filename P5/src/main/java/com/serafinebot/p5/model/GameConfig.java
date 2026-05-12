@@ -3,6 +3,10 @@ package com.serafinebot.p5.model;
 /**
  * Validated, immutable configuration for a single solver run.
  *
+ * <p>This record is deliberately UI-independent: player indexes are 0-based and
+ * the keypad layout is already materialized. {@link GameInput} is converted to
+ * this model object by the controller before a solver is created.
+ *
  * @param keypad         the calculator keypad layout
  * @param initialTotal   value on the calculator at the start of the solve, {@code >= 0}
  * @param limit          losing threshold; the player who reaches or exceeds this loses
