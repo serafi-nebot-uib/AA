@@ -3,17 +3,17 @@
 ## Current State
 
 - Model layer exists with immutable game configuration/state, keypad validation, shared `Solver` API, top-down DP solver, and bottom-up DP solver.
-- Source tests cover keypad move generation, the statement example, two-player solving, N-player solving, memoization, deterministic random keypads, solver equivalence, and replay termination.
 - `Main` launches a Swing GUI with automatic recalculation, standard/random keypad modes, top-down/bottom-up DP solver selection, structured results, and optimal-play replay navigation.
 - `BenchmarkMain` and `analysis/SolverBenchmark` generate CSV data for comparing solver CPU time, wall time, heap trend, and computed state counts.
+- `memoria/memoria.tex` contains the Catalan report with problem statement, recurrence, complexity, MVC design, benchmark methodology, solver comparison tables, discussion, graphs, and conclusions.
+- No unit-test suite is included in the final project; verification is done with compilation, report generation, benchmark runs, and representative manual GUI checks.
 
 ## Remaining Work
 
 1. Add optional manual keypad editing if time permits.
 2. Add optional result details: total possible game paths if implemented separately from winner computation.
-3. Run benchmark scenarios and convert selected rows into report tables/figures.
-4. Extend tests around any path-counting or manual-layout logic added later.
-5. Complete `memoria/memoria.tex` in Catalan with problem description, recurrence, complexity, MVC design, screenshots, tests, solver analysis, and conclusions.
+3. Optionally add GUI screenshots to the report if required by the instructor.
+4. Optionally extend the benchmark with larger limits or more players.
 
 ## Suggested Architecture
 
@@ -24,7 +24,6 @@
 
 ## Verification Checklist
 
-- Run `mvn test` from `P5/` after model/controller changes.
 - Run `mvn clean compile` from `P5/` before delivery.
 - Run the GUI manually with representative configurations: statement example, first move with `lastPlayed = 0`, custom dimensions `[2x2]` and `[5x5]`, invalid inputs, `N > 2` players, and both solver modes.
 - Run `mvn exec:java -Dexec.mainClass="com.serafinebot.p5.BenchmarkMain"` from `P5/` to produce solver-comparison CSV output.

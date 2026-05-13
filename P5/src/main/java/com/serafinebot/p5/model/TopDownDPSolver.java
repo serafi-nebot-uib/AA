@@ -49,7 +49,8 @@ public final class TopDownDPSolver extends Solver {
 
         for (int move : config().keypad().moves(state.lastPlayed())) {
             int nextTotal = state.total() + move;
-            if (nextTotal >= config().limit()) continue;
+            // Moves are sorted ascending, so terminal moves form a suffix.
+            if (nextTotal >= config().limit()) break;
             int nextTurn = (currentPlayer + 1) % config().playerCount();
             GameState next = new GameState(nextTotal, move, nextTurn);
             int childLoser = loser(next);

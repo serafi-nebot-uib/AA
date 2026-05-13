@@ -72,7 +72,8 @@ public final class BottomUpDPSolver extends Solver {
         // Find the first safe move that transfers the loss to another player.
         for (int move : legalMoves) {
             int nextTotal = total + move;
-            if (nextTotal >= config().limit()) continue;
+            // Legal moves are sorted ascending, so terminal moves form a suffix.
+            if (nextTotal >= config().limit()) break;
 
             int nextTurn = (turn + 1) % config().playerCount();
             int childLoser = losers[nextTotal][move][nextTurn];

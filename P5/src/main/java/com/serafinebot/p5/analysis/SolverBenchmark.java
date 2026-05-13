@@ -29,15 +29,17 @@ public final class SolverBenchmark {
     private SolverBenchmark() {}
 
     /**
-     * Builds a compact set of inputs that grows both keypad size and losing
-     * limit. This keeps the default benchmark fast while still showing trends.
+     * Builds inputs for report measurements. The set keeps a small keypad-size
+     * comparison at {@code limit = 31} and a longer {@code 3x3} limit series so
+     * growth trends are visible beyond the toy limits used in the GUI examples.
      */
     public static List<GameInput> defaultInputs() {
         List<GameInput> inputs = new ArrayList<>();
         for (int size = 2; size <= 5; size++) {
-            for (int limit : new int[]{31, 60, 100}) {
-                inputs.add(new GameInput(size, size, 0, limit, 0, 2, 1));
-            }
+            inputs.add(new GameInput(size, size, 0, 31, 0, 2, 1));
+        }
+        for (int limit : new int[]{60, 100, 200, 500, 1_000, 2_000, 5_000, 10_000}) {
+            inputs.add(new GameInput(3, 3, 0, limit, 0, 2, 1));
         }
         return inputs;
     }

@@ -59,7 +59,8 @@ public abstract class Solver {
         for (int move : config.keypad().moves(state.lastPlayed())) {
             if (fallback == -1) fallback = move;
             int nextTotal = state.total() + move;
-            if (nextTotal >= config.limit()) continue;
+            // Legal moves are sorted, so once one move is terminal every later move is too.
+            if (nextTotal >= config.limit()) break;
 
             int nextTurn = (currentPlayer + 1) % config.playerCount();
             int childLoser = loser(new GameState(nextTotal, move, nextTurn));

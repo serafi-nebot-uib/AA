@@ -4,14 +4,24 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.serafinebot.p5</groupId>
-    <artifactId>P5</artifactId>
+    <groupId>com.serafinebot.p6</groupId>
+    <artifactId>P6</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
         <maven.compiler.release>16</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <junit.version>5.12.2</junit.version>
     </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>
@@ -22,10 +32,15 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.serafinebot.p5.Main</mainClass>
+                            <mainClass>com.serafinebot.p6.Main</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
             </plugin>
         </plugins>
     </build>
