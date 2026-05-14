@@ -21,6 +21,13 @@ import java.awt.geom.AffineTransform;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
+/**
+ * Custom Swing component responsible for drawing and interacting with the board.
+ *
+ * <p>This class is deliberately visual-only: it never changes the model by
+ * itself. Mouse input is converted to listener callbacks, and animations only
+ * interpolate between already-computed {@link GameState} instances.</p>
+ */
 public final class BoardPanel extends JPanel {
 
     private static final Color BOARD = new Color(37, 99, 235);
@@ -77,6 +84,8 @@ public final class BoardPanel extends JPanel {
             return;
         }
 
+        // For a drop, the final row is obtained by comparing the before/after
+        // column instead of duplicating gravity rules in the view.
         int targetRow = landingRow(before, after, move.column());
         if (targetRow < 0) {
             state = after;
@@ -92,6 +101,8 @@ public final class BoardPanel extends JPanel {
         animatedProgress = 0;
 
         long start = System.nanoTime();
+        // A deeper landing row gets a slightly longer animation, which makes the
+        // fall speed feel consistent across shallow and deep columns.
         int durationMs = 260 + targetRow * 35;
         animationTimer = new Timer(16, event -> {
             long elapsedMs = (System.nanoTime() - start) / 1_000_000;
@@ -125,6 +136,9 @@ public final class BoardPanel extends JPanel {
         g.setColor(BOARD);
         g.fillRoundRect(left, top, cell * Board.SIZE, cell * Board.SIZE, 22, 22);
 
+        // Rotation animation is a special mode: the old board is drawn with an
+        // affine transform until the animation ends, then the final state is
+        // rendered normally.
         if (rotationBefore != null) {
             drawRotatingBoard(g, cell, left, top);
             g.dispose();
@@ -187,6 +201,8 @@ public final class BoardPanel extends JPanel {
 
         int margin = Math.max(7, cell / 10);
         int size = cell - margin * 2;
+        // Cubic ease-out: fast at the start, slower near the end. This makes the
+        // piece feel like it settles into its final slot instead of moving linearly.
         double eased = 1 - Math.pow(1 - animatedProgress, 3);
         int x = left + animatedColumn * cell + margin;
         int startY = top - cell + margin;
@@ -237,6 +253,9 @@ public final class BoardPanel extends JPanel {
 
         int column = (x - left) / cell;
         int row = (y - top) / cell;
+        // Clicking an own piece removes it; clicking any other cell in the board
+        // means "drop into this column". This keeps the UI direct and avoids an
+        // extra remove-mode toggle.
         if (state.board().canRemove(row, column, state.currentPlayer())) {
             listener.onRemove(row, column);
         } else {
@@ -297,6 +316,9 @@ public final class BoardPanel extends JPanel {
     }
 
     private void animateRotation(GameState before, GameState after, Move move, Runnable onFinished) {
+        // During rotation the logical state is already the final one, but the
+        // animation draws the previous board turning visually. This separates UI
+        // feedback from rule computation.
         state = after;
         rotationBefore = before;
         rotationMove = move;

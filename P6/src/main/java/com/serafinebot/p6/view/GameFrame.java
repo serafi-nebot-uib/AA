@@ -27,6 +27,13 @@ import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.RenderingHints;
 
+/**
+ * Main Swing window for P6.
+ *
+ * <p>The frame assembles the board, mode selectors, player badges, status panel
+ * and playback controls. It implements {@link GameView}, so all state changes
+ * still flow through the controller instead of being handled directly here.</p>
+ */
 public final class GameFrame extends JFrame implements GameView {
 
     private static final Color BACKGROUND = new Color(244, 246, 250);
@@ -168,6 +175,9 @@ public final class GameFrame extends JFrame implements GameView {
         JPanel panel = card(new BorderLayout(10, 10));
         panel.setPreferredSize(new Dimension(260, 0));
 
+        // BoxLayout keeps the configuration compact. A GridLayout would assign
+        // the same height to every component and spread the controls too far
+        // apart vertically.
         JPanel controls = new JPanel();
         controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
         controls.setOpaque(false);
@@ -366,6 +376,8 @@ public final class GameFrame extends JFrame implements GameView {
     }
 
     private void updateAgentSelectors() {
+        // Human-vs-human needs no agents. Human-vs-agent fixes Red as the human
+        // player and lets the user choose Yellow. Agent-vs-agent exposes both.
         boolean agentVsAgent = selectedMatchType() == MatchType.AGENT_VS_AGENT;
         boolean humanVsAgent = selectedMatchType() == MatchType.HUMAN_VS_AGENT;
         redAgent.setEnabled(agentVsAgent);
@@ -420,6 +432,9 @@ public final class GameFrame extends JFrame implements GameView {
 
         @Override
         protected void paintComponent(Graphics graphics) {
+            // Some platform Look & Feels, especially macOS, ignore JButton
+            // background colors. Painting the rounded background manually keeps
+            // enabled/disabled buttons visually consistent.
             Graphics2D g = (Graphics2D) graphics.create();
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             if (isEnabled()) {
