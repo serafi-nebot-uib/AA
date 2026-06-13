@@ -72,6 +72,7 @@ public final class GameFrame extends JFrame implements GameView {
     private GameViewListener listener;
     private boolean adjusting;
     private long keypadSeed = System.nanoTime();
+    private GameInput currentInput;
     private GameResult currentResult;
     private List<ReplayStep> replay = List.of();
     private int replayIndex;
@@ -111,7 +112,7 @@ public final class GameFrame extends JFrame implements GameView {
         fields.add(fieldCard("Alt", height, PRIMARY));
         fields.add(fieldCard("Nombre inicial", initialTotal, SUCCESS));
         fields.add(fieldCard("Limit", limit, DANGER));
-        fields.add(fieldCard("Darrer jugat", lastPlayed, WARNING));
+        fields.add(fieldCard("Darrera tecla", lastPlayed, WARNING));
         fields.add(fieldCard("Jugadors", playerCount, PRIMARY));
         fields.add(fieldCard("Torn", startingPlayer, SUCCESS));
 
@@ -334,6 +335,7 @@ public final class GameFrame extends JFrame implements GameView {
 
     @Override
     public void showResult(GameInput input, GameResult result) {
+        currentInput = input;
         currentResult = result;
         replay = result.replay();
         replayIndex = 0;
@@ -342,13 +344,6 @@ public final class GameFrame extends JFrame implements GameView {
         loserValue.setText("Jugador " + result.losingPlayer());
         winnerValue.setText(result.winningPlayer() == 0 ? "-" : "Jugador " + result.winningPlayer());
         memoValue.setText(String.valueOf(result.computedStates()));
-        configValue.setText("<html>inicial=" + input.initialTotal()
-                + "<br>limit=" + input.limit()
-                + "<br>darrer=" + input.lastPlayed()
-                + "<br>jugadors=" + input.playerCount()
-                + "<br>torn=Jugador " + input.startingPlayer()
-                + "<br>teclat=" + (input.keypadMode() == KeypadMode.RANDOM ? "aleatori" : "estandard")
-                + "<br>algorisme=" + (input.solverMode() == SolverMode.BOTTOM_UP_DP ? "DP bottom-up" : "DP top-down") + "</html>");
         renderReplayStep();
     }
 
@@ -365,10 +360,24 @@ public final class GameFrame extends JFrame implements GameView {
         ReplayStep step = replay.get(replayIndex);
         renderKeypad(currentResult, step);
         renderLegalMoves(step.legalMoves());
+        renderCurrentSituation(step);
         replayStepValue.setText("Pas " + step.index() + " de " + (replay.size() - 1));
         replayMoveValue.setText(replayText(step));
         replayBack.setEnabled(replayIndex > 0);
         replayForward.setEnabled(replayIndex < replay.size() - 1);
+    }
+
+    private void renderCurrentSituation(ReplayStep step) {
+        if (currentInput == null) return;
+        String nextTurn = step.terminal() ? "partida acabada" : "Jugador " + step.currentPlayer();
+        configValue.setText("<html>pas=" + step.index()
+                + "<br>total=" + step.total()
+                + "<br>darrera tecla=" + step.lastPlayed()
+                + "<br>torn=" + nextTurn
+                + "<br>limit=" + currentInput.limit()
+                + "<br>jugadors=" + currentInput.playerCount()
+                + "<br>teclat=" + (currentInput.keypadMode() == KeypadMode.RANDOM ? "aleatori" : "estandard")
+                + "<br>algorisme=" + (currentInput.solverMode() == SolverMode.BOTTOM_UP_DP ? "DP bottom-up" : "DP top-down") + "</html>");
     }
 
     private String replayText(ReplayStep step) {
@@ -401,6 +410,7 @@ public final class GameFrame extends JFrame implements GameView {
         replayBack.setEnabled(false);
         replayForward.setEnabled(false);
         currentResult = null;
+        currentInput = null;
         replay = List.of();
         replayIndex = 0;
         configValue.setText("<html><span style='color:#dc2626'>" + message + "</span></html>");

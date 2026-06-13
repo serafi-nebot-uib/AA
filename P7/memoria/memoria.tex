@@ -1,0 +1,324 @@
+\documentclass[conference,compsoc]{IEEEtran}
+
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{array}
+\usepackage[caption=false,font=footnotesize,labelfont=sf,textfont=sf]{subfig}
+\usepackage{textcomp}
+\usepackage{stfloats}
+\usepackage{url}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage[nocompress]{cite}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[catalan]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{cuted}
+\usepackage{microtype}
+\graphicspath{{./}}
+
+\renewcommand{\abstractname}{Resum}
+\renewcommand{\IEEEkeywordsname}{Termes d'índex}
+
+\makeatletter
+\def\abstract{\normalfont\@IEEEtweakunitybaselinestretch{1.15}%
+    \if@twocolumn
+      \@IEEEabskeysecsize\noindent\textbf{\textit{\abstractname}}---\normalfont\@IEEEabskeysecsize\relax
+    \else
+      \bgroup\par\addvspace{0.5\baselineskip}\centering\vspace{-1.78ex}\@IEEEabskeysecsize\textbf{\abstractname}\par\addvspace{0.5\baselineskip}\egroup\quotation\normalfont\@IEEEabskeysecsize%
+    \fi\@IEEEgobbleleadPARNLSP}
+\def\IEEEkeywords{\normalfont\@IEEEtweakunitybaselinestretch{1.15}%
+    \if@twocolumn
+      \@IEEEabskeysecsize\vskip 0.5\baselineskip plus 0.25\baselineskip minus 0.25\baselineskip\noindent
+      \textbf{\textit{\IEEEkeywordsname}}---\normalfont\@IEEEabskeysecsize\relax
+    \else
+      \bgroup\par\addvspace{0.5\baselineskip}\centering\@IEEEabskeysecsize\textbf{\IEEEkeywordsname}\par\addvspace{0.5\baselineskip}\egroup\quotation\normalfont\@IEEEabskeysecsize%
+    \fi\@IEEEgobbleleadPARNLSP}
+\makeatother
+
+\lstset{
+    language=Java,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{gray}\itshape,
+    stringstyle=\color{red!70!black},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    numbersep=5pt,
+    frame=single,
+    breaklines=true,
+    showstringspaces=false,
+    tabsize=4,
+    captionpos=b
+}
+
+\hyphenation{Mon-te-Car-lo per-cen-til si-mu-la-cio con-tro-la-dor Swing-Worker}
+
+\begin{document}
+
+\title{Simulació Probabilística del Joc de l'Oca\\Pràctica 7}
+
+\author{\IEEEauthorblockN{Serafí Nebot Ginard}
+\IEEEauthorblockA{Universitat de les Illes Balears (UIB)\\
+Grau en Enginyeria Informàtica\\
+Algorismes Avançats, Curs 2025--2026}}
+
+\maketitle
+
+\begin{strip}
+\begin{abstract}
+Aquesta memòria descriu la implementació d'una simulació Monte Carlo per
+estimar el nombre de torns necessaris per acabar una partida amb un únic jugador
+del Joc de l'Oca. El programa implementa les regles exactes de l'enunciat,
+incloent-hi el rebot a la casella final, les caselles especials, les penalitzacions
+i la regla que limita cada tirada a un únic efecte especial. La solució s'ha
+organitzat amb arquitectura Model-Vista-Controlador, una entrada de consola amb
+el format de sortida requerit i una interfície gràfica Swing que permet executar
+simulacions, visualitzar estadístics i mostrar un histograma empíric. També es
+documenta el criteri de percentils emprat, el cost computacional i una validació
+experimental amb llavors fixes.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Monte Carlo, algorismes probabilístics, simulació, percentils empírics, MVC,
+Java Swing, Joc de l'Oca.
+\end{IEEEkeywords}
+\end{strip}
+
+\IEEEpeerreviewmaketitle
+
+\section{Introducció}
+
+L'objectiu de la pràctica és estimar mitjançant simulació el nombre de torns que
+necessita una partida del Joc de l'Oca per arribar a la casella final. El problema
+es podria modelar de manera exacta com una cadena de Markov amb estats que
+incloguessin la posició i les penalitzacions pendents. Tot i això, l'enunciat
+demana explícitament una aproximació per simulació Monte Carlo, que és més simple
+d'implementar i permet obtenir estimacions empíriques a partir d'un nombre gran de
+partides independents.
+
+La implementació resultant té dos modes d'ús. La classe \texttt{Main} compleix el
+contracte de consola: llegeix un enter \(N\), simula \(N\) partides i escriu els
+estadístics amb les etiquetes indicades. A més, la classe \texttt{GuiMain} obre una
+interfície Swing que reutilitza el mateix model de simulació i afegeix visualització
+tabular i gràfica dels resultats.
+
+\section{Fonaments Teòrics}
+
+\subsection{Estimació Monte Carlo}
+
+Sigui \(X\) la variable aleatòria que representa el nombre de torns comptats en una
+partida completa. Una simulació de \(N\) partides genera una mostra independent
+\(x_1, x_2, \ldots, x_N\). La mitjana mostral
+\begin{equation}
+\label{eq:mitjana}
+\bar{x}=\frac{1}{N}\sum_{i=1}^{N}x_i
+\end{equation}
+és l'estimador Monte Carlo de l'esperança \(E[X]\). Quan \(N\) creix, la llei dels
+grans nombres justifica que aquesta mitjana s'aproximi al valor esperat real
+\cite{robert2004montecarlo}.
+
+\subsection{Percentils empírics}
+
+Per als percentils s'ha emprat el criteri de rang més proper. Si la mostra ordenada
+és \(y_1 \leq y_2 \leq \cdots \leq y_N\), el percentil empíric \(p\) es defineix com
+\begin{equation}
+\label{eq:percentil}
+Q_p = y_{\lceil pN \rceil}.
+\end{equation}
+Aquest criteri retorna sempre un valor observat de la mostra, fet coherent amb la
+sortida sencera esperada per als mínims, màxims, percentils i mediana. La mitjana és
+l'únic valor que es mostra amb sis decimals.
+
+\subsection{Cost computacional}
+
+Si \(T\) és el nombre mitjà de torns d'una partida, simular \(N\) partides té cost
+esperat \(O(NT)\). Després cal ordenar els \(N\) valors observats per calcular els
+percentils, amb cost \(O(N\log N)\). Per tant, el cost total és
+\begin{equation}
+\label{eq:complexitat}
+O(NT + N\log N).
+\end{equation}
+La memòria emprada és \(O(N)\), ja que es conserva la mostra sencera per poder
+ordenar-la i dibuixar l'histograma de la interfície gràfica.
+
+\section{Disseny i Implementació}
+
+\subsection{Model de regles}
+
+El tauler s'ha modelat amb caselles enteres de \(0\) a \(63\). En cada tirada normal
+es calcula primer la posició provisional \(p+d\). Si aquesta posició supera la
+casella final, s'aplica el rebot especificat a l'enunciat:
+\begin{equation}
+\label{eq:rebot}
+q = 63 - ((p+d)-63).
+\end{equation}
+
+Després del moviment i del possible rebot s'aplica, com a màxim, un únic efecte
+especial. La taula~\ref{tab:efectes} resumeix els efectes implementats.
+
+\begin{table}[H]
+\centering
+\caption{Caselles especials implementades.}
+\label{tab:efectes}
+\begin{tabular}{ll}
+\toprule
+Tipus & Efecte \\
+\midrule
+Oca & Avança a la següent oca; la nova tirada no suma torn \\
+Pont & \(6 \leftrightarrow 12\) \\
+Dados & \(26 \leftrightarrow 53\) \\
+Posada & 1 torn anul\textperiodcentered lat \\
+Pou & 2 torns anul\textperiodcentered lats \\
+Laberint & \(42 \rightarrow 30\) \\
+Presó & 3 torns anul\textperiodcentered lats \\
+Mort & \(58 \rightarrow 0\) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La regla d'un sol efecte per tirada és important. Per exemple, si una tirada porta
+el jugador a la casella 6, s'aplica el pont fins a la casella 12, però no s'aplica
+immediatament l'efecte de la casella 12. L'única excepció és arribar a la casella
+63, cas en què la partida acaba immediatament.
+
+\subsection{Arquitectura MVC}
+
+La separació Model-Vista-Controlador s'ha mantingut explícita. El model no importa
+cap classe de Swing i concentra les regles i els càlculs estadístics. La vista no
+conté lògica de joc, sinó que emet esdeveniments i renderitza els resultats que rep.
+El controlador és l'únic component que coneix simultàniament el model i la vista.
+
+\begin{table}[H]
+\centering
+\caption{Responsabilitats principals de les classes.}
+\label{tab:classes}
+\footnotesize
+\begin{tabular}{@{}p{0.45\columnwidth}p{0.49\columnwidth}@{}}
+\toprule
+Classe & Responsabilitat \\
+\midrule
+\texttt{OcaRules} & Moviment, rebot i efectes especials \\
+\texttt{OcaGameSimulator} & Simulació d'una partida completa \\
+\texttt{MonteCarloSimulation} & Execució de \(N\) partides independents \\
+\texttt{SimulationStats} & Mínims, percentils, mediana, màxim i mitjana \\
+\texttt{SimulationController} & Llançament de simulacions des de la GUI \\
+\texttt{SimulationFrame} & Formulari, taula de resultats i sortida requerida \\
+\texttt{HistogramPanel} & Visualització de la distribució empírica \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Les simulacions de la interfície gràfica s'executen dins un \texttt{SwingWorker}.
+Això evita bloquejar el fil d'esdeveniments de Swing mentre es calculen moltes
+partides. El mateix model es fa servir des de consola i des de la GUI, de manera que
+el format obligatori de sortida i la representació gràfica provenen de les mateixes
+dades.
+
+\subsection{Simulació d'un torn}
+
+La classe \texttt{OcaGameSimulator} incrementa el comptador una vegada per cada torn
+comptat. Si hi ha penalitzacions pendents, el torn es consumeix sense llançar el dau.
+En cas contrari es tira el dau i, si l'efecte d'una oca dona dret a una nova tirada,
+aquesta nova tirada es processa dins el mateix torn comptat.
+
+\begin{lstlisting}[caption={Estructura bàsica de la simulació d'una partida.},label={lst:simulacio}]
+int turns = 0;
+GameSnapshot state = new GameSnapshot(0, 0);
+while (!state.isFinished()) {
+    state = advanceTurn(state);
+    turns++;
+}
+\end{lstlisting}
+
+La injecció de la interfície \texttt{Die} permet utilitzar un dau aleatori en
+producció i seqüències deterministes en les proves unitàries. Aquesta decisió fa que
+les regles especials es puguin verificar sense dependre de l'atzar.
+
+\section{Resultats i Discussió}
+
+\subsection{Validació funcional}
+
+S'han implementat proves unitàries amb JUnit 5 per als casos més sensibles de
+l'enunciat: rebot després de la casella 63, finalització exacta, oques amb tirada
+extra, ponts i dados sense cascada d'efectes, penalitzacions que consumeixen torns
+sense llançar el dau, laberint, mort i càlcul dels percentils. La suite actual
+conté 13 proves i s'ha executat correctament amb \texttt{mvn test}.
+
+També s'ha validat manualment el mode de consola. Per exemple, amb entrada \(N\),
+la sortida es construeix sempre amb les etiquetes exactes demanades:
+
+\begin{lstlisting}[caption={Format de sortida generat per \texttt{SimulationStats}.},label={lst:sortida}]
+Minimo: ...
+P1: ...
+P2: ...
+P3: ...
+P4: ...
+Mediana: ...
+P6: ...
+P7: ...
+P8: ...
+P9: ...
+Maximo: ...
+Media: ...
+\end{lstlisting}
+
+\subsection{Experiments}
+
+La taula~\ref{tab:resultats} mostra tres execucions amb llavors fixes. Per a cada
+\(N\) s'ha emprat la llavor \(20260609+N\), de manera que els valors són
+reproduïbles amb el mateix generador pseudoaleatori de Java. Els temps són mesures
+orientatives obtingudes en l'entorn local de desenvolupament.
+
+\begin{table*}[t]
+\centering
+\caption{Resultats empírics de la simulació Monte Carlo.}
+\label{tab:resultats}
+\begin{tabular}{rrrrrrrr}
+\toprule
+\(N\) & Mínim & \(P_{0.1}\) & Mediana & \(P_{0.9}\) & Mitjana & Màxim & Temps (ms) \\
+\midrule
+1.000 & 3 & 8 & 17 & 38 & 20.425000 & 107 & 8 \\
+10.000 & 3 & 8 & 17 & 38 & 20.651200 & 143 & 11 \\
+100.000 & 2 & 8 & 17 & 38 & 20.704830 & 175 & 116 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Els resultats indiquen que la mitjana s'estabilitza al voltant de 20,7 torns a
+mesura que augmenta \(N\). Els percentils centrals també són molt estables: en les
+tres execucions el percentil 0,1 és 8, la mediana és 17 i el percentil 0,9 és 38.
+En canvi, el màxim observat creix quan es fan més partides. Aquest comportament és
+esperable, perquè el màxim és molt sensible a la cua de la distribució i no és un
+estimador estable del comportament típic.
+
+\section{Conclusions}
+
+La pràctica s'ha resolt amb una simulació Monte Carlo directa i modular. El model
+implementa les regles exactes de la partida, incloent les penalitzacions i la regla
+d'un sol efecte especial per tirada. La separació MVC permet disposar d'una sortida
+de consola estricta i d'una interfície gràfica sense duplicar la lògica de simulació.
+
+Els experiments mostren que amb \(N=100.000\) partides la mitjana i els percentils
+principals ja són estables per a una estimació pràctica. Com a ampliacions naturals
+es podrien afegir simulació concurrent, comparació de variants de regles, recompte
+de freqüències de visita de cada casella o estudi de partides amb diversos jugadors.
+
+\begin{thebibliography}{1}
+
+\bibitem{robert2004montecarlo}
+C.~P. Robert and G.~Casella, \emph{Monte Carlo Statistical Methods}.
+Springer, 2004.
+
+\bibitem{oracleSwingWorker}
+Oracle, ``Worker Threads and SwingWorker,'' \emph{The Java Tutorials}.
+[En línia]. Disponible: \url{https://docs.oracle.com/javase/tutorial/uiswing/concurrency/worker.html}
+
+\end{thebibliography}
+
+\end{document}
