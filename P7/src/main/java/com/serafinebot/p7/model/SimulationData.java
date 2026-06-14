@@ -6,14 +6,20 @@ import java.util.Objects;
  * Raw observations produced by a Monte Carlo batch.
  *
  * <p>{@code turnCounts} stores one value per simulated game. {@code squareVisits}
- * stores the aggregated visits to squares 0 through 63. Both arrays are cloned on
- * input and output so callers cannot accidentally mutate stored results.</p>
+ * stores the aggregated visits to squares 0 through 63. {@code winnerCounts}
+ * stores how many games each player won. Arrays are cloned on input and output so
+ * callers cannot accidentally mutate stored results.</p>
  */
-public record SimulationData(int[] turnCounts, long[] squareVisits) {
+public record SimulationData(int[] turnCounts, long[] squareVisits, int[] winnerCounts) {
+
+    public SimulationData(int[] turnCounts, long[] squareVisits) {
+        this(turnCounts, squareVisits, new int[]{turnCounts.length});
+    }
 
     public SimulationData {
         turnCounts = Objects.requireNonNull(turnCounts).clone();
         squareVisits = Objects.requireNonNull(squareVisits).clone();
+        winnerCounts = Objects.requireNonNull(winnerCounts).clone();
     }
 
     @Override
@@ -24,5 +30,10 @@ public record SimulationData(int[] turnCounts, long[] squareVisits) {
     @Override
     public long[] squareVisits() {
         return squareVisits.clone();
+    }
+
+    @Override
+    public int[] winnerCounts() {
+        return winnerCounts.clone();
     }
 }

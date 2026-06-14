@@ -1,7 +1,7 @@
 package com.serafinebot.p7.model;
 
 /**
- * Immutable state of the one-player Oca game between counted turns.
+ * Immutable state of one player between counted turns.
  *
  * <p>The state contains only the information needed to resume a game: the current
  * square and the number of penalty turns still pending. It intentionally does not

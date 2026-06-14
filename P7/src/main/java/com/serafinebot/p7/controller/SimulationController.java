@@ -41,7 +41,8 @@ public final class SimulationController implements SimulationViewListener {
      * with the same {@code N}, seed and thread count.</p>
      */
     @Override
-    public void onRunRequested(int games, String seedText, RuleVariant variant, int threadCount, boolean compareVariants) {
+    public void onRunRequested(int games, String seedText, RuleVariant variant, int threadCount,
+                               int playerCount, boolean compareVariants) {
         if (worker != null && !worker.isDone()) {
             return;
         }
@@ -59,14 +60,14 @@ public final class SimulationController implements SimulationViewListener {
             @Override
             protected SimulationResult doInBackground() {
                 long start = System.nanoTime();
-                SimulationData data = Simulation.runBatch(games, seed, variant, threadCount);
+                SimulationData data = Simulation.runBatch(games, seed, variant, threadCount, playerCount);
                 int[] observations = data.turnCounts();
                 SimulationStats stats = SimulationStats.from(observations);
                 Map<RuleVariant, SimulationStats> comparisonStats = compareVariants
-                        ? compareVariants(games, seed, variant, threadCount, stats)
+                        ? compareVariants(games, seed, variant, threadCount, playerCount, stats)
                         : Map.of();
                 long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-                return new SimulationResult(stats, observations, data.squareVisits(), elapsedMillis, seed,
+                return new SimulationResult(stats, observations, data.squareVisits(), data.winnerCounts(), elapsedMillis, seed,
                         variant, threadCount, comparisonStats);
             }
 
@@ -93,13 +94,14 @@ public final class SimulationController implements SimulationViewListener {
      * Builds the optional comparison table for all known rule variants.
      */
     private static Map<RuleVariant, SimulationStats> compareVariants(int games, long seed, RuleVariant selected,
-                                                                     int threadCount, SimulationStats selectedStats) {
+                                                                     int threadCount, int playerCount,
+                                                                     SimulationStats selectedStats) {
         Map<RuleVariant, SimulationStats> comparison = new LinkedHashMap<>();
         for (RuleVariant variant : RuleVariant.values()) {
             if (variant == selected) {
                 comparison.put(variant, selectedStats);
             } else {
-                SimulationData data = Simulation.runBatch(games, seed, variant, threadCount);
+                SimulationData data = Simulation.runBatch(games, seed, variant, threadCount, playerCount);
                 comparison.put(variant, SimulationStats.from(data.turnCounts()));
             }
         }

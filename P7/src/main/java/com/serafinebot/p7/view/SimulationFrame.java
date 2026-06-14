@@ -1,5 +1,6 @@
 package com.serafinebot.p7.view;
 
+import com.serafinebot.p7.model.Game;
 import com.serafinebot.p7.model.RuleVariant;
 import com.serafinebot.p7.model.SimulationResult;
 import com.serafinebot.p7.model.SimulationStats;
@@ -50,6 +51,7 @@ public final class SimulationFrame extends JFrame implements SimulationView {
     private static final int MAX_THREADS = Math.max(1, Math.min(64, Runtime.getRuntime().availableProcessors()));
 
     private final JSpinner games = new JSpinner(new SpinnerNumberModel(10_000, 1, 10_000_000, 1_000));
+    private final JSpinner playerCount = new JSpinner(new SpinnerNumberModel(1, Game.MIN_PLAYERS, Game.MAX_PLAYERS, 1));
     private final JComboBox<RuleVariant> variant = new JComboBox<>(RuleVariant.values());
     private final JSpinner threads = new JSpinner(new SpinnerNumberModel(defaultThreadCount(), 1, MAX_THREADS, 1));
     private final JCheckBox compareVariants = new JCheckBox("Comparar variants");
@@ -61,6 +63,7 @@ public final class SimulationFrame extends JFrame implements SimulationView {
     private final JTextArea requiredOutput = new JTextArea(13, 22);
     private final JTextArea visitOutput = new JTextArea(13, 26);
     private final JTextArea comparisonOutput = new JTextArea(13, 26);
+    private final JTextArea victoryOutput = new JTextArea(13, 26);
     private final HistogramPanel histogram = new HistogramPanel();
     private final Map<String, JLabel> statValues = new LinkedHashMap<>();
     private SimulationViewListener listener;
@@ -87,6 +90,7 @@ public final class SimulationFrame extends JFrame implements SimulationView {
     @Override
     public void setRunning(boolean running) {
         games.setEnabled(!running);
+        playerCount.setEnabled(!running);
         variant.setEnabled(!running);
         threads.setEnabled(!running);
         compareVariants.setEnabled(!running);
@@ -125,9 +129,11 @@ public final class SimulationFrame extends JFrame implements SimulationView {
         visitOutput.setCaretPosition(0);
         comparisonOutput.setText(formatComparison(result.comparisonStats()));
         comparisonOutput.setCaretPosition(0);
+        victoryOutput.setText(formatVictories(result.winnerCounts()));
+        victoryOutput.setCaretPosition(0);
         histogram.setObservations(result.turnCounts());
         status.setText("N=" + result.turnCounts().length + ", variant=" + result.variant().displayName()
-                + ", fils=" + result.threadCount() + ", llavor=" + result.seed()
+                + ", jugadors=" + result.playerCount() + ", fils=" + result.threadCount() + ", llavor=" + result.seed()
                 + ", temps=" + result.elapsedMillis() + " ms.");
     }
 
@@ -159,7 +165,7 @@ public final class SimulationFrame extends JFrame implements SimulationView {
             if (listener != null) {
                 listener.onRunRequested((Integer) games.getValue(), seed.getText(),
                         (RuleVariant) variant.getSelectedItem(), (Integer) threads.getValue(),
-                        compareVariants.isSelected());
+                        (Integer) playerCount.getValue(), compareVariants.isSelected());
             }
         });
         randomSeed.addActionListener(event -> seed.setText(Long.toString(System.nanoTime())));
@@ -171,9 +177,10 @@ public final class SimulationFrame extends JFrame implements SimulationView {
         JLabel hint = new JLabel("Simula N partides, compara variants i pot repartir el calcul entre diversos fils.");
         hint.setForeground(MUTED);
 
-        JPanel fields = new JPanel(new GridLayout(2, 3, 10, 10));
+        JPanel fields = new JPanel(new GridLayout(2, 4, 10, 10));
         fields.setOpaque(false);
         fields.add(fieldCard("Partides (N)", games));
+        fields.add(fieldCard("Jugadors", playerCount));
         fields.add(fieldCard("Variant de regles", variant));
         fields.add(fieldCard("Fils de simulacio", threads));
         fields.add(seedPanel());
@@ -270,14 +277,17 @@ public final class SimulationFrame extends JFrame implements SimulationView {
         configureTextArea(requiredOutput);
         configureTextArea(visitOutput);
         configureTextArea(comparisonOutput);
+        configureTextArea(victoryOutput);
         requiredOutput.setText("Minimo: ...\nP1: ...\nP2: ...\nP3: ...\nP4: ...\nMediana: ...\nP6: ...\nP7: ...\nP8: ...\nP9: ...\nMaximo: ...\nMedia: ...\n");
         visitOutput.setText("Executa una simulacio per veure les frequencies de casella.\n");
         comparisonOutput.setText("Activa 'Comparar variants' per veure la comparacio.\n");
+        victoryOutput.setText("Executa una simulacio per veure probabilitats de victoria.\n");
 
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("Sortida", new JScrollPane(requiredOutput));
         tabs.addTab("Caselles", new JScrollPane(visitOutput));
         tabs.addTab("Variants", new JScrollPane(comparisonOutput));
+        tabs.addTab("Victories", new JScrollPane(victoryOutput));
         panel.add(tabs, BorderLayout.CENTER);
         return panel;
     }
@@ -369,6 +379,25 @@ public final class SimulationFrame extends JFrame implements SimulationView {
             builder.append(String.format(Locale.US, "%-26s %5d %5d %5d %10.3f %5d%n",
                     abbreviate(entry.getKey().displayName(), 26), stats.minimum(), stats.median(),
                     stats.p9(), stats.mean(), stats.maximum()));
+        }
+        return builder.toString();
+    }
+
+    private static String formatVictories(int[] winnerCounts) {
+        int total = 0;
+        for (int wins : winnerCounts) {
+            total += wins;
+        }
+        if (total == 0) {
+            return "No hi ha victories registrades.\n";
+        }
+
+        StringBuilder builder = new StringBuilder();
+        builder.append(String.format(Locale.US, "%8s %12s %12s%n", "Jugador", "Victories", "Prob."));
+        builder.append(String.format(Locale.US, "%8s %12s %12s%n", "-------", "---------", "-----"));
+        for (int player = 0; player < winnerCounts.length; player++) {
+            builder.append(String.format(Locale.US, "%8d %12d %11.6f%n",
+                    player + 1, winnerCounts[player], winnerCounts[player] / (double) total));
         }
         return builder.toString();
     }

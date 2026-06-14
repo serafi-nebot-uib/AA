@@ -1,6 +1,7 @@
 package com.serafinebot.p7;
 
 import com.serafinebot.p7.model.RuleVariant;
+import com.serafinebot.p7.model.Game;
 import com.serafinebot.p7.model.Simulation;
 import com.serafinebot.p7.model.SimulationData;
 import com.serafinebot.p7.model.SimulationStats;
@@ -17,8 +18,8 @@ import java.util.Locale;
  * <p>This entry point is intentionally separate from {@link Main}. The assignment
  * console program must keep its exact stdin/stdout contract, while this tool can
  * expose additional options needed for the report: fixed seeds, multiple values
- * of {@code N}, rule variants, repetitions, CSV/Markdown output, elapsed time and
- * top visited squares.</p>
+ * of {@code N}, player counts, rule variants, repetitions, CSV/Markdown output,
+ * elapsed time and top visited squares.</p>
  *
  * <p>By default the tool uses one worker thread. This makes report numbers
  * machine-independent for a given Java {@link java.util.Random} implementation.
@@ -65,6 +66,7 @@ public final class CLI {
      */
     static ReportConfig parse(String[] args) {
         List<Integer> games = List.of(1_000, 10_000, 100_000);
+        List<Integer> players = List.of(Game.MIN_PLAYERS);
         long seed = DEFAULT_SEED;
         List<RuleVariant> variants = List.of(RuleVariant.STANDARD);
         int threads = 1;
@@ -77,9 +79,10 @@ public final class CLI {
             String arg = args[i];
             switch (arg) {
                 case "--help", "-h" -> {
-                    return new ReportConfig(games, seed, variants, threads, repetitions, format, includeTime, topVisits, true);
+                    return new ReportConfig(games, players, seed, variants, threads, repetitions, format, includeTime, topVisits, true);
                 }
                 case "--games", "--n" -> games = parseGames(value(args, ++i, arg));
+                case "--players" -> players = parsePlayers(value(args, ++i, arg));
                 case "--seed" -> seed = parseLong(value(args, ++i, arg), "seed");
                 case "--variants" -> variants = parseVariants(value(args, ++i, arg));
                 case "--threads" -> threads = parsePositiveInt(value(args, ++i, arg), "threads");
@@ -91,7 +94,7 @@ public final class CLI {
             }
         }
 
-        return new ReportConfig(games, seed, variants, threads, repetitions, format, includeTime, topVisits, false);
+        return new ReportConfig(games, players, seed, variants, threads, repetitions, format, includeTime, topVisits, false);
     }
 
     /**
@@ -100,14 +103,16 @@ public final class CLI {
     static List<ExperimentRow> run(ReportConfig config) {
         List<ExperimentRow> rows = new ArrayList<>();
         for (RuleVariant variant : config.variants()) {
-            for (int games : config.games()) {
-                for (int repetition = 1; repetition <= config.repetitions(); repetition++) {
-                    long runSeed = seedFor(config.seed(), variant, games, repetition);
-                    long start = System.nanoTime();
-                    SimulationData data = Simulation.runBatch(games, runSeed, variant, config.threads());
-                    long elapsedMillis = (System.nanoTime() - start) / 1_000_000L;
-                    rows.add(new ExperimentRow(variant, games, repetition, runSeed, config.threads(),
-                            SimulationStats.from(data.turnCounts()), data.squareVisits(), elapsedMillis));
+            for (int playerCount : config.players()) {
+                for (int games : config.games()) {
+                    for (int repetition = 1; repetition <= config.repetitions(); repetition++) {
+                        long runSeed = seedFor(config.seed(), variant, games, repetition, playerCount);
+                        long start = System.nanoTime();
+                        SimulationData data = Simulation.runBatch(games, runSeed, variant, config.threads(), playerCount);
+                        long elapsedMillis = (System.nanoTime() - start) / 1_000_000L;
+                        rows.add(new ExperimentRow(variant, playerCount, games, repetition, runSeed, config.threads(),
+                                SimulationStats.from(data.turnCounts()), data.squareVisits(), data.winnerCounts(), elapsedMillis));
+                    }
                 }
             }
         }
@@ -122,10 +127,15 @@ public final class CLI {
      * independent while keeping every row reproducible from the printed seed.</p>
      */
     static long seedFor(long baseSeed, RuleVariant variant, int games, int repetition) {
+        return seedFor(baseSeed, variant, games, repetition, Game.MIN_PLAYERS);
+    }
+
+    static long seedFor(long baseSeed, RuleVariant variant, int games, int repetition, int players) {
         long value = baseSeed;
         value ^= 0x9E3779B97F4A7C15L * (variant.ordinal() + 1L);
         value ^= 0xBF58476D1CE4E5B9L * games;
         value ^= 0x94D049BB133111EBL * repetition;
+        value ^= 0xD6E8FEB86659FD93L * players;
         value = (value ^ (value >>> 30)) * 0xBF58476D1CE4E5B9L;
         value = (value ^ (value >>> 27)) * 0x94D049BB133111EBL;
         return value ^ (value >>> 31);
@@ -142,12 +152,12 @@ public final class CLI {
     /** Formats the main statistics table in GitHub-flavored Markdown. */
     private static String formatMarkdownRows(List<ExperimentRow> rows, boolean includeTime) {
         StringBuilder builder = new StringBuilder();
-        builder.append("| Variant | N | Rep | Seed | Threads | Min | P1 | P2 | P3 | P4 | Mediana | P6 | P7 | P8 | P9 | Max | Media |");
+        builder.append("| Variant | Players | N | Rep | Seed | Threads | Min | P1 | P2 | P3 | P4 | Mediana | P6 | P7 | P8 | P9 | Max | Media | Win 1 | Win 2 | Win 3 | Win 4 |");
         if (includeTime) {
             builder.append(" Temps ms |");
         }
         builder.append(System.lineSeparator());
-        builder.append("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
+        builder.append("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
         if (includeTime) {
             builder.append("---:|");
         }
@@ -162,10 +172,11 @@ public final class CLI {
     private static void appendMarkdownRow(StringBuilder builder, ExperimentRow row, boolean includeTime) {
         SimulationStats stats = row.stats();
         builder.append(String.format(Locale.US,
-                "| %s | %d | %d | %d | %d | %d | %d | %d | %d | %d | %d | %d | %d | %d | %d | %d | %.6f |",
-                row.variant().displayName(), row.games(), row.repetition(), row.seed(), row.threads(),
+                "| %s | %d | %d | %d | %d | %d | %d | %d | %d | %d | %d | %d | %d | %d | %d | %d | %d | %.6f |",
+                row.variant().displayName(), row.players(), row.games(), row.repetition(), row.seed(), row.threads(),
                 stats.minimum(), stats.p1(), stats.p2(), stats.p3(), stats.p4(), stats.median(),
                 stats.p6(), stats.p7(), stats.p8(), stats.p9(), stats.maximum(), stats.mean()));
+        appendMarkdownWinProbabilities(builder, row);
         if (includeTime) {
             builder.append(String.format(Locale.US, " %d |", row.elapsedMillis()));
         }
@@ -175,7 +186,7 @@ public final class CLI {
     /** Formats the main statistics table as CSV for spreadsheets or scripts. */
     private static String formatCsvRows(List<ExperimentRow> rows, boolean includeTime) {
         StringBuilder builder = new StringBuilder();
-        builder.append("variant,n,rep,seed,threads,min,p1,p2,p3,p4,median,p6,p7,p8,p9,max,mean");
+        builder.append("variant,players,n,rep,seed,threads,min,p1,p2,p3,p4,median,p6,p7,p8,p9,max,mean,win1,win2,win3,win4");
         if (includeTime) {
             builder.append(",elapsed_ms");
         }
@@ -183,10 +194,11 @@ public final class CLI {
         for (ExperimentRow row : rows) {
             SimulationStats stats = row.stats();
             builder.append(String.format(Locale.US,
-                    "%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%.6f",
-                    csv(row.variant().name()), row.games(), row.repetition(), row.seed(), row.threads(),
+                    "%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%.6f",
+                    csv(row.variant().name()), row.players(), row.games(), row.repetition(), row.seed(), row.threads(),
                     stats.minimum(), stats.p1(), stats.p2(), stats.p3(), stats.p4(), stats.median(),
                     stats.p6(), stats.p7(), stats.p8(), stats.p9(), stats.maximum(), stats.mean()));
+            appendCsvWinProbabilities(builder, row);
             if (includeTime) {
                 builder.append(',').append(row.elapsedMillis());
             }
@@ -206,14 +218,14 @@ public final class CLI {
     /** Formats the most visited squares per run in Markdown. */
     private static String formatMarkdownTopVisits(List<ExperimentRow> rows, int limit) {
         StringBuilder builder = new StringBuilder(System.lineSeparator());
-        builder.append("| Variant | N | Rep | Rank | Square | Visits | Percent |")
+        builder.append("| Variant | Players | N | Rep | Rank | Square | Visits | Percent |")
                 .append(System.lineSeparator());
-        builder.append("|---|---:|---:|---:|---:|---:|---:|")
+        builder.append("|---|---:|---:|---:|---:|---:|---:|---:|")
                 .append(System.lineSeparator());
         for (ExperimentRow row : rows) {
             for (VisitRank visit : topVisits(row.squareVisits(), limit)) {
-                builder.append(String.format(Locale.US, "| %s | %d | %d | %d | %d | %d | %.4f |%n",
-                        row.variant().displayName(), row.games(), row.repetition(), visit.rank(),
+                builder.append(String.format(Locale.US, "| %s | %d | %d | %d | %d | %d | %d | %.4f |%n",
+                        row.variant().displayName(), row.players(), row.games(), row.repetition(), visit.rank(),
                         visit.square(), visit.visits(), visit.percent()));
             }
         }
@@ -223,12 +235,12 @@ public final class CLI {
     /** Formats the most visited squares per run as CSV. */
     private static String formatCsvTopVisits(List<ExperimentRow> rows, int limit) {
         StringBuilder builder = new StringBuilder(System.lineSeparator());
-        builder.append("visit_variant,visit_n,visit_rep,rank,square,visits,percent")
+        builder.append("visit_variant,visit_players,visit_n,visit_rep,rank,square,visits,percent")
                 .append(System.lineSeparator());
         for (ExperimentRow row : rows) {
             for (VisitRank visit : topVisits(row.squareVisits(), limit)) {
-                builder.append(String.format(Locale.US, "%s,%d,%d,%d,%d,%d,%.4f%n",
-                        csv(row.variant().name()), row.games(), row.repetition(), visit.rank(),
+                builder.append(String.format(Locale.US, "%s,%d,%d,%d,%d,%d,%d,%.4f%n",
+                        csv(row.variant().name()), row.players(), row.games(), row.repetition(), visit.rank(),
                         visit.square(), visit.visits(), visit.percent()));
             }
         }
@@ -267,6 +279,28 @@ public final class CLI {
         return List.copyOf(parsed);
     }
 
+    /** Parses a comma-separated list of player counts, or {@code all}. */
+    private static List<Integer> parsePlayers(String value) {
+        if (value.equalsIgnoreCase("all")) {
+            List<Integer> all = new ArrayList<>();
+            for (int players = Game.MIN_PLAYERS; players <= Game.MAX_PLAYERS; players++) {
+                all.add(players);
+            }
+            return List.copyOf(all);
+        }
+
+        String[] parts = value.split(",");
+        List<Integer> parsed = new ArrayList<>();
+        for (String part : parts) {
+            int playerCount = parsePositiveInt(part.trim(), "players");
+            if (playerCount < Game.MIN_PLAYERS || playerCount > Game.MAX_PLAYERS) {
+                throw new IllegalArgumentException("players must be between 1 and 4.");
+            }
+            parsed.add(playerCount);
+        }
+        return List.copyOf(parsed);
+    }
+
     /** Parses a comma-separated list of variants, or {@code all}. */
     private static List<RuleVariant> parseVariants(String value) {
         if (value.equalsIgnoreCase("all")) {
@@ -288,6 +322,9 @@ public final class CLI {
                 .replace(' ', '_');
         if (normalized.equals("OFFICIAL") || normalized.equals("OFFICIALS") || normalized.equals("STD")) {
             return RuleVariant.STANDARD;
+        }
+        if (normalized.equals("NO_SPECIAL_SQUARES")) {
+            return RuleVariant.NO_SPECIAL_CELLS;
         }
         for (RuleVariant variant : RuleVariant.values()) {
             if (variant.name().equals(normalized)) {
@@ -365,6 +402,7 @@ public final class CLI {
                 + "-Dexec.args=\"[options]\"\n\n"
                 + "Options:\n"
                 + "  --games, --n <list>       Comma-separated game counts. Default: 1000,10000,100000\n"
+                + "  --players <list|all>      Player counts from 1 to 4. Default: 1\n"
                 + "  --seed <long>            Base seed. Default: 20260609\n"
                 + "  --variants <list|all>    standard,no_penalties,no_goose_extra_roll,no_special_squares. Default: standard\n"
                 + "  --threads <int>          Worker threads. Default: 1 for reproducibility\n"
@@ -375,7 +413,27 @@ public final class CLI {
                 + "  --help                   Show this message\n\n"
                 + "Examples:\n"
                 + "  --games 1000,10000 --seed 42 --variants standard --format markdown\n"
+                + "  --games 100000 --players all --variants standard --format csv\n"
                 + "  --games 100000 --variants all --threads 4 --time --top-visits 8\n";
+    }
+
+    private static void appendMarkdownWinProbabilities(StringBuilder builder, ExperimentRow row) {
+        for (int player = 0; player < Game.MAX_PLAYERS; player++) {
+            if (player < row.winnerCounts().length) {
+                builder.append(String.format(Locale.US, " %.6f |", row.winnerCounts()[player] / (double) row.games()));
+            } else {
+                builder.append(" - |");
+            }
+        }
+    }
+
+    private static void appendCsvWinProbabilities(StringBuilder builder, ExperimentRow row) {
+        for (int player = 0; player < Game.MAX_PLAYERS; player++) {
+            builder.append(',');
+            if (player < row.winnerCounts().length) {
+                builder.append(String.format(Locale.US, "%.6f", row.winnerCounts()[player] / (double) row.games()));
+            }
+        }
     }
 
     /** Output formats supported by the report CLI. */
@@ -385,14 +443,14 @@ public final class CLI {
     }
 
     /** Parsed command-line configuration. */
-    record ReportConfig(List<Integer> games, long seed, List<RuleVariant> variants, int threads,
+    record ReportConfig(List<Integer> games, List<Integer> players, long seed, List<RuleVariant> variants, int threads,
                         int repetitions, OutputFormat format, boolean includeTime, int topVisits,
                         boolean help) {
     }
 
     /** One completed experiment row and the raw data needed for optional tables. */
-    record ExperimentRow(RuleVariant variant, int games, int repetition, long seed, int threads,
-                         SimulationStats stats, long[] squareVisits, long elapsedMillis) {
+    record ExperimentRow(RuleVariant variant, int players, int games, int repetition, long seed, int threads,
+                         SimulationStats stats, long[] squareVisits, int[] winnerCounts, long elapsedMillis) {
     }
 
     /** Ranked visit-frequency row for the optional top-squares table. */

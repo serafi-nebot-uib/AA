@@ -17,6 +17,7 @@ public final class SimulationResult {
     private final SimulationStats stats;
     private final int[] turnCounts;
     private final long[] squareVisits;
+    private final int[] winnerCounts;
     private final long elapsedMillis;
     private final long seed;
     private final RuleVariant variant;
@@ -24,19 +25,20 @@ public final class SimulationResult {
     private final Map<RuleVariant, SimulationStats> comparisonStats;
 
     public SimulationResult(SimulationStats stats, int[] turnCounts, long elapsedMillis, long seed) {
-        this(stats, turnCounts, new long[Game.FINISH + 1], elapsedMillis, seed,
+        this(stats, turnCounts, new long[Game.FINISH + 1], new int[]{turnCounts.length}, elapsedMillis, seed,
                 RuleVariant.STANDARD, 1, Map.of());
     }
 
     /**
      * Creates a GUI/report result and defensively copies mutable collections.
      */
-    public SimulationResult(SimulationStats stats, int[] turnCounts, long[] squareVisits,
+    public SimulationResult(SimulationStats stats, int[] turnCounts, long[] squareVisits, int[] winnerCounts,
                             long elapsedMillis, long seed, RuleVariant variant, int threadCount,
                             Map<RuleVariant, SimulationStats> comparisonStats) {
         this.stats = Objects.requireNonNull(stats);
         this.turnCounts = Objects.requireNonNull(turnCounts).clone();
         this.squareVisits = Objects.requireNonNull(squareVisits).clone();
+        this.winnerCounts = Objects.requireNonNull(winnerCounts).clone();
         this.elapsedMillis = elapsedMillis;
         this.seed = seed;
         this.variant = Objects.requireNonNull(variant);
@@ -54,6 +56,14 @@ public final class SimulationResult {
 
     public long[] squareVisits() {
         return squareVisits.clone();
+    }
+
+    public int[] winnerCounts() {
+        return winnerCounts.clone();
+    }
+
+    public int playerCount() {
+        return winnerCounts.length;
     }
 
     public long elapsedMillis() {

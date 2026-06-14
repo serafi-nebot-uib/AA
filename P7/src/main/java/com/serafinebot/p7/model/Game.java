@@ -5,7 +5,7 @@ import java.util.Objects;
 import java.util.Random;
 
 /**
- * Simulates complete one-player Oca games.
+ * Simulates complete Oca games.
  *
  * <p>This class is the model component that understands turn semantics: penalty
  * turns count but do not roll, ordinary turns roll once, and an oca can trigger
@@ -16,6 +16,8 @@ public final class Game {
 
     public static final int START = 0;
     public static final int FINISH = 63;
+    public static final int MIN_PLAYERS = 1;
+    public static final int MAX_PLAYERS = 4;
 
     private static final int DIE_SIDES = 6;
     private static final int INN = 19;
@@ -63,7 +65,7 @@ public final class Game {
      * Plays one complete game and returns the number of counted turns.
      */
     public int play() {
-        return play(null);
+        return playMatch(MIN_PLAYERS, null).turns();
     }
 
     /**
@@ -75,15 +77,39 @@ public final class Game {
      * can accumulate into one frequency table.</p>
      */
     public int play(long[] squareVisits) {
+        return playMatch(MIN_PLAYERS, squareVisits).turns();
+    }
+
+    /**
+     * Plays a game with 1 to 4 players and returns both duration and winner.
+     *
+     * <p>Players move in fixed cyclic order. Each player owns an independent
+     * position and penalty counter, but all players share the same random stream
+     * for die rolls. If the current player ends a turn on another player's square,
+     * the previous occupant is sent back to square 0 with no pending penalty. The
+     * game ends as soon as the current player reaches square 63.</p>
+     */
+    public MatchResult playMatch(int playerCount, long[] squareVisits) {
+        validatePlayerCount(playerCount);
         validateVisits(squareVisits);
         int turns = 0;
-        GameSnapshot state = new GameSnapshot(START, 0);
-        recordVisit(squareVisits, state.position());
-        while (!state.isFinished()) {
-            state = advanceTurn(state, squareVisits);
-            turns++;
+        GameSnapshot[] states = new GameSnapshot[playerCount];
+        for (int player = 0; player < playerCount; player++) {
+            states[player] = new GameSnapshot(START, 0);
+            recordVisit(squareVisits, START);
         }
-        return turns;
+
+        int currentPlayer = 0;
+        while (true) {
+            GameSnapshot next = advanceTurn(states[currentPlayer], squareVisits);
+            turns++;
+            states[currentPlayer] = next;
+            if (next.isFinished()) {
+                return new MatchResult(turns, currentPlayer);
+            }
+            killPreviousOccupants(states, currentPlayer, squareVisits);
+            currentPlayer = (currentPlayer + 1) % playerCount;
+        }
     }
 
     GameSnapshot advanceTurn(GameSnapshot state) {
@@ -196,6 +222,19 @@ public final class Game {
     }
 
     /**
+     * Applies the multiplayer collision rule after the current player's movement.
+     */
+    private static void killPreviousOccupants(GameSnapshot[] states, int currentPlayer, long[] squareVisits) {
+        int occupiedPosition = states[currentPlayer].position();
+        for (int player = 0; player < states.length; player++) {
+            if (player != currentPlayer && states[player].position() == occupiedPosition) {
+                states[player] = new GameSnapshot(START, 0);
+                recordVisit(squareVisits, START);
+            }
+        }
+    }
+
+    /**
      * Rejects impossible game states before a roll is evaluated.
      */
     private static void validateRoll(int position, int dieValue) {
@@ -209,6 +248,12 @@ public final class Game {
 
     private int rollDie() {
         return random.nextInt(DIE_SIDES) + 1;
+    }
+
+    private static void validatePlayerCount(int playerCount) {
+        if (playerCount < MIN_PLAYERS || playerCount > MAX_PLAYERS) {
+            throw new IllegalArgumentException("Player count must be between 1 and 4.");
+        }
     }
 
     private static void validateVisits(long[] squareVisits) {

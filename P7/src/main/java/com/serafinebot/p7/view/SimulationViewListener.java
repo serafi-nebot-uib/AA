@@ -14,5 +14,6 @@ public interface SimulationViewListener {
     /**
      * Requests a simulation batch from the current GUI configuration.
      */
-    void onRunRequested(int games, String seedText, RuleVariant variant, int threadCount, boolean compareVariants);
+    void onRunRequested(int games, String seedText, RuleVariant variant, int threadCount,
+                        int playerCount, boolean compareVariants);
 }

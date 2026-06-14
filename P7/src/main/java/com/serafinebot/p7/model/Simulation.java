@@ -37,16 +37,26 @@ public final class Simulation {
      * Runs {@code games} simulations and returns turn counts plus visit counts.
      */
     public SimulationData runDetailed(int games) {
+        return runDetailed(games, Game.MIN_PLAYERS);
+    }
+
+    /**
+     * Runs {@code games} multiplayer simulations and returns turns, visits and wins.
+     */
+    public SimulationData runDetailed(int games, int playerCount) {
         if (games <= 0) {
             throw new IllegalArgumentException("The number of games must be positive.");
         }
 
         int[] turns = new int[games];
         long[] squareVisits = new long[Game.FINISH + 1];
+        int[] winnerCounts = new int[playerCount];
         for (int i = 0; i < games; i++) {
-            turns[i] = game.play(squareVisits);
+            MatchResult result = game.playMatch(playerCount, squareVisits);
+            turns[i] = result.turns();
+            winnerCounts[result.winner()]++;
         }
-        return new SimulationData(turns, squareVisits);
+        return new SimulationData(turns, squareVisits, winnerCounts);
     }
 
     /**
@@ -58,12 +68,19 @@ public final class Simulation {
      * for the same thread count, while avoiding shared mutable random state.</p>
      */
     public static SimulationData runBatch(int games, long seed, RuleVariant variant, int threadCount) {
+        return runBatch(games, seed, variant, threadCount, Game.MIN_PLAYERS);
+    }
+
+    /**
+     * Runs a complete deterministic batch for 1 to 4 players.
+     */
+    public static SimulationData runBatch(int games, long seed, RuleVariant variant, int threadCount, int playerCount) {
         Objects.requireNonNull(variant);
         if (games <= 0) {
             throw new IllegalArgumentException("The number of games must be positive.");
         }
         if (threadCount <= 1 || games == 1) {
-            return sequentialBatch(games, seed, variant);
+            return sequentialBatch(games, seed, variant, playerCount);
         }
 
         int workerCount = Math.min(games, threadCount);
@@ -79,19 +96,21 @@ public final class Simulation {
                 int chunkSize = baseSize + (worker < remainder ? 1 : 0);
                 int chunkOffset = offset;
                 long workerSeed = mixSeed(seed, worker);
-                tasks.add(() -> runChunk(chunkOffset, chunkSize, workerSeed, variant));
+                tasks.add(() -> runChunk(chunkOffset, chunkSize, workerSeed, variant, playerCount));
                 offset += chunkSize;
             }
 
             int[] turns = new int[games];
             long[] squareVisits = new long[Game.FINISH + 1];
+            int[] winnerCounts = new int[playerCount];
             List<Future<PartialSimulationData>> futures = executor.invokeAll(tasks);
             for (Future<PartialSimulationData> future : futures) {
                 PartialSimulationData partial = future.get();
                 System.arraycopy(partial.turnCounts(), 0, turns, partial.offset(), partial.turnCounts().length);
                 addVisits(squareVisits, partial.squareVisits());
+                addWins(winnerCounts, partial.winnerCounts());
             }
-            return new SimulationData(turns, squareVisits);
+            return new SimulationData(turns, squareVisits, winnerCounts);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Parallel simulation was interrupted.", ex);
@@ -102,18 +121,24 @@ public final class Simulation {
         }
     }
 
-    private static SimulationData sequentialBatch(int games, long seed, RuleVariant variant) {
+    private static SimulationData sequentialBatch(int games, long seed, RuleVariant variant, int playerCount) {
         return new Simulation(
                 new Game(new Random(seed), variant)
-        ).runDetailed(games);
+        ).runDetailed(games, playerCount);
     }
 
-    private static PartialSimulationData runChunk(int offset, int games, long seed, RuleVariant variant) {
-        SimulationData data = sequentialBatch(games, seed, variant);
-        return new PartialSimulationData(offset, data.turnCounts(), data.squareVisits());
+    private static PartialSimulationData runChunk(int offset, int games, long seed, RuleVariant variant, int playerCount) {
+        SimulationData data = sequentialBatch(games, seed, variant, playerCount);
+        return new PartialSimulationData(offset, data.turnCounts(), data.squareVisits(), data.winnerCounts());
     }
 
     private static void addVisits(long[] target, long[] source) {
+        for (int i = 0; i < target.length; i++) {
+            target[i] += source[i];
+        }
+    }
+
+    private static void addWins(int[] target, int[] source) {
         for (int i = 0; i < target.length; i++) {
             target[i] += source[i];
         }
@@ -129,6 +154,6 @@ public final class Simulation {
         return value ^ (value >>> 31);
     }
 
-    private record PartialSimulationData(int offset, int[] turnCounts, long[] squareVisits) {
+    private record PartialSimulationData(int offset, int[] turnCounts, long[] squareVisits, int[] winnerCounts) {
     }
 }

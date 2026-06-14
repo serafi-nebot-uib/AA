@@ -10,7 +10,6 @@
 \usepackage{url}
 \usepackage{verbatim}
 \usepackage{graphicx}
-\usepackage[nocompress]{cite}
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage[catalan]{babel}
@@ -20,6 +19,8 @@
 \usepackage{float}
 \usepackage{cuted}
 \usepackage{microtype}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
 \graphicspath{{./}}
 
 \renewcommand{\abstractname}{Resum}
@@ -57,7 +58,7 @@
     captionpos=b
 }
 
-\hyphenation{Mon-te-Car-lo per-cen-til si-mu-la-cio con-tro-la-dor Swing-Worker}
+\hyphenation{Mon-te-Car-lo per-cen-til per-cen-tils si-mu-la-cio con-tro-la-dor Swing-Worker re-pro-du-i-ble}
 
 \begin{document}
 
@@ -72,253 +73,805 @@ Algorismes Avançats, Curs 2025--2026}}
 
 \begin{strip}
 \begin{abstract}
-Aquesta memòria descriu la implementació d'una simulació Monte Carlo per
-estimar el nombre de torns necessaris per acabar una partida amb un únic jugador
-del Joc de l'Oca. El programa implementa les regles exactes de l'enunciat,
-incloent-hi el rebot a la casella final, les caselles especials, les penalitzacions
-i la regla que limita cada tirada a un únic efecte especial. La solució s'ha
-organitzat amb arquitectura Model-Vista-Controlador, una entrada de consola amb
-el format de sortida requerit i una interfície gràfica Swing que permet executar
-simulacions, visualitzar estadístics i mostrar un histograma empíric. També es
-documenta el criteri de percentils emprat, el cost computacional i una validació
-experimental amb llavors fixes.
+Aquesta memòria descriu una aplicació Java per estimar mitjançant simulació Monte
+Carlo el nombre de torns necessaris per acabar una partida del Joc de l'Oca. La
+implementació reprodueix les regles exactes de l'enunciat per a un jugador i
+afegeix extensions opcionals per a 2, 3 i 4 jugadors amb captura de fitxes,
+comparació de variants, freqüències de visita i execució concurrent. El projecte s'ha organitzat amb
+arquitectura Model-Vista-Controlador, una entrada de consola obligatòria, una
+interfície Swing i una eina CLI específica per generar experiments reproduïbles per
+a la memòria. La part central del treball és l'anàlisi empírica: s'estudia la
+convergència de la mitjana, l'estabilitat dels percentils, la cua de la
+distribució, l'efecte de variants de regles, les probabilitats de victòria segons
+el nombre de jugadors, les freqüències de visita de caselles i l'impacte de la
+simulació concurrent. Amb $250\,000$ partides per repetició en les comparacions
+principals, la mitjana d'una
+partida individual queda al voltant de $20.75$ torns, amb mediana 17 i percentil
+$0.9$ al voltant de 38--39 torns.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Monte Carlo, algorismes probabilístics, simulació, percentils empírics, MVC,
-Java Swing, Joc de l'Oca.
+Monte Carlo, algorismes probabilístics, simulació, percentils empírics, Joc de
+l'Oca, multijugador, MVC, Java Swing, experiments reproduïbles.
 \end{IEEEkeywords}
 \end{strip}
 
 \IEEEpeerreviewmaketitle
 
+%% ================================================================
 \section{Introducció}
 
-L'objectiu de la pràctica és estimar mitjançant simulació el nombre de torns que
-necessita una partida del Joc de l'Oca per arribar a la casella final. El problema
-es podria modelar de manera exacta com una cadena de Markov amb estats que
-incloguessin la posició i les penalitzacions pendents. Tot i això, l'enunciat
-demana explícitament una aproximació per simulació Monte Carlo, que és més simple
-d'implementar i permet obtenir estimacions empíriques a partir d'un nombre gran de
-partides independents.
+La pràctica demana estimar el nombre de torns necessaris per finalitzar una
+partida del Joc de l'Oca amb un únic jugador. El tauler té 64 caselles numerades
+de 0 a 63, la partida comença a la casella 0 i acaba immediatament quan el jugador
+arriba a la casella 63. En cada torn ordinari es llança un dau equilibrat de sis
+cares. Després del moviment normal i del possible rebot respecte de la casella
+final, es comprova si la casella assolida és especial. Com a ampliació opcional,
+la mateixa implementació permet simular partides de 1 a 4 jugadors i estimar la
+probabilitat de victòria de cada posició d'ordre de torn. En aquest mode, si una
+fitxa acaba el moviment en una casella ocupada per una altra fitxa, la fitxa que hi
+era abans torna a la casella inicial.
 
-La implementació resultant té dos modes d'ús. La classe \texttt{Main} compleix el
-contracte de consola: llegeix un enter \(N\), simula \(N\) partides i escriu els
-estadístics amb les etiquetes indicades. A més, la classe \texttt{GuiMain} obre una
-interfície Swing que reutilitza el mateix model de simulació i afegeix visualització
-tabular i gràfica dels resultats.
+El problema és probabilístic perquè el resultat de cada tirada és aleatori. Es
+podria construir un model exacte com una cadena de Markov finita, amb estats que
+incloguessin la posició i les penalitzacions pendents. En aquesta pràctica, però,
+l'objectiu és aplicar simulació Monte Carlo: generar moltes partides independents,
+mesurar quants torns dura cadascuna i resumir la mostra amb mínim, percentils,
+mediana, màxim i mitjana.
 
+La implementació no es limita al format de consola. S'ha construït una aplicació
+amb tres entrades:
+\begin{itemize}
+    \item \texttt{Main}, que compleix estrictament el format obligatori de
+    l'enunciat;
+    \item \texttt{GUI}, que obre una interfície Swing per executar simulacions,
+    comparar variants, triar el nombre de jugadors i visualitzar la distribució;
+    \item \texttt{CLI}, que executa experiments deterministes amb llavors fixes,
+    repeticions, variants, nombre de jugadors i sortida Markdown o CSV.
+\end{itemize}
+
+A aquesta memòria primer es
+formalitza el problema, després es descriu el disseny de l'aplicació i finalment
+es dedica una part extensa als experiments. En particular, la Secció
+\ref{sec:experiments} és la part més important: totes les taules provenen de la
+CLI reproduïble i no de proves manuals de la GUI.
+
+%% ================================================================
+\section{Descripció del Problema}
+
+\subsection{Estat de la Partida}
+
+En el cas obligatori d'un jugador, l'estat necessari per continuar una partida és
+molt petit:
+\begin{equation}
+S=(p,a)
+\end{equation}
+on $p\in\{0,\ldots,63\}$ és la posició actual i $a\in\{0,1,2,3\}$ és el nombre de
+torns anul·lats pendents. El valor màxim de $a$ és 3 perquè la penalització més
+llarga de l'enunciat és la presó. La casella 63 és absorbent: un cop assolida, la
+partida s'acaba i no es processen més efectes.
+
+La variable aleatòria que s'estima és $X$, definida com el nombre de torns
+comptats fins que la partida arriba a la casella 63.
+Un torn anul·lat per penalització compta dins $X$, però no llança el dau ni mou el
+jugador. En canvi, les tirades addicionals d'una oca pertanyen al mateix torn i no
+incrementen el comptador.
+
+Per a l'ampliació multijugador, cada jugador té el seu propi parell $(p,a)$ i el
+torn avança cíclicament. La partida acaba en el moment que el jugador actual arriba
+a la casella 63. Per tant, si hi ha $J$ jugadors, l'estat global és
+\begin{equation}
+S=((p_1,a_1),\ldots,(p_J,a_J),j)
+\end{equation}
+on $j$ indica quin jugador ha de moure. La variable d'interès continua essent el
+nombre total de torns comptats fins al final de la partida, però també es registra
+el guanyador $W\in\{1,\ldots,J\}$. Després de cada torn multijugador, si la posició
+final del jugador actual coincideix amb la d'una altra fitxa, l'ocupant anterior es
+reinicia a la casella 0 i perd qualsevol penalització pendent. Aquesta captura és
+l'única interacció directa entre jugadors.
+
+\subsection{Moviment i Rebot}
+
+Si el jugador és a la casella $p$ i obté un valor de dau $d$, primer es calcula
+$r=p+d$. Si $r\leq63$, la casella provisional és $r$. Si $r>63$, s'aplica el rebot
+definit a l'enunciat:
+\begin{equation}
+\label{eq:rebot}
+q = 63 - (r-63).
+\end{equation}
+Per exemple, des de la casella 60 amb un 5, $r=65$ i la posició resultant és
+$61$. Aquest rebot fa que acostar-se a la meta no sigui equivalent a acabar: una
+tirada massa gran pot allunyar el jugador.
+
+\subsection{Caselles Especials}
+
+Després del moviment ordinari, i només després, s'aplica com a màxim un efecte
+especial. La Taula~\ref{tab:regles} resumeix les regles implementades. La regla
+d'un únic efecte és essencial: si una tirada porta a la casella 6, el jugador passa
+a la 12, però no s'aplica immediatament l'efecte de la 12. La implementació
+conserva internament tant la casella de caiguda com la casella final del moviment
+per poder comptar visites sense encadenar efectes.
+
+\begin{table}[H]
+\centering
+\caption{Caselles especials implementades segons l'enunciat.}
+\label{tab:regles}
+\footnotesize
+\begin{tabular}{@{}p{0.26\columnwidth}p{0.68\columnwidth}@{}}
+\toprule
+Tipus & Efecte \\
+\midrule
+Oques & $5\to9\to14\to18\to23\to27\to32\to36\to41\to45\to50\to54\to59\to63$; dona una nova tirada sense sumar torn si no acaba. \\
+Ponts & $6\leftrightarrow12$. \\
+Dados & $26\leftrightarrow53$. \\
+Posada & Casella 19; un torn anul·lat. \\
+Pou & Casella 31; dos torns anul·lats. \\
+Laberint & $42\to30$. \\
+Presó & Casella 52; tres torns anul·lats. \\
+Mort & $58\to0$. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Variants Analitzades}
+
+A més de les regles oficials, el programa permet variants controlades. No formen
+part de la sortida obligatòria, però són útils per entendre quin efecte té cada
+família de caselles sobre la distribució de torns. Les variants són:
+\begin{itemize}
+    \item \texttt{STANDARD}: totes les regles oficials.
+    \item \texttt{NO\_PENALTIES}: manté oques, ponts, dados, laberint i mort, però
+    elimina posada, pou i presó.
+    \item \texttt{NO\_GOOSE\_EXTRA\_ROLL}: manté els salts d'oca, però la tirada
+    addicional passa a comptar com un altre torn.
+    \item \texttt{NO\_SPECIAL\_CELLS}: desactiva totes les caselles especials i
+    deixa només el moviment amb rebot.
+\end{itemize}
+
+%% ================================================================
 \section{Fonaments Teòrics}
 
 \subsection{Estimació Monte Carlo}
 
-Sigui \(X\) la variable aleatòria que representa el nombre de torns comptats en una
-partida completa. Una simulació de \(N\) partides genera una mostra independent
-\(x_1, x_2, \ldots, x_N\). La mitjana mostral
+Una simulació de $N$ partides genera observacions independents
+$x_1,x_2,\ldots,x_N$ de la variable aleatòria $X$. La mitjana mostral és
 \begin{equation}
 \label{eq:mitjana}
-\bar{x}=\frac{1}{N}\sum_{i=1}^{N}x_i
+\bar{x}=\frac{1}{N}\sum_{i=1}^{N}x_i.
 \end{equation}
-és l'estimador Monte Carlo de l'esperança \(E[X]\). Quan \(N\) creix, la llei dels
-grans nombres justifica que aquesta mitjana s'aproximi al valor esperat real
-\cite{robert2004montecarlo}.
+Per la llei dels grans nombres, $\bar{x}$ convergeix cap a $E[X]$ quan $N$ creix.
+Si les partides són independents i $X$ té variància finita $\sigma^2$, llavors
+\begin{equation}
+\label{eq:error-mitjana}
+\operatorname{Var}(\bar{x}) = \frac{\sigma^2}{N},
+\end{equation}
+de manera que la desviació típica de l'estimador és $\sigma/\sqrt{N}$.
+Aquest és el motiu pel qual s'espera que l'error típic
+de la mitjana decreixi aproximadament com $O(1/\sqrt{N})$. Això no significa que
+qualsevol estadístic sigui igual d'estable. La mitjana i els percentils centrals
+convergeixen ràpidament, però el màxim observat tendeix a créixer quan augmenta
+$N$, perquè depèn de la cua de la distribució.
 
-\subsection{Percentils empírics}
+\subsection{Percentils Empírics}
 
-Per als percentils s'ha emprat el criteri de rang més proper. Si la mostra ordenada
-és \(y_1 \leq y_2 \leq \cdots \leq y_N\), el percentil empíric \(p\) es defineix com
+L'enunciat demana els percentils empírics 0.1, 0.2, 0.3, 0.4, la mediana, 0.6,
+0.7, 0.8 i 0.9. La implementació utilitza el criteri de rang més proper. Si
+$y_1\leq y_2\leq\cdots\leq y_N$ és la mostra ordenada, llavors
 \begin{equation}
 \label{eq:percentil}
 Q_p = y_{\lceil pN \rceil}.
 \end{equation}
-Aquest criteri retorna sempre un valor observat de la mostra, fet coherent amb la
-sortida sencera esperada per als mínims, màxims, percentils i mediana. La mitjana és
-l'únic valor que es mostra amb sis decimals.
+Aquest criteri té dos avantatges pràctics: sempre retorna un nombre enter de torns
+realment observat i és fàcil de reproduir a partir de la mostra ordenada. La
+mitjana és l'únic valor de sortida que pot no ser enter i s'imprimeix amb sis
+decimals.
 
-\subsection{Cost computacional}
+\subsection{Cost Asimptòtic}
 
-Si \(T\) és el nombre mitjà de torns d'una partida, simular \(N\) partides té cost
-esperat \(O(NT)\). Després cal ordenar els \(N\) valors observats per calcular els
-percentils, amb cost \(O(N\log N)\). Per tant, el cost total és
+Si $T$ és el nombre mitjà de torns d'una partida, simular $N$ partides té cost
+esperat $O(NT)$. El càlcul de percentils ordena els $N$ valors observats i costa
+$O(N\log N)$. Per tant, el cost total de la simulació completa amb estadístics és
 \begin{equation}
-\label{eq:complexitat}
+\label{eq:cost}
 O(NT + N\log N).
 \end{equation}
-La memòria emprada és \(O(N)\), ja que es conserva la mostra sencera per poder
-ordenar-la i dibuixar l'histograma de la interfície gràfica.
+La memòria és $O(N+64+J)$: cal guardar els $N$ torns per ordenar-los, un vector de
+64 posicions per comptar visites a caselles i un vector de $J$ comptadors de
+victòries quan s'executen partides multijugador.
 
+Amb $h$ fils, la part de simulació es reparteix en blocs independents. Idealment,
+el terme $NT$ es divideix per $h$, però l'ordenació final i la sobrecàrrega de
+crear fils, combinar vectors i gestionar memòria no desapareixen. Per això no
+s'espera un guany lineal perfecte.
+
+%% ================================================================
 \section{Disseny i Implementació}
 
-\subsection{Model de regles}
+\subsection{Estructura del Projecte}
 
-El tauler s'ha modelat amb caselles enteres de \(0\) a \(63\). En cada tirada normal
-es calcula primer la posició provisional \(p+d\). Si aquesta posició supera la
-casella final, s'aplica el rebot especificat a l'enunciat:
-\begin{equation}
-\label{eq:rebot}
-q = 63 - ((p+d)-63).
-\end{equation}
-
-Després del moviment i del possible rebot s'aplica, com a màxim, un únic efecte
-especial. La taula~\ref{tab:efectes} resumeix els efectes implementats.
+La separació MVC queda reflectida en tres paquets:
+\texttt{model}, \texttt{controller} i \texttt{view}. Les entrades principals són
+\texttt{Main}, \texttt{GUI} i \texttt{CLI}. La Taula~\ref{tab:classes} resumeix les
+classes més importants.
 
 \begin{table}[H]
 \centering
-\caption{Caselles especials implementades.}
-\label{tab:efectes}
-\begin{tabular}{ll}
-\toprule
-Tipus & Efecte \\
-\midrule
-Oca & Avança a la següent oca; la nova tirada no suma torn \\
-Pont & \(6 \leftrightarrow 12\) \\
-Dados & \(26 \leftrightarrow 53\) \\
-Posada & 1 torn anul\textperiodcentered lat \\
-Pou & 2 torns anul\textperiodcentered lats \\
-Laberint & \(42 \rightarrow 30\) \\
-Presó & 3 torns anul\textperiodcentered lats \\
-Mort & \(58 \rightarrow 0\) \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-La regla d'un sol efecte per tirada és important. Per exemple, si una tirada porta
-el jugador a la casella 6, s'aplica el pont fins a la casella 12, però no s'aplica
-immediatament l'efecte de la casella 12. L'única excepció és arribar a la casella
-63, cas en què la partida acaba immediatament.
-
-\subsection{Arquitectura MVC}
-
-La separació Model-Vista-Controlador s'ha mantingut explícita. El model no importa
-cap classe de Swing i concentra les regles i els càlculs estadístics. La vista no
-conté lògica de joc, sinó que emet esdeveniments i renderitza els resultats que rep.
-El controlador és l'únic component que coneix simultàniament el model i la vista.
-
-\begin{table}[H]
-\centering
-\caption{Responsabilitats principals de les classes.}
+\caption{Responsabilitats principals de la implementació.}
 \label{tab:classes}
-\footnotesize
-\begin{tabular}{@{}p{0.45\columnwidth}p{0.49\columnwidth}@{}}
+\scriptsize
+\begin{tabular}{@{}p{0.48\columnwidth}p{0.46\columnwidth}@{}}
 \toprule
 Classe & Responsabilitat \\
 \midrule
-\texttt{OcaRules} & Moviment, rebot i efectes especials \\
-\texttt{OcaGameSimulator} & Simulació d'una partida completa \\
-\texttt{MonteCarloSimulation} & Execució de \(N\) partides independents \\
-\texttt{SimulationStats} & Mínims, percentils, mediana, màxim i mitjana \\
-\texttt{SimulationController} & Llançament de simulacions des de la GUI \\
-\texttt{SimulationFrame} & Formulari, taula de resultats i sortida requerida \\
-\texttt{HistogramPanel} & Visualització de la distribució empírica \\
+\texttt{Main} & Entrada obligatòria de consola amb el format exacte de l'enunciat. \\
+\texttt{GUI} & Entrada gràfica; només crea la finestra i connecta vista i controlador. \\
+\texttt{CLI} & Experiments reproduïbles per a la memòria. \\
+\texttt{Game} & Estat i regles d'una partida de 1--4 jugadors, efectes especials i tirades del dau. \\
+\texttt{GameSnapshot} & Posició i penalitzacions pendents entre torns. \\
+\texttt{MoveResult} & Resultat intern d'una tirada: casella de caiguda, casella final i penalització. \\
+\texttt{MatchResult} & Durada i guanyador d'una partida completa. \\
+\texttt{Simulation} & Execució de moltes partides, mode seqüencial i mode concurrent. \\
+\texttt{SimulationData} & Dades brutes: torns, visites i victòries. \\
+\texttt{SimulationStats} & Ordenació de mostres, percentils, mínim, màxim i mitjana. \\
+\texttt{SimulationResult} & Resultat preparat per a la GUI. \\
+\texttt{RuleVariant} & Configuració de variants de regles. \\
+\texttt{SimulationController} & Connexió entre GUI i model; llança càlculs amb \texttt{SwingWorker}. \\
+\texttt{SimulationView} & Contracte mínim que ha de complir la vista gràfica. \\
+\texttt{SimulationViewListener} & Esdeveniments de la vista que el controlador ha d'atendre. \\
+\texttt{SimulationFrame} & Formulari, taules, sortida requerida i pestanyes de resultats. \\
+\texttt{HistogramPanel} & Representació gràfica discreta de la distribució de torns. \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Les simulacions de la interfície gràfica s'executen dins un \texttt{SwingWorker}.
-Això evita bloquejar el fil d'esdeveniments de Swing mentre es calculen moltes
-partides. El mateix model es fa servir des de consola i des de la GUI, de manera que
-el format obligatori de sortida i la representació gràfica provenen de les mateixes
-dades.
+\subsection{Entrades del Programa}
 
-\subsection{Simulació d'un torn}
+El projecte té tres punts d'entrada perquè cada ús té una responsabilitat diferent.
+\texttt{Main} és el programa obligatori de l'enunciat: llegeix un únic enter $N$,
+executa $N$ partides amb regles oficials i imprimeix exactament mínim, percentils,
+mediana, màxim i mitjana. No accepta llavors ni opcions addicionals per evitar que
+la sortida requerida quedi contaminada amb text de depuració o de benchmark.
 
-La classe \texttt{OcaGameSimulator} incrementa el comptador una vegada per cada torn
-comptat. Si hi ha penalitzacions pendents, el torn es consumeix sense llançar el dau.
-En cas contrari es tira el dau i, si l'efecte d'una oca dona dret a una nova tirada,
-aquesta nova tirada es processa dins el mateix torn comptat.
+\texttt{GUI} és l'entrada gràfica. Inicialitza Swing, crea la finestra principal
+i la connecta amb el controlador. Això manté la classe d'arrencada separada tant
+de la lògica de simulació com de la construcció visual detallada.
 
-\begin{lstlisting}[caption={Estructura bàsica de la simulació d'una partida.},label={lst:simulacio}]
+\texttt{CLI} és l'entrada experimental. A diferència de \texttt{Main}, sí accepta
+paràmetres com $N$, llavor, variants, repeticions, nombre de jugadors, fils, format
+CSV o Markdown i nombre de caselles visitades a mostrar. Aquesta separació permet
+tenir alhora una sortida estricta per a la correcció automàtica i una eina flexible
+per reconstruir les taules de la memòria.
+
+\subsection{Model del Joc}
+
+La classe \texttt{Game} és el centre del model. Conté les constants del tauler, les
+caselles especials, la tirada del dau, el rebot, la regla d'un únic efecte especial,
+les tirades extra d'oca, les penalitzacions, la mort, el laberint i les captures
+multijugador. En el cas d'un jugador, la lògica principal és la següent:
+
+\begin{lstlisting}[caption={Esquema de simulació d'una partida.},label={lst:partida}]
 int turns = 0;
 GameSnapshot state = new GameSnapshot(0, 0);
 while (!state.isFinished()) {
-    state = advanceTurn(state);
+    state = advanceTurn(state, visits);
     turns++;
 }
 \end{lstlisting}
 
-La injecció de la interfície \texttt{Die} permet utilitzar un dau aleatori en
-producció i seqüències deterministes en les proves unitàries. Aquesta decisió fa que
-les regles especials es puguin verificar sense dependre de l'atzar.
+El mètode \texttt{advanceTurn} distingeix dos casos. Si hi ha penalitzacions
+pendents, decrementa el comptador de penalització i retorna el mateix lloc. Si no
+n'hi ha, llança el dau i aplica \texttt{applyRoll}. Quan una oca dona una tirada
+extra, el mètode repeteix el procés dins el mateix torn comptat. Per això el mínim
+observat pot arribar a ser 1: una cadena favorable d'oques pot portar directament
+fins a la meta sense incrementar el comptador de torns.
 
-\section{Resultats i Discussió}
+\texttt{GameSnapshot} és un registre immutable amb la posició i les penalitzacions
+pendents d'una fitxa entre dos torns. S'utilitza també en multijugador: una partida
+amb $J$ jugadors manté un vector de $J$ snapshots. La immutabilitat evita efectes
+laterals difícils de seguir, perquè avançar un torn sempre produeix un nou estat.
 
-\subsection{Validació funcional}
+\texttt{MoveResult} és el resultat intern d'una tirada de dau. Guarda la casella on
+s'ha caigut, la casella final després de l'efecte especial, les penalitzacions
+generades, si hi ha una tirada extra i si la partida ha acabat. Aquesta classe és
+necessària perquè una tirada pot tenir dues caselles rellevants: per exemple, caure
+a 6 i acabar a 12 pel pont.
 
-S'han implementat proves unitàries amb JUnit 5 per als casos més sensibles de
-l'enunciat: rebot després de la casella 63, finalització exacta, oques amb tirada
-extra, ponts i dados sense cascada d'efectes, penalitzacions que consumeixen torns
-sense llançar el dau, laberint, mort i càlcul dels percentils. La suite actual
-conté 13 proves i s'ha executat correctament amb \texttt{mvn test}.
+\texttt{MatchResult} representa una partida completa. Conté el nombre total de torns
+i el guanyador. En el cas obligatori d'un jugador, el guanyador sempre és el jugador
+0; en l'ampliació multijugador, aquest camp alimenta les probabilitats de victòria.
 
-També s'ha validat manualment el mode de consola. Per exemple, amb entrada \(N\),
-la sortida es construeix sempre amb les etiquetes exactes demanades:
+\texttt{RuleVariant} encapsula quins grups de regles estan actius. Les variants no
+afecten \texttt{Main}, però permeten que la CLI i la GUI comparin regles oficials,
+absència de penalitzacions, oques sense tirada extra i absència de caselles
+especials sense duplicar el codi de moviment.
 
-\begin{lstlisting}[caption={Format de sortida generat per \texttt{SimulationStats}.},label={lst:sortida}]
-Minimo: ...
-P1: ...
-P2: ...
-P3: ...
-P4: ...
-Mediana: ...
-P6: ...
-P7: ...
-P8: ...
-P9: ...
-Maximo: ...
-Media: ...
+En mode multijugador, \texttt{Game} manté un vector de \texttt{GameSnapshot}, un per
+jugador, i un índex de torn. Cada torn només modifica primer l'estat del jugador
+actual. Si aquest jugador arriba a la casella 63, es retorna un \texttt{MatchResult}
+amb el nombre total de torns i l'índex del guanyador. Si no acaba i la seva casella
+final ja estava ocupada, l'ocupant anterior es reinicia a la casella 0 i perd les
+penalitzacions pendents. Aquesta regla de captura s'aplica després d'haver resolt el
+moviment, el rebot i com a màxim un efecte especial.
+
+\subsection{Simulació i Estadística}
+
+La classe \texttt{Simulation} executa moltes partides independents. En mode
+seqüencial, totes les partides reutilitzen un \texttt{Game} amb un generador
+\texttt{Random}. En mode concurrent, el nombre total de partides es divideix en
+blocs. Cada bloc rep una llavor derivada de la llavor base i de l'índex del
+treballador, de manera que no hi ha cap \texttt{Random} compartit entre fils.
+
+El resultat brut és un \texttt{SimulationData}: un vector amb els torns de cada
+partida, un vector de 64 comptadors de visita i un vector de comptadors de
+victòries per jugador. Aquesta classe només transporta observacions i clona els
+vectors d'entrada i sortida per evitar modificacions accidentals.
+
+\texttt{SimulationStats} rep els torns bruts i en calcula mínim, màxim, mitjana,
+mediana i percentils. L'ordenació de la mostra queda concentrada aquí, de manera que
+\texttt{Main}, \texttt{CLI} i la GUI comparteixen exactament el mateix criteri
+estadístic.
+
+\texttt{SimulationResult} és l'objecte de resultat de la GUI. A més dels estadístics,
+manté els torns originals per dibuixar l'histograma, les visites per casella, els
+comptadors de victòria, la llavor usada, el nombre de fils i, si escau, la
+comparació de variants.
+
+\subsection{Controlador}
+
+\texttt{SimulationController} connecta la vista amb el model. Rep els paràmetres
+introduïts per l'usuari, valida el nombre de partides, decideix quines variants cal
+executar i construeix el \texttt{SimulationResult}. Les simulacions s'executen dins
+un \texttt{SwingWorker} per no bloquejar el fil d'esdeveniments de Swing. Així,
+la finestra pot actualitzar l'estat d'execució i mostrar errors sense conèixer els
+detalls de la simulació.
+
+\subsection{Vista Gràfica}
+
+\texttt{SimulationView} és la interfície que el controlador utilitza per comunicar-se
+amb qualsevol vista. Defineix operacions com canviar l'estat d'execució, mostrar
+resultats i mostrar errors. \texttt{SimulationViewListener} és el contracte invers:
+la vista l'empra per avisar que l'usuari ha demanat una simulació.
+
+\texttt{SimulationFrame} és la finestra Swing concreta. Permet indicar $N$, una
+llavor opcional, la variant de regles, el nombre de jugadors, el nombre de fils i si
+es vol comparar variants. Els resultats es mostren en cinc formes: estadístics
+principals, text amb el format exacte de l'enunciat, histograma de torns, taula de
+freqüències de visita i taula de probabilitats de victòria.
+
+L'histograma no agrupa els torns en intervals continus: cada barra correspon a un
+valor enter de torns observats. Això és coherent amb la naturalesa discreta de la
+variable $X$. Els eixos es dibuixen amb marques regulars de valors ``bons''
+(múltiples de 1, 2, 5 i potències de 10), de manera que l'escala sigui estable i
+llegible encara que el màxim observat canviï entre simulacions. Aquesta lògica de
+dibuix queda encapsulada a \texttt{HistogramPanel}, i per això \texttt{SimulationFrame}
+no necessita conèixer els detalls de pintat de l'eix ni de les barres.
+
+\subsection{CLI Reproduïble}
+
+La classe \texttt{CLI} és l'eina emprada per generar les taules d'aquesta memòria.
+Permet passar valors de $N$, llavor base, variants, repeticions, nombre de
+jugadors, nombre de fils, format de sortida i nombre de caselles més visitades. La
+Llista~\ref{lst:ordres} mostra un exemple representatiu amb sortida CSV abreujada.
+
+\begin{lstlisting}[caption={Exemple d'execució reproduïble de la CLI.},label={lst:ordres}]
+CLI --games 100000 --seed 20260613 --players 4 \
+  --variants standard --repetitions 1 --format csv
+
+variant,players,n,rep,...,mean,win1,...,win4
+STANDARD,4,...,45.831060,0.262760,...,0.237110
 \end{lstlisting}
 
-\subsection{Experiments}
+La CLI imprimeix la llavor efectiva de cada fila. Això és important perquè les
+llavors de les repeticions no són simplement consecutives: es deriven de la llavor
+base, de la variant, del valor de $N$ i del número de repetició. Així, una fila es
+pot repetir exactament sense dependre de les altres.
 
-La taula~\ref{tab:resultats} mostra tres execucions amb llavors fixes. Per a cada
-\(N\) s'ha emprat la llavor \(20260609+N\), de manera que els valors són
-reproduïbles amb el mateix generador pseudoaleatori de Java. Els temps són mesures
-orientatives obtingudes en l'entorn local de desenvolupament.
+%% ================================================================
+\section{Metodologia Experimental}
+\label{sec:experiments}
+
+Les conclusions estadístiques provenen de les mostres de torns i de les llavors
+impreses per la CLI. Per evitar barrejar efectes de paral·lelització amb les
+estimacions principals, les taules estadístiques s'han generat amb un sol fil. La
+concurrència s'analitza en una prova separada.
+
+S'han dissenyat cinc grups de proves:
+\begin{enumerate}
+    \item \textbf{Convergència:} 5 repeticions independents per a $N=1\,000$,
+    $10\,000$, $100\,000$, $250\,000$, $500\,000$ i $1\,000\,000$ amb regles
+    oficials.
+    \item \textbf{Variants:} 3 repeticions amb $N=250\,000$ per a cada variant.
+    \item \textbf{Jugadors:} 3 repeticions amb $N=250\,000$ per a 1, 2, 3 i 4
+    jugadors amb regles oficials.
+    \item \textbf{Freqüències de visita:} una execució de $N=250\,000$ amb regles
+    oficials i les 12 caselles més visitades.
+    \item \textbf{Concurrència:} $N=1\,000\,000$ amb 1, 2, 4 i 8 fils.
+\end{enumerate}
+
+A partir de la prova de convergència s'ha triat $N^*=250\,000$ per a variants,
+jugadors i visites. Aquest valor manté mediana i percentils estables i redueix
+l'error estàndard de la mitjana a prop de 0.013 torns; els increments fins a
+$500\,000$ i $1\,000\,000$ milloren la precisió, però no canvien les conclusions
+substantives. La prova de concurrència conserva $N=1\,000\,000$ perquè necessita un
+lot gran per observar diferències entre nombres de fils.
+
+Quan una taula agrega diverses repeticions, la columna de mitjana indica la mitjana
+de les mitjanes obtingudes en aquelles repeticions. Quan es mostra una execució
+individual, la mitjana correspon només als torns d'aquella execució. Els percentils
+provenen del criteri de rang més proper de l'Equació~\ref{eq:percentil}.
+
+%% ================================================================
+\section{Resultats i Discussió}
+
+\subsection{Convergència de la Mitjana i dels Percentils}
+
+La Taula~\ref{tab:convergencia} resumeix les 30 execucions de convergència. Per
+cada valor de $N$ s'ha calculat la mitjana de les cinc mitjanes obtingudes, la
+desviació típica mostral d'aquestes mitjanes, el rang de mitjanes observat, la
+mediana típica i el percentil $0.9$ típic.
 
 \begin{table*}[t]
 \centering
-\caption{Resultats empírics de la simulació Monte Carlo.}
-\label{tab:resultats}
-\begin{tabular}{rrrrrrrr}
+\caption{Convergència amb regles oficials. Cada fila agrega 5 repeticions independents.}
+\label{tab:convergencia}
+\footnotesize
+\begin{tabular}{rrrrrrr}
 \toprule
-\(N\) & Mínim & \(P_{0.1}\) & Mediana & \(P_{0.9}\) & Mitjana & Màxim & Temps (ms) \\
+$N$ & Mitjana agregada & Desv. típica & Rang de mitjanes & Mediana & $P_{0.1}$ & $P_{0.9}$ \\
 \midrule
-1.000 & 3 & 8 & 17 & 38 & 20.425000 & 107 & 8 \\
-10.000 & 3 & 8 & 17 & 38 & 20.651200 & 143 & 11 \\
-100.000 & 2 & 8 & 17 & 38 & 20.704830 & 175 & 116 \\
+1\,000 & 20.757800 & 0.4008 & 20.070000--21.051000 & 16--17 & 8 & 37--39 \\
+10\,000 & 20.714960 & 0.1460 & 20.453900--20.787000 & 17 & 8 & 38--39 \\
+100\,000 & 20.769808 & 0.0352 & 20.729070--20.807100 & 17 & 8 & 38--39 \\
+250\,000 & 20.759382 & 0.0282 & 20.731120--20.805856 & 17 & 8 & 38--39 \\
+500\,000 & 20.753412 & 0.0262 & 20.719298--20.783472 & 17 & 8 & 38--39 \\
+1\,000\,000 & 20.761862 & 0.0119 & 20.749209--20.776132 & 17 & 8 & 39 \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
-Els resultats indiquen que la mitjana s'estabilitza al voltant de 20,7 torns a
-mesura que augmenta \(N\). Els percentils centrals també són molt estables: en les
-tres execucions el percentil 0,1 és 8, la mediana és 17 i el percentil 0,9 és 38.
-En canvi, el màxim observat creix quan es fan més partides. Aquest comportament és
-esperable, perquè el màxim és molt sensible a la cua de la distribució i no és un
-estimador estable del comportament típic.
+La reducció de variabilitat és clara. Amb $N=1\,000$, el rang de mitjanes és de
+0.981 torns. Amb $N=100\,000$, baixa a 0.078 torns, i amb $N=1\,000\,000$ queda en
+0.027 torns. Això concorda amb el comportament esperat a partir de
+l'equació~\ref{eq:error-mitjana}: l'error típic de la mitjana decreix de manera
+aproximada com $O(1/\sqrt{N})$.
 
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{semilogxaxis}[
+    width=\columnwidth,
+    height=0.58\columnwidth,
+    xlabel={$N$},
+    ylabel={Desv. típica de la mitjana},
+    xmin=800, xmax=1200000,
+    ymin=0, ymax=0.43,
+    xtick={1000,10000,100000,250000,500000,1000000},
+    xticklabels={$10^3$,$10^4$,$10^5$,$2.5\cdot10^5$,$5\cdot10^5$,$10^6$},
+    ymajorgrids=true,
+    grid style={gray!25},
+    tick label style={font=\scriptsize},
+    label style={font=\scriptsize}
+]
+\addplot+[mark=*] coordinates {
+    (1000,0.4008)
+    (10000,0.1460)
+    (100000,0.0352)
+    (250000,0.0282)
+    (500000,0.0262)
+    (1000000,0.0119)
+};
+\end{semilogxaxis}
+\end{tikzpicture}
+\caption{Reducció de la variabilitat de la mitjana estimada quan creix $N$.}
+\label{fig:convergencia-sd}
+\end{figure}
+
+Els percentils són encara més estables. El percentil $0.1$ és 8 en totes les
+execucions de la taula, la mediana queda pràcticament fixada en 17 i el percentil
+$0.9$ oscil·la només entre 38 i 39 per a $N\geq10\,000$. Això suggereix que la
+forma central de la distribució es pot descriure amb menys mostres que les que fan
+falta per estabilitzar els extrems de la cua.
+
+\subsection{Incertesa de l'Estimació}
+
+Les cinc repeticions per cada valor de $N$ també permeten estimar la incertesa de
+la mitjana estimada. Si $s$ és la desviació típica mostral de les cinc mitjanes,
+l'error estàndard de la mitjana d'aquestes cinc execucions és $s/\sqrt{5}$. Per a
+$N=1\,000$, és aproximadament 0.179 torns; per a $N=100\,000$, baixa a 0.016 torns;
+per a $N=250\,000$, és 0.013 torns; i per a $N=1\,000\,000$, és 0.005 torns.
+
+Aquesta anàlisi no pretén donar un interval de confiança formal molt precís, perquè
+cinc repeticions són poques per estimar una variància amb alta fiabilitat. Tot i
+això, és suficient per justificar la decisió experimental: s'utilitza
+$N^*=250\,000$ per a variants, multijugador i visites. Aquest valor ja mostra una
+mitjana estable i percentils centrals pràcticament constants. Les mostres de
+$500\,000$ i $1\,000\,000$ milloren la precisió, però no canvien la interpretació
+de les comparacions principals.
+
+Una altra observació important és que el mínim observat cau de 3 a 1 quan $N$
+augmenta. Això no indica un error: una partida pot acabar en un sol torn si, dins
+el mateix torn, diverses tirades d'oca encadenen salts fins a la casella final. A
+mostres petites és poc probable veure aquest cas extrem, però amb $100\,000$
+partides ja apareix en diverses repeticions.
+
+\subsection{Cua de la Distribució}
+
+La part menys estable és el màxim. En les cinc execucions amb $N=1\,000$, els màxims
+observats foren 100, 128, 93, 89 i 95. Amb $N=100\,000$, apareixen màxims de fins a
+201, i amb $N=1\,000\,000$ apareix una execució amb 233 torns. Aquest creixement no
+contradiu la convergència de la mitjana: el màxim mesura un extrem de la cua, no el
+comportament central.
+
+La cua llarga és coherent amb les regles. Caselles com la mort poden retornar el
+jugador al principi, i les penalitzacions poden afegir torns sense progrés. Això
+crea partides molt llargues amb probabilitat baixa. Per aquesta raó, el màxim és
+útil com a observació de robustesa, però no s'ha d'interpretar com una estimació
+estable del ``cas pitjor'' real.
+
+\subsection{Comparació de Variants}
+
+La Taula~\ref{tab:variants} compara variants de regles amb $N=250\,000$ i tres
+repeticions. Per condensar la informació, es mostra la mitjana de les tres
+mitjanes, la mediana típica, el percentil $0.9$ i la diferència respecte de les
+regles oficials.
+
+\begin{table*}[t]
+\centering
+\caption{Efecte de les variants de regles amb $N=250\,000$ i 3 repeticions.}
+\label{tab:variants}
+\footnotesize
+\begin{tabular}{lrrrrr}
+\toprule
+Variant & Mitjana agregada & Mediana & $P_{0.9}$ & Diferència & Diferència \% \\
+\midrule
+Regles oficials & 20.753311 & 17 & 38--39 & 0.000000 & 0.0 \\
+Sense penalitzacions & 18.695409 & 15 & 34 & -2.057901 & -9.9 \\
+Oques sense tirada extra & 24.998955 & 20 & 46 & +4.245644 & +20.5 \\
+Sense caselles especials & 22.771131 & 21 & 30 & +2.017820 & +9.7 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+La variant sense penalitzacions és la més ràpida: redueix la mitjana en uns dos
+torns, gairebé un 10\%. Això confirma que posada, pou i presó tenen un impacte
+important en la durada, sobretot perquè afegeixen torns sense cap moviment.
+
+La variant sense tirada extra d'oca és la més lenta. Les oques continuen
+teletransportant cap endavant, però l'avantatge de no comptar la nova tirada
+desapareix. La mitjana puja més de quatre torns. Això mostra que la regla ``de oca
+a oca y tiro porque me toca'' no és un detall menor: és una de les fonts principals
+de reducció del nombre de torns comptats.
+
+La variant sense caselles especials té una mitjana superior a l'oficial, però un
+percentil $0.9$ menor. Això sembla paradoxal només al principi. Sense caselles
+especials no hi ha dreceres d'oca ni salts endavant, de manera que la partida típica
+triga més. Però tampoc hi ha mort, pou ni presó, de manera que la cua dreta es fa
+menys extrema. El resultat és una distribució més concentrada però desplaçada cap a
+valors centrals una mica més alts.
+
+\subsection{Partides amb Diversos Jugadors}
+
+La Taula~\ref{tab:jugadors} mostra l'extensió opcional a partides de 1 a 4
+jugadors. En aquesta prova tots els jugadors segueixen les mateixes regles i juguen
+en ordre cíclic. Quan una fitxa acaba el torn en una casella ocupada, captura
+l'ocupant anterior i l'envia a la casella 0. Per això la mitjana representa el
+nombre total de torns de la partida col·lectiva, no els torns consumits per cada
+jugador individualment. Cada fila agrega tres repeticions de $250\,000$ partides,
+és a dir, $750\,000$ partides per cada nombre de jugadors.
+
+\begin{table*}[t]
+\centering
+\caption{Durada i probabilitats de victòria amb 1--4 jugadors, $N=250\,000$ i 3 repeticions.}
+\label{tab:jugadors}
+\footnotesize
+\begin{tabular}{rrrrrrrr}
+\toprule
+Jugadors & Mitjana agregada & Mediana & $P_{0.9}$ & $\Pr(W=1)$ & $\Pr(W=2)$ & $\Pr(W=3)$ & $\Pr(W=4)$ \\
+\midrule
+1 & 20.753311 & 17 & 38--39 & 1.000000 & -- & -- & -- \\
+2 & 29.249520 & 26 & 50 & 0.510141 & 0.489859 & -- & -- \\
+3 & 37.556737 & 34 & 62 & 0.345716 & 0.333723 & 0.320561 & -- \\
+4 & 45.791199 & 42 & 74 & 0.263187 & 0.254387 & 0.244127 & 0.238300 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+La Taula~\ref{tab:jugadors-biaix} aprofundeix en la mateixa prova. El rang de
+mitjanes és el mínim i el màxim de les tres repeticions. La columna
+mitjana/$J$ no és una durada individual completa, sinó una normalització del
+cost total de la partida per nombre de jugadors; serveix per veure com el fet
+d'aturar-se al primer guanyador redueix el cost efectiu per jugador.
+
+\begin{table*}[t]
+\centering
+\caption{Estabilitat i biaix de l'ordre de torn en l'experiment multijugador.}
+\label{tab:jugadors-biaix}
+\footnotesize
+\begin{tabular}{rrrrrrrr}
+\toprule
+Jugadors & Rang de mitjanes & Mitjana/$J$ & $1/J$ & $\Pr(W=1)-1/J$ & $\Pr(W=J)-1/J$ & Biaix $1-J$ & Ràtio $W_1/W_J$ \\
+\midrule
+1 & 20.744856--20.757584 & 20.753311 & 1.000000 & -- & -- & -- & -- \\
+2 & 29.217540--29.274840 & 14.624760 & 0.500000 & +0.010141 & -0.010141 & 0.020283 & 1.041 \\
+3 & 37.526280--37.590728 & 12.518912 & 0.333333 & +0.012383 & -0.012772 & 0.025155 & 1.078 \\
+4 & 45.773976--45.815492 & 11.447800 & 0.250000 & +0.013187 & -0.011700 & 0.024887 & 1.104 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    width=\columnwidth,
+    height=0.62\columnwidth,
+    xlabel={Jugador},
+    ylabel={Probabilitat de victòria},
+    xmin=0.8, xmax=4.2,
+    ymin=0.20, ymax=0.54,
+    xtick={1,2,3,4},
+    ymajorgrids=true,
+    grid style={gray!25},
+    legend style={font=\scriptsize, at={(0.98,0.98)}, anchor=north east},
+    tick label style={font=\scriptsize},
+    label style={font=\scriptsize}
+]
+\addplot+[mark=*] coordinates {(1,0.510141) (2,0.489859)};
+\addlegendentry{2 jugadors}
+\addplot+[mark=square*] coordinates {(1,0.345716) (2,0.333723) (3,0.320561)};
+\addlegendentry{3 jugadors}
+\addplot+[mark=triangle*] coordinates {(1,0.263187) (2,0.254387) (3,0.244127) (4,0.238300)};
+\addlegendentry{4 jugadors}
+\end{axis}
+\end{tikzpicture}
+\caption{Probabilitat de victòria segons l'ordre de torn amb captures.}
+\label{fig:victories}
+\end{figure}
+
+La durada total creix amb el nombre de jugadors, però no de manera proporcional. Amb
+quatre jugadors la mitjana és 45.79 torns totals, molt per sota de quatre partides
+individuals independents, perquè només cal que un jugador acabi. La mediana puja de
+17 a 42 torns totals i el percentil $0.9$ arriba a 74, cosa que indica que la
+partida col·lectiva continua tenint cua llarga. Ara bé, la columna
+La mitjana dividida per $J$ baixa de 20.75 torns amb un jugador a 11.45 amb quatre jugadors:
+afegir jugadors incrementa la durada total i les captures introdueixen retrocessos,
+però també augmenta la probabilitat que algun jugador tengui una trajectòria ràpida.
+
+Les repeticions són estables. El rang de mitjanes és de 0.013 torns amb un jugador,
+0.057 amb dos, 0.064 amb tres i 0.042 amb quatre. Aquestes diferències són petites
+comparades amb els canvis entre nombres de jugadors, que són de 8 a 9 torns totals
+entre files consecutives. Per tant, les conclusions sobre durada no depenen d'una
+llavor concreta.
+
+Les probabilitats de victòria no són exactament uniformes. Si l'ordre de torn no
+introduís cap biaix, cada jugador hauria de guanyar amb probabilitat $1/J$. En
+canvi, el primer jugador guanya un 51.0\% de les partides de dos jugadors i un
+26.3\% de les de quatre, mentre que el darrer baixa fins al 23.8\% en el cas de
+quatre. El biaix entre el primer i el darrer jugador es manté al voltant de 2.5
+punts percentuals; en termes relatius, el primer jugador guanya aproximadament un
+10.7\% més de partides que el quart.
+
+Aquest efecte és massa gran per atribuir-lo al soroll Monte Carlo. Amb $750\,000$
+partides agregades, l'error estàndard d'una proporció al voltant de $0.25$ és de
+l'ordre de $5\cdot10^{-4}$, molt menor que una desviació d'1.0--1.3 punts
+percentuals respecte de $1/J$. El mecanisme és estructural: els torns són cíclics i
+la partida acaba immediatament quan algú arriba a la casella 63. Si el primer
+jugador acaba en una ronda, els jugadors posteriors ja no reben l'oportunitat
+d'igualar-lo en aquella mateixa ronda. Si es volgués una experiència simètrica,
+bastaria aleatoritzar quin jugador comença cada partida.
+
+\subsection{Freqüències de Visita}
+
+La Taula~\ref{tab:visites} mostra les 12 caselles més visitades en una execució de
+$N=250\,000$ amb regles oficials. El percentatge està calculat sobre el total de
+visites registrades, no sobre el nombre de partides. Una partida pot visitar moltes
+caselles, i una mateixa casella pot aparèixer més d'una vegada en la mateixa
+partida.
+
+\begin{table}[H]
+\centering
+\caption{Caselles més visitades amb regles oficials, $N=250\,000$.}
+\label{tab:visites}
+\footnotesize
+\begin{tabular}{rrrr}
+\toprule
+Rang & Casella & Visites & Percentatge \\
+\midrule
+1 & 0 & 364\,644 & 4.4179 \\
+2 & 52 & 315\,752 & 3.8256 \\
+3 & 31 & 291\,456 & 3.5312 \\
+4 & 63 & 250\,000 & 3.0289 \\
+5 & 41 & 213\,077 & 2.5816 \\
+6 & 59 & 212\,297 & 2.5721 \\
+7 & 36 & 211\,987 & 2.5684 \\
+8 & 62 & 201\,854 & 2.4456 \\
+9 & 6 & 187\,316 & 2.2695 \\
+10 & 12 & 187\,316 & 2.2695 \\
+11 & 61 & 184\,460 & 2.2349 \\
+12 & 30 & 181\,992 & 2.2050 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La casella 0 és la més visitada perquè totes les partides hi comencen i perquè la
+casella de mort 58 retorna el jugador al principi. Les caselles 52 i 31 també són
+molt freqüents perquè la visita es compta tant quan s'hi cau com durant els torns
+anul·lats que mantenen el jugador immòbil. La casella 63 apareix exactament
+250\,000 vegades: una per partida acabada.
+
+Les caselles 41, 59 i 36 formen part de la cadena d'oques. La seva presència
+entre les més visitades és esperable perquè una caiguda en una oca pot generar més
+tirades dins el mateix torn i travessar diverses oques en una seqüència curta. La
+simetria entre 6 i 12 prové del pont: quan una d'aquestes caselles apareix, l'altra
+és la destinació immediata. La casella 30 també apareix entre les primeres perquè és
+la destinació del laberint.
+
+\subsection{Concurrència}
+
+La Taula~\ref{tab:threads} mostra una prova de rendiment amb $N=1\,000\,000$ i la
+mateixa llavor base. Com que la simulació paral·lela reparteix la llavor entre
+treballadors, les mostres no són idèntiques entre nombres de fils diferents, però
+sí són reproduïbles per a cada configuració concreta.
+
+\begin{table}[H]
+\centering
+\caption{Temps de simulació amb $N=1\,000\,000$ i regles oficials.}
+\label{tab:threads}
+\footnotesize
+\begin{tabular}{rrrrr}
+\toprule
+Fils & Temps (ms) & Acceleració & Mitjana & Màxim \\
+\midrule
+1 & 573 & 1.00 & 20.759707 & 233 \\
+2 & 364 & 1.57 & 20.767541 & 212 \\
+4 & 176 & 3.26 & 20.765076 & 183 \\
+8 & 121 & 4.74 & 20.755403 & 183 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El guany amb 8 fils és d'aproximadament $4.7\times$, lluny d'un factor 8 però
+clarament positiu. Hi ha diverses raons: la creació i coordinació de fils no és
+gratuïta, cal fusionar vectors de freqüències i la part d'ordenació dels $N$ torns
+continua sent seqüencial en aquesta implementació. A més, per a $N$ relativament
+petits la sobrecàrrega pot dominar. Per això la GUI permet configurar el nombre de
+fils en lloc d'imposar sempre el màxim disponible.
+
+%% ================================================================
 \section{Conclusions}
 
-La pràctica s'ha resolt amb una simulació Monte Carlo directa i modular. El model
-implementa les regles exactes de la partida, incloent les penalitzacions i la regla
-d'un sol efecte especial per tirada. La separació MVC permet disposar d'una sortida
-de consola estricta i d'una interfície gràfica sense duplicar la lògica de simulació.
+La pràctica s'ha resolt amb una simulació Monte Carlo modular i extensible. El
+model de joc queda concentrat a \texttt{Game}, la simulació massiva a
+\texttt{Simulation} i els estadístics a \texttt{SimulationStats}. La sortida
+obligatòria de \texttt{Main} és simple i estricta, mentre que \texttt{CLI} ofereix
+les opcions necessàries per fer experiments reproduïbles sense interacció manual.
+La GUI compleix el requisit d'interfície gràfica i afegeix histograma discret amb
+eixos llegibles, comparació de variants, selecció de jugadors, probabilitats de
+victòria i freqüències de visita.
 
-Els experiments mostren que amb \(N=100.000\) partides la mitjana i els percentils
-principals ja són estables per a una estimació pràctica. Com a ampliacions naturals
-es podrien afegir simulació concurrent, comparació de variants de regles, recompte
-de freqüències de visita de cada casella o estudi de partides amb diversos jugadors.
+Els resultats empírics indiquen que la durada típica d'una partida amb regles
+oficials és d'aproximadament 20.75 torns, amb mediana 17 i percentil $0.9$ al
+voltant de 38--39. La mitjana convergeix de manera visible quan $N$ creix: la
+desviació entre repeticions baixa de 0.4008 torns amb $N=1\,000$ a 0.0282 torns amb
+$N=250\,000$ i a 0.0119 amb $N=1\,000\,000$. En canvi, el màxim observat és
+inestable i creix amb la mida de la mostra, fet coherent amb una distribució de cua
+llarga.
 
-\begin{thebibliography}{1}
+L'anàlisi de variants mostra que les penalitzacions afegeixen prop d'un 10\% de
+durada, mentre que eliminar la tirada extra de les oques incrementa la mitjana més
+d'un 20\%. Les partides multijugador amb captures confirmen un avantatge petit però
+persistent del primer jugador: amb quatre jugadors guanya aproximadament el 26.3\%
+de les partides, mentre que el quart queda al 23.8\%. Les captures també allarguen
+les partides col·lectives perquè poden retornar fitxes avançades a la sortida. Les
+freqüències de visita confirmen el paper especial de la mort, el pou i la presó, i
+també mostren la presència destacada de la cadena d'oques. Finalment, la simulació
+concurrent millora el temps d'execució per lots grans, però amb guanys sublineals
+per la sobrecàrrega i per la part seqüencial del procés estadístic.
 
-\bibitem{robert2004montecarlo}
-C.~P. Robert and G.~Casella, \emph{Monte Carlo Statistical Methods}.
-Springer, 2004.
-
-\bibitem{oracleSwingWorker}
-Oracle, ``Worker Threads and SwingWorker,'' \emph{The Java Tutorials}.
-[En línia]. Disponible: \url{https://docs.oracle.com/javase/tutorial/uiswing/concurrency/worker.html}
-
-\end{thebibliography}
+Com a treball futur, seria natural exportar totes les freqüències de visita a CSV,
+comparar altres convencions de percentils i calcular la distribució exacta
+mitjançant una cadena de Markov per al cas d'un jugador. També es podria afegir una
+opció per aleatoritzar el jugador inicial i comprovar que les probabilitats de
+victòria es tornen simètriques.
 
 \end{document}
